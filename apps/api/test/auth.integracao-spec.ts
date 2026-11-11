@@ -2,7 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/banco/prisma.service';
 import type { PrismaClient } from '../src/generated/prisma/client';
-import { semear } from '../prisma/seed';
+import { semearFixtureRls } from './fixtures/rls';
 import {
   aplicarMigrations,
   clienteDono,
@@ -19,7 +19,7 @@ let dono: PrismaClient;
 beforeAll(async () => {
   aplicarMigrations(url);
   dono = clienteDono(url);
-  await semear(dono, senhaSeed);
+  await semearFixtureRls(dono, senhaSeed);
 }, 120_000);
 
 afterAll(async () => {

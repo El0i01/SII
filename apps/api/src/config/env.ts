@@ -8,6 +8,8 @@ export const EnvSchema = z.object({
   DATABASE_URL: z.string().regex(/^postgres(ql)?:\/\//, 'precisa começar com postgresql://'),
   REDIS_URL: z.string().regex(/^rediss?:\/\//, 'precisa começar com redis://'),
   JWT_SEGREDO: z.string().min(32, 'precisa ter pelo menos 32 caracteres'),
+  CHAVE_CIFRA: z.string().regex(/^[0-9a-fA-F]{64}$/, 'precisa ter 32 bytes em hex (64 caracteres)'),
+  CHAVE_HMAC: z.string().regex(/^[0-9a-fA-F]{64}$/, 'precisa ter 32 bytes em hex (64 caracteres)'),
   REFRESH_HORAS_WEB: z.coerce
     .number()
     .int()

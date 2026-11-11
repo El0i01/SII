@@ -12,3 +12,4 @@ export * from './indice/ivm';
 export * from './creche/cobertura';
 export * from './territorio/geocodificacao';
 export * from './schemas/entrada';
+export * from './casos/verificador';

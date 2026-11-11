@@ -4,6 +4,8 @@ const valido = {
   DATABASE_URL: 'postgresql://sii:segredo-123@localhost:5444/sii',
   REDIS_URL: 'redis://:segredo-456@localhost:6390/0',
   JWT_SEGREDO: 'x'.repeat(32),
+  CHAVE_CIFRA: 'a'.repeat(64),
+  CHAVE_HMAC: 'b'.repeat(64),
 };
 
 describe('validarEnv', () => {

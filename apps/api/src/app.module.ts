@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { BancoModule } from './banco/banco.module';
 import { validarEnv } from './config/env';
+import { CriptoModule } from './cripto/cripto.service';
 import { PessoasModule } from './pessoas/pessoas.module';
 import { RedisModule } from './redis/redis.module';
 import { StatusModule } from './status/status.module';
@@ -19,6 +20,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
       validate: validarEnv,
     }),
     BancoModule,
+    CriptoModule,
     RedisModule,
     AuthModule,
     StatusModule,

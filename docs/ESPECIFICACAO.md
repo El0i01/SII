@@ -155,6 +155,8 @@ Toda tela de cadastro (web e mobile) mostra o pino sugerido para o usuário conf
 ### 3.3 Pessoas e identidade (`pessoas`)
 
 - `PessoaMestra`: um registro por cidadão. CPF, NIS e CNS cifrados + hash HMAC; nome; data de nascimento; nome da mãe; sexo.
+  - Cifragem AES-256-GCM na aplicação; o hash HMAC-SHA256 usa uma chave separada e tem índice único. A busca e a ligação entre fontes usam só o hash (ADR 0004).
+  - Nenhuma coluna guarda CPF, NIS ou CNS em texto.
 - `Familia` e `Domicilio`: composição familiar com o responsável familiar; o domicílio aponta para o lote.
 - `VinculoFonte`: pessoa ↔ registro em cada fonte (`ESUS`, `CADUNICO`, `GESTAO_ESCOLAR`, `CENSO`, `SEDUC`, `SINASC`) com `regra` e `confianca`.
 - Regras de ligação, nesta ordem:
@@ -190,6 +192,14 @@ Do SINASC: nascidos vivos com endereço. Do PBF na Saúde: situação do acompan
 Tipos v1: `BUSCA_ATIVA_ESCOLAR`, `INFREQUENCIA`, `PRIMEIRA_INFANCIA_SEM_CUIDADO`, `INCLUSAO_SEM_ATENDIMENTO`, `IDOSO_SEM_VISITA`.
 
 `EventoCaso` (append-only, encadeado por hash = código verificador): alerta gerado, encaminhado, notificação enviada, em análise, visita realizada, parecer emitido, encaminhado ao Conselho Tutelar, desfecho.
+
+Como funciona a trilha (ADR 0004):
+
+- Quem calcula `seq` e `hash` é o banco, no INSERT: `sha256(hash_anterior ‖ caso|seq|tipo|ocorrido_em|autor|dados)`.
+- UPDATE, DELETE e TRUNCATE são bloqueados por trigger.
+- `casos.verificar_trilha(caso)` confere a cadeia e pode ser usada pelo auditor.
+- O **código verificador** é `XXXX-XXXX-XXXX`, os 12 primeiros caracteres hex do hash do último evento.
+- `dados` nunca leva dado pessoal.
 
 `Notificacao`: origem, destino (CRAS do território do domicílio), motivo, status (`NOVA`, `EM_ANALISE`, `PARECER_EMITIDO`), prazo.
 `Parecer`: desfecho (lista fechada abaixo), texto (mínimo 30 caracteres, sem diagnóstico), autor, nova visita programada (sim/não).

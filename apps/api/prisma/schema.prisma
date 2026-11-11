@@ -11,17 +11,19 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["territorio", "acesso", "pessoas", "casos"]
+  schemas  = ["sii", "territorio", "acesso", "pessoas", "educacao", "saude", "assistencia", "casos", "indicadores", "auditoria"]
 }
 
-/// Setor urbano da sede (S01..S05 e industrial). Modelo mínimo do P02: o P05 completa e o P06 popula
-/// a partir do geoportal. Geometria em SIRGAS 2000 (EPSG:4674).
+/// Setor urbano da sede (S01..S05) ou a zona rural (RUR). Chave natural setor/quadra/lote (§3.1).
 model Setor {
-  id       Int                                          @id @default(autoincrement())
-  codigo   String                                       @unique @db.VarChar(10)
-  nome     String                                       @db.VarChar(80)
-  geom     Unsupported("geometry(MultiPolygon, 4674)")?
-  criadoEm DateTime                                     @default(now()) @map("criado_em") @db.Timestamptz(3)
+  id         Int                                          @id @default(autoincrement())
+  codigo     String                                       @unique @db.VarChar(10)
+  nome       String                                       @db.VarChar(80)
+  tipo       TipoSetor                                    @default(URBANO)
+  geom       Unsupported("geometry(MultiPolygon, 4674)")?
+  criadoEm   DateTime                                     @default(now()) @map("criado_em") @db.Timestamptz(3)
+  quadras    Quadra[]
+  domicilios Domicilio[]
 
   @@index([geom], map: "setor_geom_gist", type: Gist)
   @@map("setor")
@@ -157,35 +159,802 @@ model EventoAcesso {
 // ─── Esqueleto nominal (P03) ─────────────────────────────────────────────────────────────────────
 // Só as colunas que as policies de RLS usam. O P05 completa (CPF/NIS/CNS cifrados, família, domicílio…).
 
-/// Um registro por cidadão. Protegida por Row-Level Security (papel sii_app).
+/// Um registro por cidadão (§3.3). Protegida por Row-Level Security (papel sii_app).
+/// CPF, NIS e CNS: só cifrados (AES-256-GCM) + hash HMAC único para busca. Nunca em texto.
 model PessoaMestra {
-  id          Int      @id @default(autoincrement())
-  nome        String   @db.VarChar(160)
-  setorCodigo String?  @map("setor_codigo") @db.VarChar(10)
-  microarea   String?  @db.VarChar(40)
+  id              Int                        @id @default(autoincrement())
+  nome            String                     @db.VarChar(160)
+  /// Minúsculas, sem acento e sem espaços repetidos: base da similaridade do P07.
+  nomeNormalizado String                     @map("nome_normalizado") @db.VarChar(160)
+  dataNascimento  DateTime?                  @map("data_nascimento") @db.Date
+  nomeMae         String?                    @map("nome_mae") @db.VarChar(160)
+  sexo            Sexo?
+  cpfCifrado      Bytes?                     @map("cpf_cifrado")
+  cpfHash         Bytes?                     @unique @map("cpf_hash")
+  nisCifrado      Bytes?                     @map("nis_cifrado")
+  nisHash         Bytes?                     @unique @map("nis_hash")
+  cnsCifrado      Bytes?                     @map("cns_cifrado")
+  cnsHash         Bytes?                     @unique @map("cns_hash")
+  domicilioId     Int?                       @map("domicilio_id")
+  // Colunas de escopo da RLS (P03), desnormalizadas e mantidas pelas cargas.
+  setorCodigo     String?                    @map("setor_codigo") @db.VarChar(10)
+  microarea       String?                    @db.VarChar(40)
   /// INEP da escola da matrícula ativa.
-  escolaInep  String?  @map("escola_inep") @db.VarChar(8)
+  escolaInep      String?                    @map("escola_inep") @db.VarChar(8)
   /// CadSUAS do CRAS de referência.
-  crasCodigo  String?  @map("cras_codigo") @db.VarChar(20)
-  familiaPcf  String?  @map("familia_pcf") @db.VarChar(40)
-  criadoEm    DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
-  casos       Caso[]
+  crasCodigo      String?                    @map("cras_codigo") @db.VarChar(20)
+  familiaPcf      String?                    @map("familia_pcf") @db.VarChar(40)
+  criadoEm        DateTime                   @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm    DateTime                   @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+  domicilio       Domicilio?                 @relation(fields: [domicilioId], references: [id])
+  casos           Caso[]
+  membroDe        MembroFamilia[]
+  vinculos        VinculoFonte[]
+  matriculas      Matricula[]
+  atendimentos    AtendimentoEspecializado[]
+  sinalizador     SinalizadorSaude?
+  bpc             Bpc[]
+  scfv            Scfv[]
+  criancaFeliz    CriancaFeliz[]
+  filaCreche      FilaCreche[]
 
+  @@index([nomeNormalizado])
+  @@index([setorCodigo])
   @@map("pessoa_mestra")
   @@schema("pessoas")
 }
 
-/// Caso intersetorial. Herda a visibilidade da pessoa (RLS).
+/// Caso intersetorial (§3.7). Herda a visibilidade da pessoa (RLS).
 model Caso {
-  id                    Int          @id @default(autoincrement())
-  tipo                  String       @db.VarChar(40)
-  pessoaId              Int          @map("pessoa_id")
-  secretariaResponsavel String       @map("secretaria_responsavel") @db.VarChar(20)
-  status                String       @db.VarChar(30)
-  criadoEm              DateTime     @default(now()) @map("criado_em") @db.Timestamptz(3)
-  pessoa                PessoaMestra @relation(fields: [pessoaId], references: [id])
+  id                    Int           @id @default(autoincrement())
+  /// Identificador legível: BA-2026-0301, IF-2026-0120…
+  codigo                String        @unique @db.VarChar(20)
+  tipo                  String        @db.VarChar(40)
+  pessoaId              Int           @map("pessoa_id")
+  setorCodigo           String?       @map("setor_codigo") @db.VarChar(10)
+  /// Quadra (Q055) ou a linha rural (Linha C-10).
+  localidade            String?       @db.VarChar(40)
+  origem                String?       @db.VarChar(40)
+  secretariaResponsavel String        @map("secretaria_responsavel") @db.VarChar(20)
+  responsavelUsuarioId  Int?          @map("responsavel_usuario_id")
+  status                String        @db.VarChar(30)
+  /// 0 no prazo · 1 aviso · 2 coordenação · 3 Comitê (shared: prazoCaso).
+  nivel                 Int           @default(0) @db.SmallInt
+  alertaEm              DateTime      @default(now()) @map("alerta_em") @db.Timestamptz(3)
+  prazoEm               DateTime?     @map("prazo_em") @db.Date
+  encerradoEm           DateTime?     @map("encerrado_em") @db.Timestamptz(3)
+  criadoEm              DateTime      @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm          DateTime      @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+  pessoa                PessoaMestra  @relation(fields: [pessoaId], references: [id])
+  eventos               EventoCaso[]
+  notificacoes          Notificacao[]
+  visitas               Visita[]
 
   @@index([pessoaId])
+  @@index([tipo, status])
   @@map("caso")
   @@schema("casos")
+}
+
+// ─── Território (§3.1) ───────────────────────────────────────────────────────────────────────────
+
+enum TipoSetor {
+  URBANO
+  RURAL
+
+  @@schema("territorio")
+}
+
+enum SituacaoLote {
+  REGULAR
+  SEM_INSCRICAO
+  REURB_EM_ANALISE
+  TITULADO
+  VAZIO
+
+  @@schema("territorio")
+}
+
+enum FonteGeo {
+  CONFIRMADO_USUARIO
+  CENSO_GPS
+  LOTE
+  ESUS_TERRITORIO
+  CNEFE
+  SIGEF_CAR
+  SETOR
+
+  @@schema("territorio")
+}
+
+enum TipoEquipamento {
+  ESCOLA
+  SAUDE
+  ASSISTENCIA
+  OUTRO
+
+  @@schema("territorio")
+}
+
+enum TipoAreaReferencia {
+  MICROAREA
+  TERRITORIO_CRAS
+  ZONA_ESCOLA
+
+  @@schema("territorio")
+}
+
+/// Quadra. Enquanto a malha da Fazenda não chega, a geometria é a grade provisória (P06).
+model Quadra {
+  id         Int                                          @id @default(autoincrement())
+  setorId    Int                                          @map("setor_id")
+  codigo     String                                       @db.VarChar(10)
+  provisoria Boolean                                      @default(true)
+  geom       Unsupported("geometry(MultiPolygon, 4674)")?
+  setor      Setor                                        @relation(fields: [setorId], references: [id])
+  lotes      Lote[]
+  dimensoes  DimensaoIvmQuadra[]
+
+  @@unique([setorId, codigo])
+  @@index([geom], map: "quadra_geom_gist", type: Gist)
+  @@map("quadra")
+  @@schema("territorio")
+}
+
+model Lote {
+  id         Int                                          @id @default(autoincrement())
+  quadraId   Int                                          @map("quadra_id")
+  numero     Int                                          @db.SmallInt
+  situacao   SituacaoLote                                 @default(REGULAR)
+  inscricao  String?                                      @db.VarChar(30)
+  geom       Unsupported("geometry(MultiPolygon, 4674)")?
+  quadra     Quadra                                       @relation(fields: [quadraId], references: [id])
+  domicilios Domicilio[]
+
+  @@unique([quadraId, numero])
+  @@index([geom], map: "lote_geom_gist", type: Gist)
+  @@map("lote")
+  @@schema("territorio")
+}
+
+/// Domicílio: aponta para o lote (sede) ou só para o setor (zona rural). Ponto pela cascata (§3.2).
+model Domicilio {
+  id           Int                                   @id @default(autoincrement())
+  loteId       Int?                                  @map("lote_id")
+  setorId      Int                                   @map("setor_id")
+  /// Linha rural ou complemento, quando não há lote.
+  localidade   String?                               @db.VarChar(60)
+  geoFonte     FonteGeo?                             @map("geo_fonte")
+  geoPrecisaoM Float?                                @map("geo_precisao_m") @db.Real
+  ponto        Unsupported("geometry(Point, 4674)")?
+  confirmadoEm DateTime?                             @map("confirmado_em") @db.Timestamptz(3)
+  /// Moradores (cadastro domiciliar): 1 = mora sozinho(a).
+  moradores    Int?                                  @db.SmallInt
+  lote         Lote?                                 @relation(fields: [loteId], references: [id])
+  setor        Setor                                 @relation(fields: [setorId], references: [id])
+  pessoas      PessoaMestra[]
+  familias     Familia[]
+
+  @@index([ponto], map: "domicilio_ponto_gist", type: Gist)
+  @@map("domicilio")
+  @@schema("territorio")
+}
+
+/// Equipamento público (escola, UBS, CRAS…), com o código nacional quando houver.
+model Equipamento {
+  id            Int                                      @id @default(autoincrement())
+  tipo          TipoEquipamento
+  nome          String                                   @db.VarChar(160)
+  codigoInep    String?                                  @unique @map("codigo_inep") @db.VarChar(8)
+  codigoCnes    String?                                  @unique @map("codigo_cnes") @db.VarChar(7)
+  codigoCadsuas String?                                  @unique @map("codigo_cadsuas") @db.VarChar(20)
+  endereco      String?                                  @db.VarChar(200)
+  /// Anexo ou prédio novo de outro equipamento (AN. CUST, NOVO PEQ).
+  principalId   Int?                                     @map("principal_id")
+  geom          Unsupported("geometry(Geometry, 4674)")?
+  principal     Equipamento?                             @relation("Anexos", fields: [principalId], references: [id])
+  anexos        Equipamento[]                            @relation("Anexos")
+  escola        Escola?
+  areas         AreaReferencia[]
+
+  @@index([geom], map: "equipamento_geom_gist", type: Gist)
+  @@map("equipamento")
+  @@schema("territorio")
+}
+
+/// Área de referência: microárea do ACS, território do CRAS, zona da escola (roteia notificações).
+model AreaReferencia {
+  id            Int                                          @id @default(autoincrement())
+  tipo          TipoAreaReferencia
+  codigo        String                                       @db.VarChar(40)
+  nome          String?                                      @db.VarChar(120)
+  equipamentoId Int?                                         @map("equipamento_id")
+  geom          Unsupported("geometry(MultiPolygon, 4674)")?
+  equipamento   Equipamento?                                 @relation(fields: [equipamentoId], references: [id])
+
+  @@unique([tipo, codigo])
+  @@index([geom], map: "area_referencia_geom_gist", type: Gist)
+  @@map("area_referencia")
+  @@schema("territorio")
+}
+
+// ─── Pessoas (§3.3) ──────────────────────────────────────────────────────────────────────────────
+
+enum Sexo {
+  FEMININO
+  MASCULINO
+
+  @@schema("pessoas")
+}
+
+enum PapelFamiliar {
+  RESPONSAVEL
+  CONJUGE
+  FILHO
+  NETO
+  OUTRO
+
+  @@schema("pessoas")
+}
+
+enum FonteVinculo {
+  ESUS
+  CADUNICO
+  GESTAO_ESCOLAR
+  CENSO
+  SEDUC
+  SINASC
+
+  @@schema("pessoas")
+}
+
+enum RegraVinculo {
+  CPF
+  CNS_NIS
+  NOME_NASCIMENTO_MAE
+  MANUAL
+  /// Dado fictício do seed de desenvolvimento.
+  SEED
+
+  @@schema("pessoas")
+}
+
+enum SituacaoRevisao {
+  PENDENTE
+  ACEITA
+  REJEITADA
+  UNIDA
+
+  @@schema("pessoas")
+}
+
+model Familia {
+  id             Int                  @id @default(autoincrement())
+  /// Código familiar do CadÚnico, quando houver.
+  codigoFamiliar String?              @unique @map("codigo_familiar") @db.VarChar(20)
+  domicilioId    Int?                 @map("domicilio_id")
+  criadoEm       DateTime             @default(now()) @map("criado_em") @db.Timestamptz(3)
+  domicilio      Domicilio?           @relation(fields: [domicilioId], references: [id])
+  membros        MembroFamilia[]
+  cadunico       CadunicoFamilia[]
+  paif           AcompanhamentoPaif[]
+
+  @@map("familia")
+  @@schema("pessoas")
+}
+
+model MembroFamilia {
+  familiaId Int           @map("familia_id")
+  pessoaId  Int           @map("pessoa_id")
+  papel     PapelFamiliar
+  familia   Familia       @relation(fields: [familiaId], references: [id], onDelete: Cascade)
+  pessoa    PessoaMestra  @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
+
+  @@id([familiaId, pessoaId])
+  @@index([pessoaId])
+  @@map("membro_familia")
+  @@schema("pessoas")
+}
+
+/// Pessoa ↔ registro numa fonte, com a regra de ligação e a confiança (§3.3).
+model VinculoFonte {
+  id        Int          @id @default(autoincrement())
+  pessoaId  Int          @map("pessoa_id")
+  fonte     FonteVinculo
+  idExterno String       @map("id_externo") @db.VarChar(60)
+  regra     RegraVinculo
+  confianca Decimal      @db.Decimal(3, 2)
+  criadoEm  DateTime     @default(now()) @map("criado_em") @db.Timestamptz(3)
+  pessoa    PessoaMestra @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
+
+  @@unique([fonte, idExterno])
+  @@index([pessoaId])
+  @@map("vinculo_fonte")
+  @@schema("pessoas")
+}
+
+/// Par de registros com similaridade abaixo de 0,85: decisão humana (§3.3, P07).
+model RevisaoVinculo {
+  id           Int             @id @default(autoincrement())
+  pessoaAId    Int             @map("pessoa_a_id")
+  pessoaBId    Int             @map("pessoa_b_id")
+  similaridade Decimal         @db.Decimal(3, 2)
+  situacao     SituacaoRevisao @default(PENDENTE)
+  decididoPor  Int?            @map("decidido_por")
+  decididoEm   DateTime?       @map("decidido_em") @db.Timestamptz(3)
+  criadoEm     DateTime        @default(now()) @map("criado_em") @db.Timestamptz(3)
+
+  @@index([situacao])
+  @@map("revisao_vinculo")
+  @@schema("pessoas")
+}
+
+// ─── Educação (§3.4) ─────────────────────────────────────────────────────────────────────────────
+
+enum Rede {
+  MUNICIPAL
+  ESTADUAL
+
+  @@schema("educacao")
+}
+
+enum SituacaoMatricula {
+  ATIVA
+  TRANSFERIDA
+  ABANDONO
+  CONCLUIDA
+
+  @@schema("educacao")
+}
+
+enum SituacaoFrequencia {
+  PRESENTE
+  FALTA
+  JUSTIFICADA
+
+  @@schema("educacao")
+}
+
+model Escola {
+  id            Int                 @id @default(autoincrement())
+  inep          String              @unique @db.VarChar(8)
+  nome          String              @db.VarChar(160)
+  rede          Rede
+  rural         Boolean             @default(false)
+  equipamentoId Int?                @unique @map("equipamento_id")
+  equipamento   Equipamento?        @relation(fields: [equipamentoId], references: [id])
+  turmas        Turma[]
+  matriculas    Matricula[]
+  calendario    CalendarioEscolar[]
+  filaCreche    FilaCreche[]
+
+  @@map("escola")
+  @@schema("educacao")
+}
+
+model Turma {
+  id         Int         @id @default(autoincrement())
+  escolaId   Int         @map("escola_id")
+  ano        Int         @db.SmallInt
+  nome       String      @db.VarChar(60)
+  escola     Escola      @relation(fields: [escolaId], references: [id])
+  matriculas Matricula[]
+
+  @@unique([escolaId, ano, nome])
+  @@map("turma")
+  @@schema("educacao")
+}
+
+model Matricula {
+  id          Int               @id @default(autoincrement())
+  pessoaId    Int               @map("pessoa_id")
+  escolaId    Int               @map("escola_id")
+  turmaId     Int?              @map("turma_id")
+  ano         Int               @db.SmallInt
+  situacao    SituacaoMatricula @default(ATIVA)
+  inicioEm    DateTime          @map("inicio_em") @db.Date
+  pessoa      PessoaMestra      @relation(fields: [pessoaId], references: [id])
+  escola      Escola            @relation(fields: [escolaId], references: [id])
+  turma       Turma?            @relation(fields: [turmaId], references: [id])
+  frequencias Frequencia[]
+
+  @@index([pessoaId])
+  @@index([escolaId, situacao])
+  @@map("matricula")
+  @@schema("educacao")
+}
+
+/// Dias letivos de cada escola. Obrigatório para a regra de infrequência (§4.1).
+model CalendarioEscolar {
+  escolaId Int      @map("escola_id")
+  dia      DateTime @db.Date
+  escola   Escola   @relation(fields: [escolaId], references: [id])
+
+  @@id([escolaId, dia])
+  @@map("calendario_escolar")
+  @@schema("educacao")
+}
+
+model Frequencia {
+  id          BigInt             @id @default(autoincrement())
+  matriculaId Int                @map("matricula_id")
+  dia         DateTime           @db.Date
+  situacao    SituacaoFrequencia
+  matricula   Matricula          @relation(fields: [matriculaId], references: [id], onDelete: Cascade)
+
+  @@unique([matriculaId, dia])
+  @@map("frequencia")
+  @@schema("educacao")
+}
+
+model FilaCreche {
+  id         Int          @id @default(autoincrement())
+  pessoaId   Int          @map("pessoa_id")
+  escolaId   Int?         @map("escola_id")
+  inscritaEm DateTime     @map("inscrita_em") @db.Date
+  /// Critérios de prioridade (vulnerabilidade CadÚnico, distância, irmão na escola).
+  criterios  Json         @default("{}")
+  posicao    Int?
+  atendida   Boolean      @default(false)
+  pessoa     PessoaMestra @relation(fields: [pessoaId], references: [id])
+  escola     Escola?      @relation(fields: [escolaId], references: [id])
+
+  @@index([pessoaId])
+  @@map("fila_creche")
+  @@schema("educacao")
+}
+
+enum TipoAtendimentoEspecializado {
+  SALA_RECURSOS
+  APAE
+
+  @@schema("educacao")
+}
+
+/// Educação inclusiva (§3.9): onde a criança com necessidade de AEE é atendida.
+model AtendimentoEspecializado {
+  id       Int                          @id @default(autoincrement())
+  pessoaId Int                          @map("pessoa_id")
+  tipo     TipoAtendimentoEspecializado
+  inicioEm DateTime?                    @map("inicio_em") @db.Date
+  pessoa   PessoaMestra                 @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
+
+  @@unique([pessoaId, tipo])
+  @@map("atendimento_especializado")
+  @@schema("educacao")
+}
+
+// ─── Saúde (§3.5): SÓ sinalizadores. Nada de CID, laudo ou diagnóstico. ──────────────────────────
+
+model SinalizadorSaude {
+  pessoaId                          Int          @id @map("pessoa_id")
+  ubsCnes                           String?      @map("ubs_cnes") @db.VarChar(7)
+  microarea                         String?      @db.VarChar(40)
+  acsResponsavel                    String?      @map("acs_responsavel") @db.VarChar(80)
+  ultimaVisitaAcs                   DateTime?    @map("ultima_visita_acs") @db.Date
+  vacinacaoEmDia                    Boolean?     @map("vacinacao_em_dia")
+  vacinaGripeEmDia                  Boolean?     @map("vacina_gripe_em_dia")
+  preNatalAdequado                  Boolean?     @map("pre_natal_adequado")
+  acamadoDomiciliado                Boolean?     @map("acamado_domiciliado")
+  /// Tem condição crônica (sem dizer qual).
+  condicaoCronica                   Boolean?     @map("condicao_cronica")
+  condicaoCronicaAcompanhada        Boolean?     @map("condicao_cronica_acompanhada")
+  necessitaAtendimentoEspecializado Boolean?     @map("necessita_atendimento_especializado")
+  atualizadoEm                      DateTime     @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+  pessoa                            PessoaMestra @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
+
+  @@map("sinalizador_saude")
+  @@schema("saude")
+}
+
+// ─── Assistência Social (§3.6) ───────────────────────────────────────────────────────────────────
+
+enum FaixaRenda {
+  EXTREMA_POBREZA
+  POBREZA
+  BAIXA_RENDA
+  ACIMA_MEIO_SALARIO
+
+  @@schema("assistencia")
+}
+
+enum TipoAcompanhamento {
+  PAIF
+  PAEFI
+
+  @@schema("assistencia")
+}
+
+enum TipoBpc {
+  IDOSO
+  PCD
+
+  @@schema("assistencia")
+}
+
+/// Retrato mensal da família no CadÚnico.
+model CadunicoFamilia {
+  id            Int        @id @default(autoincrement())
+  familiaId     Int        @map("familia_id")
+  mesReferencia String     @map("mes_referencia") @db.Char(7)
+  faixaRenda    FaixaRenda @map("faixa_renda")
+  recebePbf     Boolean    @map("recebe_pbf")
+  qtdMembros    Int        @map("qtd_membros") @db.SmallInt
+  atualizadoEm  DateTime   @map("atualizado_em") @db.Date
+  familia       Familia    @relation(fields: [familiaId], references: [id], onDelete: Cascade)
+
+  @@unique([familiaId, mesReferencia])
+  @@map("cadunico_familia")
+  @@schema("assistencia")
+}
+
+model AcompanhamentoPaif {
+  id                  Int                @id @default(autoincrement())
+  familiaId           Int                @map("familia_id")
+  tipo                TipoAcompanhamento
+  crasCodigo          String             @map("cras_codigo") @db.VarChar(20)
+  inicioEm            DateTime           @map("inicio_em") @db.Date
+  ultimoAtendimentoEm DateTime?          @map("ultimo_atendimento_em") @db.Date
+  fimEm               DateTime?          @map("fim_em") @db.Date
+  familia             Familia            @relation(fields: [familiaId], references: [id], onDelete: Cascade)
+
+  @@index([familiaId])
+  @@map("acompanhamento_paif")
+  @@schema("assistencia")
+}
+
+model Bpc {
+  id       Int          @id @default(autoincrement())
+  pessoaId Int          @map("pessoa_id")
+  tipo     TipoBpc
+  ativo    Boolean      @default(true)
+  pessoa   PessoaMestra @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
+
+  @@index([pessoaId])
+  @@map("bpc")
+  @@schema("assistencia")
+}
+
+/// Serviço de Convivência e Fortalecimento de Vínculos.
+model Scfv {
+  id          Int          @id @default(autoincrement())
+  pessoaId    Int          @map("pessoa_id")
+  faixaEtaria String       @map("faixa_etaria") @db.VarChar(20)
+  inicioEm    DateTime     @map("inicio_em") @db.Date
+  pessoa      PessoaMestra @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
+
+  @@index([pessoaId])
+  @@map("scfv")
+  @@schema("assistencia")
+}
+
+model CriancaFeliz {
+  id                 Int          @id @default(autoincrement())
+  /// Criança ou gestante acompanhada.
+  pessoaId           Int          @map("pessoa_id")
+  visitador          String       @db.VarChar(80)
+  ultimaVisitaEm     DateTime?    @map("ultima_visita_em") @db.Date
+  frequenciaEsperada String       @default("SEMANAL") @map("frequencia_esperada") @db.VarChar(20)
+  ativo              Boolean      @default(true)
+  pessoa             PessoaMestra @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
+
+  @@index([pessoaId])
+  @@map("crianca_feliz")
+  @@schema("assistencia")
+}
+
+// ─── Casos, notificações e pareceres (§3.7) ──────────────────────────────────────────────────────
+
+enum TipoEventoCaso {
+  ALERTA_GERADO
+  ENCAMINHADO
+  NOTIFICACAO_ENVIADA
+  EM_ANALISE
+  VISITA_REALIZADA
+  PARECER_EMITIDO
+  ENCAMINHADO_CONSELHO_TUTELAR
+  DESFECHO
+
+  @@schema("casos")
+}
+
+enum StatusNotificacao {
+  NOVA
+  EM_ANALISE
+  PARECER_EMITIDO
+
+  @@schema("casos")
+}
+
+enum Desfecho {
+  RETORNO_ESCOLA_COMBINADO
+  ENCAMINHADO_SEMED_TRANSPORTE
+  AUSENCIA_JUSTIFICADA_SAUDE
+  ENCAMINHADO_CREAS
+  ENCAMINHADO_CONSELHO_TUTELAR
+  FAMILIA_NAO_LOCALIZADA
+
+  @@schema("casos")
+}
+
+enum TipoVisita {
+  ACS
+  CRAS
+  CRIANCA_FELIZ
+  BUSCA_ATIVA
+
+  @@schema("casos")
+}
+
+/// Trilha do caso: APPEND-ONLY (triggers bloqueiam UPDATE/DELETE/TRUNCATE). `seq`, `hashAnterior`
+/// e `hash` são calculados pelo banco no INSERT (sha256 encadeado); a aplicação não informa.
+/// `dados` nunca leva dado pessoal.
+model EventoCaso {
+  id           BigInt         @id @default(autoincrement())
+  casoId       Int            @map("caso_id")
+  seq          Int            @default(0)
+  tipo         TipoEventoCaso
+  ocorridoEm   DateTime       @default(now()) @map("ocorrido_em") @db.Timestamptz(3)
+  autorId      Int?           @map("autor_id")
+  dados        Json           @default("{}")
+  hashAnterior Bytes          @default(dbgenerated()) @map("hash_anterior")
+  hash         Bytes          @default(dbgenerated())
+  caso         Caso           @relation(fields: [casoId], references: [id])
+
+  @@unique([casoId, seq])
+  @@map("evento_caso")
+  @@schema("casos")
+}
+
+/// Notificação ao CRAS do território do domicílio (§3.7, §4.1).
+model Notificacao {
+  id                Int               @id @default(autoincrement())
+  codigo            String            @unique @db.VarChar(20)
+  casoId            Int               @map("caso_id")
+  origem            String            @default("ESCOLA") @db.VarChar(20)
+  destinoCrasCodigo String            @map("destino_cras_codigo") @db.VarChar(20)
+  motivo            String            @db.VarChar(200)
+  status            StatusNotificacao @default(NOVA)
+  criadaEm          DateTime          @default(now()) @map("criada_em") @db.Timestamptz(3)
+  prazoEm           DateTime          @map("prazo_em") @db.Date
+  caso              Caso              @relation(fields: [casoId], references: [id])
+  parecer           Parecer?
+
+  @@index([casoId])
+  @@index([status])
+  @@map("notificacao")
+  @@schema("casos")
+}
+
+model Parecer {
+  id             Int         @id @default(autoincrement())
+  notificacaoId  Int         @unique @map("notificacao_id")
+  desfecho       Desfecho
+  texto          String      @db.VarChar(4000)
+  autorId        Int?        @map("autor_id")
+  /// Quando o autor não é usuário do sistema (carga, seed): só a função, nunca o nome.
+  autorDescricao String?     @map("autor_descricao") @db.VarChar(80)
+  novaVisita     Boolean     @default(false) @map("nova_visita")
+  dataNovaVisita DateTime?   @map("data_nova_visita") @db.Date
+  emitidoEm      DateTime    @default(now()) @map("emitido_em") @db.Timestamptz(3)
+  notificacao    Notificacao @relation(fields: [notificacaoId], references: [id])
+
+  @@map("parecer")
+  @@schema("casos")
+}
+
+/// Visita de campo (app mobile). `idLocal` é a chave de idempotência da sincronização.
+model Visita {
+  id              Int                                   @id @default(autoincrement())
+  idLocal         String                                @unique @map("id_local") @db.Uuid
+  tipo            TipoVisita
+  casoId          Int?                                  @map("caso_id")
+  autorId         Int?                                  @map("autor_id")
+  pessoaIds       Int[]                                 @map("pessoa_ids")
+  realizadaEm     DateTime                              @map("realizada_em") @db.Timestamptz(3)
+  situacao        String                                @db.VarChar(2000)
+  encaminhamentos Json                                  @default("[]")
+  ponto           Unsupported("geometry(Point, 4674)")?
+  precisaoM       Float?                                @map("precisao_m") @db.Real
+  pinoConfirmado  Boolean                               @default(false) @map("pino_confirmado")
+  recebidaEm      DateTime                              @default(now()) @map("recebida_em") @db.Timestamptz(3)
+  caso            Caso?                                 @relation(fields: [casoId], references: [id])
+
+  @@index([casoId])
+  @@map("visita")
+  @@schema("casos")
+}
+
+// ─── Indicadores (§3.10, §3.11) ──────────────────────────────────────────────────────────────────
+
+/// Indicador desidentificado por território e período. Contagens < 5 ficam suprimidas.
+model IndicadorSnapshot {
+  id               Int      @id @default(autoincrement())
+  objetivo         String   @db.VarChar(10)
+  indicador        String   @db.VarChar(60)
+  territorioCodigo String   @map("territorio_codigo") @db.VarChar(20)
+  periodo          String   @db.VarChar(10)
+  numerador        Int?
+  denominador      Int?
+  valor            Decimal? @db.Decimal(12, 4)
+  suprimido        Boolean  @default(false)
+  calculadoEm      DateTime @default(now()) @map("calculado_em") @db.Timestamptz(3)
+
+  @@unique([indicador, territorioCodigo, periodo])
+  @@map("indicador_snapshot")
+  @@schema("indicadores")
+}
+
+/// Pesos do IVM, versionados e aprovados pelo Comitê Gestor.
+model PesosIvm {
+  id            Int       @id @default(autoincrement())
+  versao        Int       @unique
+  pesos         Json
+  aprovadoPorId Int?      @map("aprovado_por_id")
+  aprovadoEm    DateTime? @map("aprovado_em") @db.Timestamptz(3)
+  criadoEm      DateTime  @default(now()) @map("criado_em") @db.Timestamptz(3)
+
+  @@map("pesos_ivm")
+  @@schema("indicadores")
+}
+
+/// Dimensões normalizadas (0 a 1) do IVM por quadra e período.
+model DimensaoIvmQuadra {
+  quadraId      Int     @map("quadra_id")
+  periodo       String  @db.VarChar(7)
+  renda         Decimal @db.Decimal(5, 4)
+  saude         Decimal @db.Decimal(5, 4)
+  escola        Decimal @db.Decimal(5, 4)
+  imovel        Decimal @db.Decimal(5, 4)
+  regularizacao Decimal @db.Decimal(5, 4)
+  quadra        Quadra  @relation(fields: [quadraId], references: [id])
+
+  @@id([quadraId, periodo])
+  @@map("dimensao_ivm_quadra")
+  @@schema("indicadores")
+}
+
+// ─── Auditoria (§3.12) ───────────────────────────────────────────────────────────────────────────
+
+enum StatusCarga {
+  EXECUTANDO
+  OK
+  FALHOU
+
+  @@schema("auditoria")
+}
+
+/// Quem revelou qual dado pessoal, quando e para quê. Sem acesso para sii_app e sii_auditor.
+model AcessoDadoPessoal {
+  id         BigInt   @id @default(autoincrement())
+  usuarioId  Int      @map("usuario_id")
+  perfil     String   @db.VarChar(20)
+  pessoaId   Int?     @map("pessoa_id")
+  registro   String?  @db.VarChar(30)
+  campo      String   @db.VarChar(10)
+  finalidade String   @db.VarChar(300)
+  ip         String?  @db.VarChar(45)
+  quando     DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([pessoaId, quando])
+  @@index([usuarioId, quando])
+  @@map("acesso_dado_pessoal")
+  @@schema("auditoria")
+}
+
+model LogCarga {
+  id            Int         @id @default(autoincrement())
+  fonte         String      @db.VarChar(30)
+  status        StatusCarga @default(EXECUTANDO)
+  arquivo       String?     @db.VarChar(200)
+  mesReferencia String?     @map("mes_referencia") @db.Char(7)
+  inicioEm      DateTime    @default(now()) @map("inicio_em") @db.Timestamptz(3)
+  fimEm         DateTime?   @map("fim_em") @db.Timestamptz(3)
+  lidos         Int         @default(0)
+  inseridos     Int         @default(0)
+  rejeitados    Int         @default(0)
+  erro          String?     @db.VarChar(1000)
+
+  @@map("log_carga")
+  @@schema("auditoria")
 }
