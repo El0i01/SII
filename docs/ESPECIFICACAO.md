@@ -139,7 +139,7 @@ Há um único CRAS no município: toda notificação de infrequência (4.1) vai 
 
 ### 3.2 Geocodificação (`territorio/geocodificacao`)
 
-Cascata fixa (a primeira fonte disponível vence), gravando `geoFonte` e `geoPrecisaoM`:
+Cascata fixa (a primeira fonte disponível vence), gravando `geoFonte` e `geoPrecisaoM`. O ponto `CONFIRMADO_USUARIO` (confirmado ou ajustado em campo) vem antes de todas. Dentro da mesma fonte, vence o mais preciso; no CNEFE, o nível 1 vence o 2, que vence o 3.
 
 1. `CENSO_GPS`: ponto do Censo Municipal (≈ 5 m)
 2. `LOTE`: centroide do lote cadastral (≈ 10 m)
@@ -221,7 +221,7 @@ Por quadra, de 0 a 1. Cinco dimensões normalizadas (0 a 1) e pesos configuráve
 | Condição do imóvel (saneamento, material) | Censo | 15 |
 | Regularização (lotes sem titulação) | Fazenda/Reurb | 15 |
 
-`IVM = Σ(dim × peso) / Σ(peso)`. Faixas: baixa < 0,35 ≤ moderada < 0,50 ≤ alta < 0,65 ≤ muito alta.
+`IVM = Σ(dim × peso) / Σ(peso)`. Faixas: baixa < 0,35 ≤ moderada < 0,50 ≤ alta < 0,65 ≤ muito alta. Nos limites exatos vale esta regra; o protótipo usa `>` e diverge.
 
 ### 3.11 Indicadores e controle externo (`indicadores`)
 
@@ -241,9 +241,19 @@ O DPO tem painel próprio de acessos.
 ### 4.1 Infrequência → notificação ao CRAS
 
 - Gatilho: **5 dias letivos consecutivos** com falta não justificada, pelo calendário da escola.
+- Contagem pelo calendário escolar e pelo lançamento (decisão de 11/11/2026):
+  - só os dias letivos da escola contam;
+  - feriado, recesso e fim de semana não somam nem quebram a sequência;
+  - só falta lançada soma;
+  - presença, falta justificada ou dia letivo **sem lançamento** encerram a sequência;
+  - frequência lançada em dia que não é letivo é ignorada.
 - Ação: cria `Caso(INFREQUENCIA)` + `Notificacao` para o CRAS do território do domicílio do aluno; evento na ficha; aviso à escola.
 - Idempotência: um caso aberto por aluno; novas faltas atualizam o motivo, não criam outro caso.
-- Prazo do parecer: **5 dias úteis**. Vencido → nível 2 (coordenação da Assistência); vencido há mais de 7 dias → nível 3 (pauta do Comitê).
+- Prazo do parecer: **5 dias úteis**. A escala é a mesma da busca ativa, contada em dias úteis (decisão de 11/11/2026):
+  - faltando 3 dias úteis ou menos → nível 1 (aviso);
+  - vencido → nível 2 (coordenação da Assistência);
+  - vencido há mais de 7 dias úteis → nível 3 (pauta do Comitê).
+- Dias úteis: de segunda a sexta, sem os feriados.
 - Parecer emitido → notifica a escola e a SEMED; o caso fecha, exceto quando o desfecho é `ENCAMINHADO_CONSELHO_TUTELAR` ou há nova visita programada.
 
 ### 4.2 Busca ativa escolar
@@ -262,7 +272,7 @@ Mora sozinha · sem visita do ACS há mais de 90 dias · acamada · BPC sem acom
 
 ### 4.5 Máscaras
 
-CPF `***.456.789-**`; NIS `***.*****.**-*` com 4 dígitos do meio; nome em iniciais nas listas (`M. S. O.`); nome completo só na ficha, para perfil autorizado.
+CPF `***.456.789-**`; NIS com o 4º ao 7º dígito, `***.4567*.**-*` (decisão de 11/11/2026); número com tamanho errado vira máscara cheia; nome em iniciais nas listas (`M. S. O.`); nome completo só na ficha, para perfil autorizado.
 
 ## 5. Integrações (worker)
 

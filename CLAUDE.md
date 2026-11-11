@@ -62,6 +62,20 @@ sii-itapua/
 - Banco em `snake_case`, Prisma em `camelCase` com `@map`/`@@map`.
 - Um módulo NestJS por domínio: `territorio`, `pessoas`, `educacao`, `saude`, `assistencia`, `casos`, `notificacoes`, `fichas`, `indicadores`, `auditoria`, `integracoes`, `auth`, `usuarios`.
 - Toda regra de negócio que precise rodar em mais de um lugar vai para `packages/shared`, como função pura testada. Nunca duplicar regra entre API, web e mobile.
+  O que já existe em `packages/shared/src/`:
+  - `calendario/`: dias úteis;
+  - `educacao/`: faltas seguidas;
+  - `casos/`: prazos e escalonamento;
+  - `motivos/`: motivos de visita da criança e do idoso;
+  - `indice/`: IVM;
+  - `creche/`: cobertura, déficit e prioridade;
+  - `mascaras/`: CPF, NIS e iniciais;
+  - `territorio/`: cascata de geocodificação;
+  - `enums/`: perfis e domínio;
+  - `schemas/`: Parecer, Visita, Encaminhamento e UploadCarga;
+  - `acesso/`: login e usuários.
+  
+  Procure aqui antes de escrever uma regra nova. O shared exige 100% de cobertura de linhas.
 - Validação de entrada com zod (schema em `shared`) via pipe no NestJS; formulários web e mobile usam o mesmo schema.
 - Datas em UTC no banco; exibição em `America/Porto_Velho`. Contagem de "dias letivos" sempre pelo calendário escolar, nunca dias corridos.
 - Erros da API no formato `{ codigo, mensagem, campos? }`, mensagem em linguagem simples.
