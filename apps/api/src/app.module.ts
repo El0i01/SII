@@ -1,10 +1,13 @@
 import path from 'node:path';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AuthModule } from './auth/auth.module';
 import { BancoModule } from './banco/banco.module';
 import { validarEnv } from './config/env';
+import { PessoasModule } from './pessoas/pessoas.module';
 import { RedisModule } from './redis/redis.module';
 import { StatusModule } from './status/status.module';
+import { UsuariosModule } from './usuarios/usuarios.module';
 
 @Module({
   imports: [
@@ -17,7 +20,10 @@ import { StatusModule } from './status/status.module';
     }),
     BancoModule,
     RedisModule,
+    AuthModule,
     StatusModule,
+    UsuariosModule,
+    PessoasModule,
   ],
 })
 export class AppModule {}

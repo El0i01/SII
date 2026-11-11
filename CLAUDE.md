@@ -77,6 +77,8 @@ sii-itapua/
 - **Agregados**: contagens menores que 5 são suprimidas (`<5`) nas views públicas e de auditoria.
 - **Trilha**: todo evento de caso gera registro encadeado por hash (código verificador). Registros de trilha são append-only.
 - Variáveis sensíveis só em `.env` (nunca commitado). `.env.example` sempre atualizado.
+- **Dado nominal só por `PrismaService.comoUsuario(usuario, tx => ...)`**: é isso que liga o papel do banco e a RLS. O cliente Prisma direto (dono) fica restrito a autenticação, health e tarefas da CTI. Tabela nominal nova vai num schema com RLS e policy na mesma migration (ADR 0003).
+- Rotas exigem login por padrão; `@Publico()` é exceção e precisa de motivo. Restrinja com `@Perfis(...)` e, quando a rota tiver escola/microárea/CRAS no caminho, `@Escopo(...)`.
 
 ## Front-end (modo institucional gov.br)
 
@@ -106,7 +108,7 @@ pnpm infra:up            # postgres+postgis (5444), redis (6390), minio (9010/90
 pnpm db:migrate          # prisma migrate dev
 pnpm dev                 # api (3333), worker e web (3000)
 pnpm --filter @sii/mobile start
-pnpm db:seed             # dados fictícios, mesmo gerador do protótipo (a partir do P05)
+pnpm db:seed             # usuários fictícios (1 por perfil, senha SEED_SENHA do .env) e pessoas fictícias
 pnpm test && pnpm lint && pnpm typecheck
 pnpm --filter @sii/api test:integracao     # precisa da infra no ar
 pnpm geo:importar <arquivo.shp> <tabela>   # shapefile → stg_geoportal.<tabela> em EPSG:4674

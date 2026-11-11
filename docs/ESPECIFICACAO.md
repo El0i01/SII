@@ -29,6 +29,18 @@ Fora do escopo da v1: multi-município, prontuário clínico, emissão de docume
 
 Autorização = RBAC (perfil) + ABAC (secretaria, território, escola, microárea, CRAS) + RLS no banco.
 
+Decisões de 11/11/2026 (ADR 0003):
+
+- `SEMED_GESTOR` e `SAUDE_GESTOR` veem as pessoas do **município inteiro**. A busca ativa precisa achar quem não está matriculado, e a UBS Jacir Boni atende todas as microáreas. Cada um recebe só os campos da própria secretaria.
+- Escopo dos perfis locais:
+  - `ESCOLA`: o INEP da escola;
+  - `ACS`: a microárea;
+  - `CRAS_TECNICO`: o CadSUAS do CRAS;
+  - `VISITADOR_PCF`: as famílias acompanhadas.
+- `FAZENDA` e `DPO` não veem pessoas.
+- Sessão: o acesso vale 15 min. O refresh é deslizante, **12 h no web e 7 dias no celular**.
+- Bloqueio: 5 senhas erradas seguidas travam a conta por 15 min. Para destravar antes disso, a CTI gera uma senha provisória.
+
 ## 3. Módulos
 
 ### 3.1 Território (`territorio`)

@@ -1,6 +1,7 @@
 import { Controller, Get, HttpStatus, Logger, Res } from '@nestjs/common';
 import { ApiOkResponse, ApiServiceUnavailableResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
+import { Publico } from '../auth/decorators';
 import { PrismaService } from '../banco/prisma.service';
 import { RedisService } from '../redis/redis.service';
 
@@ -47,6 +48,7 @@ async function medir<T>(
 }
 
 @ApiTags('infra')
+@Publico()
 @Controller('health')
 export class StatusController {
   private readonly logger = new Logger('health');

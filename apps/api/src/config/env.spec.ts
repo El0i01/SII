@@ -3,6 +3,7 @@ import { validarEnv } from './env';
 const valido = {
   DATABASE_URL: 'postgresql://sii:segredo-123@localhost:5444/sii',
   REDIS_URL: 'redis://:segredo-456@localhost:6390/0',
+  JWT_SEGREDO: 'x'.repeat(32),
 };
 
 describe('validarEnv', () => {
@@ -10,6 +11,16 @@ describe('validarEnv', () => {
     const env = validarEnv(valido);
     expect(env.API_PORTA).toBe(3333);
     expect(env.NODE_ENV).toBe('development');
+  });
+
+  it('recusa segredo de JWT curto', () => {
+    expect(() => validarEnv({ ...valido, JWT_SEGREDO: 'curto' })).toThrow(/JWT_SEGREDO/);
+  });
+
+  it('usa 12 h no web e 7 dias no celular por padrão', () => {
+    const env = validarEnv(valido);
+    expect(env.REFRESH_HORAS_WEB).toBe(12);
+    expect(env.REFRESH_DIAS_MOBILE).toBe(7);
   });
 
   it('converte a porta para número', () => {

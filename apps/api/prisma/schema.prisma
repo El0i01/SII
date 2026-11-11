@@ -11,19 +11,181 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["territorio"]
+  schemas  = ["territorio", "acesso", "pessoas", "casos"]
 }
 
 /// Setor urbano da sede (S01..S05 e industrial). Modelo mínimo do P02: o P05 completa e o P06 popula
 /// a partir do geoportal. Geometria em SIRGAS 2000 (EPSG:4674).
 model Setor {
-  id       Int                                         @id @default(autoincrement())
-  codigo   String                                      @unique @db.VarChar(10)
-  nome     String                                      @db.VarChar(80)
+  id       Int                                          @id @default(autoincrement())
+  codigo   String                                       @unique @db.VarChar(10)
+  nome     String                                       @db.VarChar(80)
   geom     Unsupported("geometry(MultiPolygon, 4674)")?
-  criadoEm DateTime                                    @default(now()) @map("criado_em") @db.Timestamptz(3)
+  criadoEm DateTime                                     @default(now()) @map("criado_em") @db.Timestamptz(3)
 
   @@index([geom], map: "setor_geom_gist", type: Gist)
   @@map("setor")
   @@schema("territorio")
+}
+
+// ─── Acesso (P03) ────────────────────────────────────────────────────────────────────────────────
+// O schema acesso não tem grant para os papéis sii_app/sii_auditor: só a API (dono) lê hash e sessão.
+
+enum Perfil {
+  ADMIN_CTI
+  COMITE_GESTOR
+  SEMED_GESTOR
+  ESCOLA
+  SAUDE_GESTOR
+  ACS
+  CRAS_TECNICO
+  VISITADOR_PCF
+  FAZENDA
+  AUDITOR_TCE
+  DPO
+
+  @@schema("acesso")
+}
+
+enum TipoEscopo {
+  SECRETARIA
+  SETOR
+  ESCOLA
+  MICROAREA
+  CRAS
+  FAMILIA_PCF
+
+  @@schema("acesso")
+}
+
+enum ClienteSessao {
+  WEB
+  MOBILE
+
+  @@schema("acesso")
+}
+
+enum TipoEventoAcesso {
+  LOGIN_OK
+  LOGIN_FALHA
+  BLOQUEIO
+  REUSO_REFRESH
+  TROCA_SENHA
+  SENHA_PROVISORIA
+  SAIR
+  REVOGACAO
+
+  @@schema("acesso")
+}
+
+/// Usuário do sistema. O login é um apelido (ana.cras), nunca o CPF.
+model Usuario {
+  id                      Int             @id @default(autoincrement())
+  login                   String          @unique @db.VarChar(60)
+  nome                    String          @db.VarChar(120)
+  perfil                  Perfil
+  senhaHash               String          @map("senha_hash") @db.VarChar(100)
+  /// Preenchido enquanto vale uma senha provisória (24 h). Expirada, o login é recusado.
+  senhaProvisoriaExpiraEm DateTime?       @map("senha_provisoria_expira_em") @db.Timestamptz(3)
+  trocaObrigatoria        Boolean         @default(true) @map("troca_obrigatoria")
+  falhasSeguidas          Int             @default(0) @map("falhas_seguidas")
+  bloqueadoAte            DateTime?       @map("bloqueado_ate") @db.Timestamptz(3)
+  ativo                   Boolean         @default(true)
+  /// Incrementada na troca de senha e na revogação: invalida os JWT de acesso já emitidos.
+  versaoToken             Int             @default(1) @map("versao_token")
+  criadoEm                DateTime        @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm            DateTime        @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+  escopos                 EscopoUsuario[]
+  sessoes                 SessaoRefresh[]
+  eventos                 EventoAcesso[]
+
+  @@map("usuario")
+  @@schema("acesso")
+}
+
+/// Recorte ABAC do usuário: escola (INEP), microárea, CRAS (CadSUAS), setor, família do PCF.
+model EscopoUsuario {
+  id        Int        @id @default(autoincrement())
+  usuarioId Int        @map("usuario_id")
+  tipo      TipoEscopo
+  valor     String     @db.VarChar(40)
+  usuario   Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, tipo, valor])
+  @@map("escopo_usuario")
+  @@schema("acesso")
+}
+
+/// Refresh token opaco e rotativo. Guarda só o sha256. Tokens de uma mesma cadeia de rotação
+/// compartilham a família: reuso de um token já usado revoga a família inteira.
+model SessaoRefresh {
+  id              String        @id @default(uuid()) @db.Uuid
+  familiaId       String        @map("familia_id") @db.Uuid
+  usuarioId       Int           @map("usuario_id")
+  tokenHash       String        @unique @map("token_hash") @db.Char(64)
+  cliente         ClienteSessao
+  criadoEm        DateTime      @default(now()) @map("criado_em") @db.Timestamptz(3)
+  expiraEm        DateTime      @map("expira_em") @db.Timestamptz(3)
+  usadoEm         DateTime?     @map("usado_em") @db.Timestamptz(3)
+  revogadoEm      DateTime?     @map("revogado_em") @db.Timestamptz(3)
+  motivoRevogacao String?       @map("motivo_revogacao") @db.VarChar(40)
+  ip              String?       @db.VarChar(45)
+  userAgent       String?       @map("user_agent") @db.VarChar(200)
+  usuario         Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([familiaId])
+  @@index([usuarioId])
+  @@map("sessao_refresh")
+  @@schema("acesso")
+}
+
+/// Trilha de segurança do acesso. Nunca guarda senha, token ou o login digitado em falhas.
+model EventoAcesso {
+  id        BigInt           @id @default(autoincrement())
+  usuarioId Int?             @map("usuario_id")
+  tipo      TipoEventoAcesso
+  ip        String?          @db.VarChar(45)
+  detalhe   String?          @db.VarChar(200)
+  criadoEm  DateTime         @default(now()) @map("criado_em") @db.Timestamptz(3)
+  usuario   Usuario?         @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([usuarioId, criadoEm])
+  @@map("evento_acesso")
+  @@schema("acesso")
+}
+
+// ─── Esqueleto nominal (P03) ─────────────────────────────────────────────────────────────────────
+// Só as colunas que as policies de RLS usam. O P05 completa (CPF/NIS/CNS cifrados, família, domicílio…).
+
+/// Um registro por cidadão. Protegida por Row-Level Security (papel sii_app).
+model PessoaMestra {
+  id          Int      @id @default(autoincrement())
+  nome        String   @db.VarChar(160)
+  setorCodigo String?  @map("setor_codigo") @db.VarChar(10)
+  microarea   String?  @db.VarChar(40)
+  /// INEP da escola da matrícula ativa.
+  escolaInep  String?  @map("escola_inep") @db.VarChar(8)
+  /// CadSUAS do CRAS de referência.
+  crasCodigo  String?  @map("cras_codigo") @db.VarChar(20)
+  familiaPcf  String?  @map("familia_pcf") @db.VarChar(40)
+  criadoEm    DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
+  casos       Caso[]
+
+  @@map("pessoa_mestra")
+  @@schema("pessoas")
+}
+
+/// Caso intersetorial. Herda a visibilidade da pessoa (RLS).
+model Caso {
+  id                    Int          @id @default(autoincrement())
+  tipo                  String       @db.VarChar(40)
+  pessoaId              Int          @map("pessoa_id")
+  secretariaResponsavel String       @map("secretaria_responsavel") @db.VarChar(20)
+  status                String       @db.VarChar(30)
+  criadoEm              DateTime     @default(now()) @map("criado_em") @db.Timestamptz(3)
+  pessoa                PessoaMestra @relation(fields: [pessoaId], references: [id])
+
+  @@index([pessoaId])
+  @@map("caso")
+  @@schema("casos")
 }

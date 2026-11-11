@@ -20,7 +20,8 @@
     "db:migrate": "pnpm --filter @sii/api db:migrate",
     "db:generate": "turbo run db:generate",
     "db:studio": "pnpm --filter @sii/api db:studio",
-    "geo:importar": "infra/scripts/import-shapefile.sh"
+    "geo:importar": "infra/scripts/import-shapefile.sh",
+    "db:seed": "pnpm --filter @sii/api db:seed"
   },
   "devDependencies": {
     "prettier": "^3.6.2",

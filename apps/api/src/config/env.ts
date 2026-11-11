@@ -7,6 +7,15 @@ export const EnvSchema = z.object({
   WEB_ORIGEM: z.url().default('http://localhost:3000'),
   DATABASE_URL: z.string().regex(/^postgres(ql)?:\/\//, 'precisa começar com postgresql://'),
   REDIS_URL: z.string().regex(/^rediss?:\/\//, 'precisa começar com redis://'),
+  JWT_SEGREDO: z.string().min(32, 'precisa ter pelo menos 32 caracteres'),
+  REFRESH_HORAS_WEB: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(24 * 30)
+    .default(12),
+  REFRESH_DIAS_MOBILE: z.coerce.number().int().min(1).max(90).default(7),
+  LOGIN_LIMITE_POR_MINUTO: z.coerce.number().int().min(1).max(1000).default(10),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
