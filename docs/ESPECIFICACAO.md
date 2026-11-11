@@ -101,15 +101,25 @@ CEP de todas: 76861-000.
 | saude (id 3) | `Ubs 4` | UBS Jacir Boni | 7327862 |
 | saude (id 4) | `ALMO SAUDE` | Almoxarifado da Saúde | *sem CNES* |
 | saude (id 5) | `VIGILANCIA` | Vigilância Sanitária | 7121237 |
-| saude (id 6) | `VIGILANCIA` | *provável* Unidade de Vigilância Epidemiológica e Endemias (ponto chamado só "Vigilancia"): **confirmar** | 7346050 |
+| saude (id 6) | `VIGILANCIA` | Unidade de Vigilância Epidemiológica e Endemias (confirmado pela SEMSAU) | 7346050 |
 | saude (id 7) | `Farmacia M` | Farmácia Básica Municipal | 0392553 |
 | outros (id 1) | `APAE` | APAE Itapuã | 2899418 |
 
 Estabelecimentos municipais com CNES que ainda não têm polígono: SEMSAU (7121229), Central Municipal de Rede de Frio (8208697), Unidade Odontológica Móvel (8448876, sem endereço fixo). Os privados (laboratórios, próteses, clínicas, psicologia) ficam fora dos equipamentos públicos.
 
-Para o painel de Pessoa idosa e a área de referência do ACS valem as duas UBS. Os ACS (`MalhaACS`) ainda não dizem a qual UBS cada microárea pertence: **a informar pela SEMSAU**.
+**Microáreas de ACS → UBS**: segundo a SEMSAU (11/11/2026), as microáreas de `MalhaACS` (6 da sede e 14 rurais) são da **UBS Jacir Boni** (`Ubs 4`, CNES 7327862). A UBS Edson Cavalheiro não tem microárea de ACS no geoportal.
 
-**Assistência**: CRAS, CREAS e Conselho Tutelar (`assistencia.shp`) não têm código nacional neste inventário. O CRAS tem código no CadSUAS: **a informar**.
+**Assistência** (informado em 11/11/2026):
+
+| Camada | Valor no shapefile | Nome oficial | Endereço | Código |
+| --- | --- | --- | --- | --- |
+| assistencia (id 1) | `CRAS` | CRAS · Centro de Referência de Assistência Social | Rua Maria Vitaliano de Souza, 1940, Centro | CadSUAS **a informar** |
+| assistencia (id 2) | `CREAS` | CREAS · Centro de Referência Especializado de Assistência Social | Rua Moisés de Freitas, 1786 *ou* 2476 (**confirmar o número**), Centro | CadSUAS **a informar** |
+| assistencia (id 3) | `Con. Tutel` | Conselho Tutelar | *a informar* | não tem |
+
+Há um único CRAS no município: toda notificação de infrequência (4.1) vai para ele, qualquer que seja o setor do domicílio.
+
+**Município**: Itapuã do Oeste/RO, código IBGE **1101104** (do `limite_mun_itapua.shp`, malha do IBGE). Um texto recebido citava 1101103; vale o da malha oficial. CNPJ da Prefeitura: 63.761.936/0001-55.
 
 ### 3.2 Geocodificação (`territorio/geocodificacao`)
 
