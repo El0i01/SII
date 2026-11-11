@@ -1,0 +1,39 @@
+/*
+ * Tokens visuais do SII: Padrão Digital de Governo (gov.br).
+ * Importe este arquivo no CSS do web depois de `@import "tailwindcss";`.
+ * Nunca use cor solta em componente: use as classes geradas (bg-primaria, text-erro…)
+ * ou as variáveis (var(--color-primaria)).
+ * Os valores espelham tokens/src/index.ts (usado pelo app mobile). Mudou um, mude o outro.
+ */
+@theme {
+  --font-sans: 'Rawline', 'Raleway', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Azul institucional */
+  --color-primaria: #1351b4;
+  --color-primaria-escura: #0c326f;
+  --color-primaria-clara: #dbe8fb;
+
+  /* Neutros frios */
+  --color-fundo: #ffffff;
+  --color-superficie: #f8f8f8;
+  --color-borda: #cccccc;
+  --color-borda-suave: #ededed;
+  --color-texto: #333333;
+  --color-texto-suave: #555555;
+  --color-texto-forte: #1b1b1b;
+
+  /* Situação */
+  --color-sucesso: #168821;
+  --color-sucesso-claro: #e3f5e1;
+  --color-alerta: #8a6d00;
+  --color-alerta-destaque: #f2b705;
+  --color-alerta-claro: #fff5c2;
+  --color-erro: #c41c00;
+  --color-erro-claro: #fde0db;
+
+  /* Foco visível (eMAG) */
+  --color-foco: #c2850c;
+
+  /* Alvo mínimo de toque */
+  --spacing-alvo: 44px;
+}

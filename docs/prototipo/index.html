@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel Integrado Intersecretarial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: cabeçalho institucional gov.br + menu lateral de painéis + área de conteúdo densa (KPI no topo, detalhe abaixo) */
+:root{
+  --primary:#1351B4; --primary-strong:#0C326F; --primary-soft:#DBE8FB;
+  --bg:#F3F5F8; --surface:#FFFFFF; --surface-2:#F8F9FB; --border:#D3D9E2; --grid:#E6EAF0;
+  --text:#1B2430; --muted:#4F5B69;
+  --good:#168821; --good-soft:#E3F5E1; --warn-fill:#F2B705; --warn:#8A6D00; --warn-soft:#FFF3BF; --crit:#C41C00; --crit-soft:#FDE2DC;
+  --seq1:#0C326F; --seq2:#1351B4; --seq3:#4A85DC; --seq4:#8DB4EC; --seq5:#C5D9F6; --seq6:#B9C0CA;
+  --font:"Rawline","Raleway",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --primary:#5992ED; --primary-strong:#A9C7F5; --primary-soft:#16294A;
+    --bg:#0F141B; --surface:#171E27; --surface-2:#1C2430; --border:#2E3946; --grid:#26303C;
+    --text:#E8EDF3; --muted:#A5B0BE;
+    --good:#4CC35A; --good-soft:#15301A; --warn-fill:#C99A1E; --warn:#E8C340; --warn-soft:#332A0B; --crit:#FF7A63; --crit-soft:#3A1712;
+    --seq1:#C5D9F6; --seq2:#8DB4EC; --seq3:#5992ED; --seq4:#2F68C4; --seq5:#1D447F; --seq6:#4A5563;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --primary:#5992ED; --primary-strong:#A9C7F5; --primary-soft:#16294A;
+  --bg:#0F141B; --surface:#171E27; --surface-2:#1C2430; --border:#2E3946; --grid:#26303C;
+  --text:#E8EDF3; --muted:#A5B0BE;
+  --good:#4CC35A; --good-soft:#15301A; --warn-fill:#C99A1E; --warn:#E8C340; --warn-soft:#332A0B; --crit:#FF7A63; --crit-soft:#3A1712;
+  --seq1:#C5D9F6; --seq2:#8DB4EC; --seq3:#5992ED; --seq4:#2F68C4; --seq5:#1D447F; --seq6:#4A5563;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.45}
+h1,h2,h3{text-wrap:balance;margin:0}
+.num,td.n,th.n{font-variant-numeric:tabular-nums}
+a{color:var(--primary)}
+:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+.skip{position:absolute;left:-999px;top:8px;background:var(--surface);padding:8px 12px;border:2px solid var(--primary);z-index:50}
+.skip:focus{left:16px}
+
+/* cabeçalho */
+.gov{background:var(--surface);border-bottom:1px solid var(--border)}
+.gov-top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 24px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--grid)}
+.gov-top strong{color:var(--text);font-weight:600}
+.gov-main{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px 24px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{width:40px;height:40px;border-radius:6px;background:var(--primary);display:grid;place-items:center;color:#fff;font-weight:700;font-size:15px;letter-spacing:.5px}
+.brand h1{font-size:19px;font-weight:700;color:var(--primary-strong)}
+.brand p{margin:0;font-size:13px;color:var(--muted)}
+.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:2px}
+.field label{font-size:12px;font-weight:600;color:var(--muted)}
+select,input[type=search]{font:inherit;font-size:14px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:0 10px;min-height:44px;min-width:160px}
+.proto{background:var(--warn-soft);color:var(--text);border-bottom:1px solid var(--border);padding:8px 24px;font-size:13px}
+.proto strong{color:var(--warn)}
+
+/* estrutura */
+.shell{display:grid;grid-template-columns:232px 1fr;min-height:calc(100% - 140px)}
+nav.side{border-right:1px solid var(--border);background:var(--surface);padding:16px 12px}
+nav.side ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+nav.side a{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:6px;text-decoration:none;color:var(--text);font-weight:500;font-size:14px}
+nav.side a:hover{background:var(--surface-2)}
+nav.side a[aria-current="page"]{background:var(--primary-soft);color:var(--primary-strong);font-weight:700;box-shadow:inset 3px 0 0 var(--primary)}
+nav.side svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.side-note{margin-top:20px;padding:12px;border-top:1px solid var(--grid);font-size:12px;color:var(--muted)}
+main{padding:20px 24px 48px;min-width:0}
+main:focus{outline:none}
+.view-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.view-head h2{font-size:22px;font-weight:700}
+.view-head p{margin:4px 0 0;color:var(--muted);max-width:70ch;font-size:14px}
+.src{font-size:12px;color:var(--muted)}
+
+/* blocos */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;border-top:3px solid var(--border)}
+.kpi.good{border-top-color:var(--good)} .kpi.warn{border-top-color:var(--warn)} .kpi.crit{border-top-color:var(--crit)} .kpi.info{border-top-color:var(--primary)}
+.kpi .lbl{font-size:13px;color:var(--muted);font-weight:500}
+.kpi .val{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15}
+.kpi .sub{font-size:12px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px;margin-bottom:12px}
+.grid2.even{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 16px;min-width:0;margin-bottom:12px}
+.grid2 .card{margin-bottom:0}
+.card-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.card-h h3{font-size:16px;font-weight:700}
+.card-h p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.chart svg{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font-family:var(--font);font-size:11px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+
+/* pílulas e botões */
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.good{background:var(--good-soft);color:var(--good)} .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.crit{background:var(--crit-soft);color:var(--crit)} .pill.info{background:var(--primary-soft);color:var(--primary-strong)} .pill.mute{background:var(--surface-2);color:var(--muted);border-color:var(--border)}
+.btn{font:inherit;font-size:14px;font-weight:600;min-height:44px;padding:0 14px;border-radius:6px;border:1px solid var(--primary);background:var(--surface);color:var(--primary);cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{background:var(--primary-soft)}
+.btn.primary{background:var(--primary);color:#fff}
+.btn.primary:hover{background:var(--primary-strong)}
+.btn.sm{min-height:32px;padding:0 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.linkbtn{font:inherit;font-size:13px;background:none;border:0;color:var(--primary);cursor:pointer;padding:6px 4px;text-decoration:underline;min-height:32px}
+
+/* tabelas */
+.tablewrap{overflow-x:auto;border:1px solid var(--grid);border-radius:6px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+caption{text-align:left;font-size:12px;color:var(--muted);padding:8px 10px;caption-side:bottom}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--grid);vertical-align:middle}
+th{font-size:12px;font-weight:700;color:var(--muted);background:var(--surface-2);white-space:nowrap;position:sticky;top:0}
+th button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0;display:inline-flex;gap:4px;align-items:center}
+td.n,th.n{text-align:right}
+td.nw{white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px}
+.toolbar .grow{flex:1}
+.pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:8px;font-size:13px;color:var(--muted)}
+.bar-cell{display:flex;align-items:center;gap:8px;min-width:140px}
+.bar-cell .track{flex:1;height:8px;background:var(--grid);border-radius:4px;position:relative}
+.bar-cell .fill{position:absolute;inset:0 auto 0 0;border-radius:4px;background:var(--primary)}
+.bar-cell .meta{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--text)}
+.bar-cell span{width:46px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* estados */
+.state{border:1px dashed var(--border);border-radius:6px;padding:20px;display:flex;gap:14px;align-items:flex-start;background:var(--surface-2)}
+.state svg{width:28px;height:28px;flex:none;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.state h4{margin:0 0 4px;font-size:15px}
+.state p{margin:0;font-size:13.5px;color:var(--muted);max-width:65ch}
+.state.err{border-style:solid;border-color:var(--crit);background:var(--crit-soft)}
+.state.err svg{stroke:var(--crit)}
+.state.ok{border-style:solid;border-color:var(--good);background:var(--good-soft)}
+.state.ok svg{stroke:var(--good)}
+
+/* lista de atenção */
+.attn{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.attn li{display:grid;grid-template-columns:4px 1fr auto;gap:10px;align-items:center;padding:8px 10px 8px 0;border:1px solid var(--grid);border-radius:6px;background:var(--surface)}
+.attn li::before{content:"";align-self:stretch;border-radius:6px 0 0 6px;background:var(--border)}
+.attn li.crit::before{background:var(--crit)} .attn li.warn::before{background:var(--warn)} .attn li.info::before{background:var(--primary)}
+.attn b{display:block;font-size:14px}
+.attn small{color:var(--muted);font-size:12.5px}
+
+/* mapa */
+.mapwrap{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:12px}
+.map svg{width:100%;height:auto;display:block}
+.map rect.q{cursor:pointer;stroke:var(--surface);stroke-width:2}
+.map rect.q:hover,.map rect.q:focus{stroke:var(--text);outline:none}
+.map rect.q.sel{stroke:var(--text);stroke-width:3}
+.map rect.q.dim{opacity:.25}
+.map text{font-family:var(--font);font-size:10.5px;fill:var(--muted);pointer-events:none}
+.map text.sl{font-size:12px;font-weight:700;fill:var(--text)}
+.detail{background:var(--surface-2);border:1px solid var(--grid);border-radius:6px;padding:12px;font-size:13.5px}
+.detail dl{display:grid;grid-template-columns:1fr auto;gap:6px 10px;margin:8px 0 0}
+.detail dt{color:var(--muted)} .detail dd{margin:0;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.ramp{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.ramp i{width:28px;height:10px;display:inline-block}
+
+/* trilha */
+.trail{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--grid)}
+.trail li{position:relative;padding:0 0 12px 12px;font-size:13.5px}
+.trail li::before{content:"";position:absolute;left:-21px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--primary)}
+.trail li.done::before{background:var(--primary)}
+.trail small{display:block;color:var(--muted);font-size:12px}
+
+/* mapa real */
+.map polygon.setor{fill:var(--surface-2);stroke:var(--muted);stroke-width:1.5;stroke-dasharray:6 4}
+.map polygon.setor.dim{opacity:.35}
+.map polygon.q{cursor:pointer;stroke:var(--border);stroke-width:1}
+.map polygon.q:hover,.map polygon.q:focus{stroke:var(--text);stroke-width:2.5;outline:none}
+.map polygon.q.sel{stroke:var(--text);stroke-width:3.5}
+.map polygon.q.dim{opacity:.25}
+.map .heat,.map .dot,.map .eq{pointer-events:none}
+.map .dot{stroke:var(--surface);stroke-width:1.5}
+.map text.ql{font-size:9.5px;fill:var(--text);opacity:.7}
+.map text.sl{font-size:16px;font-weight:700;fill:var(--text);paint-order:stroke;stroke:var(--surface);stroke-width:5px;stroke-linejoin:round}
+.map .eq polygon{fill:#1B2430;fill-opacity:.55}
+.map .eq circle{stroke:#fff;stroke-width:2}
+.map .eq text{fill:#fff;font-size:11px;font-weight:700}
+.eq-escola_mun circle{fill:#0C326F}.eq-escola_est circle{fill:#5B6B7F}.eq-saude circle{fill:#C41C00}.eq-assistencia circle{fill:#168821}
+.eqk{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;color:#fff;font-size:10px;margin-right:4px;vertical-align:-4px}
+.eqk.eq-escola_mun{background:#0C326F}.eqk.eq-escola_est{background:#5B6B7F}.eqk.eq-saude{background:#C41C00}.eqk.eq-assistencia{background:#168821}
+.map .scale line{stroke:var(--text);stroke-width:3}
+.map .scale text,.map .north text{font-size:12px;fill:var(--text)}
+.map .north path{fill:var(--text)}
+.mk{display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:-1px;border:1.5px solid var(--primary-strong);background:#fff}
+.mk.c{border-radius:50%}.mk.c.f{background:var(--primary)}.mk.i{border-color:#1B2430}.mk.i.s{background:var(--crit)}
+.mapwrap{grid-template-columns:minmax(0,1fr) 300px}
+/* fichas e notificações */
+.fgrid{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);gap:12px;align-items:start}
+.fgrid > .card{margin-bottom:0}
+.flist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;max-height:760px;overflow:auto}
+.flist button{width:100%;text-align:left;font:inherit;font-size:14px;color:var(--text);background:var(--surface);border:1px solid var(--grid);border-radius:6px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;min-height:44px}
+.flist button:hover{background:var(--surface-2)}
+.flist button[aria-pressed="true"]{border-color:var(--primary);box-shadow:inset 3px 0 0 var(--primary);background:var(--primary-soft)}
+.flist small{display:block;color:var(--muted);font-size:12px}
+.fblocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+.fblk{border:1px solid var(--grid);border-radius:6px;padding:10px 12px;background:var(--surface-2)}
+.fblk h4{margin:0 0 6px;font-size:14px;display:flex;justify-content:space-between;gap:8px}
+.fblk dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:0;font-size:13.5px}
+.fblk dt{color:var(--muted)}.fblk dd{margin:0;text-align:right}
+.state.warnbox{border-style:solid;border-color:var(--warn-fill);background:var(--warn-soft);padding:12px}
+.state.warnbox svg{stroke:var(--warn)}
+.card .state.ok{padding:12px}
+.vlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.vlist li{border-left:3px solid var(--primary);padding:2px 0 2px 10px}
+.vlist small{color:var(--muted);font-size:12px}.vlist p{margin:2px 0 0;font-size:13.5px}
+.pform{margin-top:14px;display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--grid);padding-top:14px}
+.pform h4{margin:0;font-size:15px}
+textarea{font:inherit;font-size:14px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px;resize:vertical}
+.ferr{color:var(--crit);font-size:12.5px;font-weight:600}
+.ferr:empty{display:none}
+[aria-invalid="true"]{border-color:var(--crit)!important;border-width:2px!important}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;min-height:44px;cursor:pointer}
+.chk input{width:20px;height:20px;accent-color:var(--primary)}
+.navg{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:14px 12px 4px}
+.pill.tag{margin:2px 0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:960px){.fgrid,.mapwrap{grid-template-columns:1fr}.navg{display:none}.flist{max-height:340px}}
+.toast{position:fixed;right:16px;bottom:16px;background:var(--text);color:var(--bg);padding:12px 16px;border-radius:6px;font-size:14px;max-width:340px;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;z-index:40}
+.toast.show{opacity:1;transform:none}
+[hidden]{display:none!important}
+
+@media (max-width: 960px){
+  .shell{grid-template-columns:1fr}
+  nav.side{border-right:0;border-bottom:1px solid var(--border);padding:8px 12px;overflow-x:auto}
+  nav.side ul{flex-direction:row}
+  nav.side a{white-space:nowrap}
+  .side-note{display:none}
+  .grid2,.grid2.even,.mapwrap{grid-template-columns:1fr}
+  .grid2 .card{margin-bottom:0}
+}
+@media (max-width: 420px){
+  main{padding:16px}
+  .gov-top,.gov-main,.proto{padding-left:16px;padding-right:16px}
+  .kpi .val{font-size:24px}
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+<a class="skip" href="#conteudo">Ir para o conteúdo</a>
+<header class="gov">
+  <div class="gov-top">
+    <span><strong>Prefeitura Municipal de Itapuã do Oeste</strong> · Rondônia</span>
+    <span>Educação · Saúde · Assistência Social · Fazenda</span>
+    <span>Coordenação técnica: CTI/SEMED</span>
+  </div>
+  <div class="gov-main">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">SII</div>
+      <div>
+        <h1>Sistema Integrado Intersecretarial</h1>
+        <p>Painéis de gestão e de controle externo</p>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="field">
+        <label for="perfil">Perfil de acesso</label>
+        <select id="perfil">
+          <option value="comite">Comitê Gestor</option>
+          <option value="semed">SEMED · Escolas</option>
+          <option value="assistencia">Assistência Social · CRAS</option>
+          <option value="tce">TCE-RO · Auditoria</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="territorio">Território</label>
+        <select id="territorio"></select>
+      </div>
+      <div class="field">
+        <label for="periodo">Período</label>
+        <select id="periodo">
+          <option>Outubro de 2026</option>
+          <option>Setembro de 2026</option>
+          <option>2ª vigência PBF 2026</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</header>
+<div class="proto" role="note"><strong>Protótipo com dados fictícios.</strong> Todos os números, nomes de escolas e registros desta página foram gerados para demonstração e não representam a população de Itapuã do Oeste.</div>
+
+<div class="shell">
+  <nav class="side" aria-label="Painéis">
+    <ul id="menu"></ul>
+    <div class="side-note">Última atualização das cargas: 07/11/2026, 23h40. Dados pessoais mascarados por padrão.</div>
+  </nav>
+  <main id="conteudo" tabindex="-1"></main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- dados fictícios (gerador com semente fixa) ---------- */
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+var R=rng(20261108);
+function pick(a){return a[Math.floor(R()*a.length)];}
+function between(a,b){return a+Math.floor(R()*(b-a+1));}
+function wpick(items){var s=0,i,t;for(i=0;i<items.length;i++)s+=items[i][1];t=R()*s;for(i=0;i<items.length;i++){t-=items[i][1];if(t<=0)return items[i][0];}return items[0][0];}
+var fmt=new Intl.NumberFormat("pt-BR");
+function pct(v,d){return (v).toLocaleString("pt-BR",{minimumFractionDigits:d===undefined?1:d,maximumFractionDigits:d===undefined?1:d})+"%";}
+function brl(v){return "R$ "+(v/1e6).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+" mi";}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+
+var SETORES=[
+  {id:"S01",nome:"Setor 01",q0:18,n:16,vul:.28,prec:.86,dom:610},
+  {id:"S02",nome:"Setor 02",q0:34,n:16,vul:.36,prec:.81,dom:570},
+  {id:"S03",nome:"Setor 03",q0:50,n:16,vul:.62,prec:.64,dom:640},
+  {id:"S04",nome:"Setor 04",q0:66,n:16,vul:.44,prec:.77,dom:520},
+  {id:"S05",nome:"Setor 05",q0:82,n:15,vul:.51,prec:.70,dom:398},
+  {id:"RUR",nome:"Zona rural",q0:0,n:0,vul:.57,prec:.41,dom:410}
+];
+function setorNome(id){for(var i=0;i<SETORES.length;i++)if(SETORES[i].id===id)return SETORES[i].nome;return id;}
+
+var GEO_MAP={"W":760,"H":930.8,"mpu":3.531,"cell_m":216,"setores":[{"id":"S01","p":[[426.0,817.2],[240.8,622.0],[218.9,602.1],[202.9,582.9],[202.7,575.8],[98.9,471.7],[125.7,446.1],[151.7,472.1],[223.0,402.6],[530.5,715.8],[486.0,759.9],[426.0,817.2]],"c":[277.8,607.1]},{"id":"S02","p":[[98.7,471.7],[34.0,403.7],[409.8,34.0],[512.7,189.6],[447.6,253.8],[414.0,210.0],[151.7,472.3],[125.6,445.9],[98.7,471.7]],"c":[254.8,328.1]},{"id":"S03","p":[[223.0,402.6],[414.2,210.4],[447.6,253.9],[512.5,189.9],[594.1,266.9],[339.5,521.3],[223.0,402.6]],"c":[393.4,321.1]},{"id":"S04","p":[[594.1,267.0],[683.5,360.0],[669.6,437.8],[614.5,492.0],[635.3,516.7],[649.5,502.4],[670.3,526.8],[701.3,492.7],[726.0,521.0],[530.6,715.7],[339.9,521.1],[594.1,267.0]],"c":[617.4,468.3]},{"id":"S05","p":[[200.7,610.4],[211.8,621.6],[223.2,633.4],[238.5,650.3],[260.0,672.8],[282.7,695.6],[305.5,718.5],[327.6,741.8],[353.0,767.1],[377.0,791.9],[410.4,822.6],[421.3,832.6],[364.5,896.8],[333.3,865.9],[298.3,833.1],[267.2,807.2],[222.1,763.4],[153.1,696.9],[141.1,682.6],[200.7,610.4]],"c":[279.6,735.7]}],"quadras":[{"setor":"S01","c":[207.6,420.8],"p":[[207.3,457.9],[244.7,421.1],[207.9,383.6],[170.5,420.5]]},{"setor":"S01","c":[164.1,463.6],"p":[[163.8,500.7],[201.2,463.9],[164.4,426.5],[126.9,463.3]]},{"setor":"S01","c":[250.4,464.3],"p":[[250.1,501.5],[287.6,464.6],[250.7,427.2],[213.3,464.0]]},{"setor":"S01","c":[206.9,507.1],"p":[[206.6,544.3],[244.0,507.4],[207.2,470.0],[169.8,506.8]]},{"setor":"S01","c":[293.3,507.9],"p":[[293.0,545.0],[330.4,508.2],[293.6,470.7],[256.1,507.5]]},{"setor":"S01","c":[249.7,550.7],"p":[[249.4,587.8],[286.9,551.0],[250.0,513.5],[212.6,550.4]]},{"setor":"S01","c":[336.1,551.4],"p":[[335.8,588.5],[373.2,551.7],[336.4,514.3],[299.0,551.1]]},{"setor":"S01","c":[292.6,594.2],"p":[[292.3,631.4],[329.7,594.5],[292.9,557.1],[255.4,593.9]]},{"setor":"S01","c":[378.9,594.9],"p":[[378.6,632.1],[416.1,595.2],[379.2,557.8],[341.8,594.6]]},{"setor":"S01","c":[335.4,637.8],"p":[[335.1,674.9],[372.5,638.1],[335.7,600.6],[298.2,637.5]]},{"setor":"S01","c":[421.8,638.5],"p":[[421.5,675.6],[458.9,638.8],[422.1,601.3],[384.6,638.2]]},{"setor":"S01","c":[378.2,681.3],"p":[[377.9,718.5],[415.4,681.6],[378.5,644.2],[341.1,681.0]]},{"setor":"S01","c":[464.6,682.0],"p":[[464.3,719.2],[501.7,682.3],[464.9,644.9],[427.5,681.7]]},{"setor":"S01","c":[421.1,724.9],"p":[[420.7,762.0],[458.2,725.2],[421.4,687.7],[383.9,724.6]]},{"setor":"S01","c":[507.4,725.6],"p":[[507.1,762.7],[544.6,725.9],[507.7,688.4],[470.3,725.3]]},{"setor":"S01","c":[463.9,768.4],"p":[[463.6,805.5],[501.0,768.7],[464.2,731.3],[426.7,768.1]]},{"setor":"S02","c":[383.2,76.7],"p":[[382.9,113.8],[420.3,77.0],[383.5,39.6],[346.1,76.4]]},{"setor":"S02","c":[339.7,119.5],"p":[[339.4,156.7],[376.8,119.8],[340.0,82.4],[302.5,119.2]]},{"setor":"S02","c":[426.0,120.2],"p":[[425.7,157.4],[463.2,120.5],[426.3,83.1],[388.9,119.9]]},{"setor":"S02","c":[296.1,162.4],"p":[[295.8,199.5],[333.3,162.7],[296.4,125.2],[259.0,162.0]]},{"setor":"S02","c":[382.5,163.1],"p":[[382.2,200.2],[419.6,163.4],[382.8,125.9],[345.4,162.8]]},{"setor":"S02","c":[468.9,163.8],"p":[[468.6,200.9],[506.0,164.1],[469.2,126.6],[431.7,163.5]]},{"setor":"S02","c":[252.6,205.2],"p":[[252.3,242.3],[289.7,205.5],[252.9,168.0],[215.4,204.9]]},{"setor":"S02","c":[338.9,205.9],"p":[[338.6,243.0],[376.1,206.2],[339.3,168.8],[301.8,205.6]]},{"setor":"S02","c":[425.3,206.6],"p":[[425.0,243.8],[462.5,206.9],[425.6,169.5],[388.2,206.3]]},{"setor":"S02","c":[209.0,248.0],"p":[[208.7,285.2],[246.2,248.3],[209.3,210.9],[171.9,247.7]]},{"setor":"S02","c":[295.4,248.7],"p":[[295.1,285.9],[332.5,249.0],[295.7,211.6],[258.3,248.4]]},{"setor":"S02","c":[165.5,290.8],"p":[[165.2,328.0],[202.6,291.2],[165.8,253.7],[128.3,290.5]]},{"setor":"S02","c":[251.9,291.6],"p":[[251.6,328.7],[289.0,291.9],[252.2,254.4],[214.7,291.3]]},{"setor":"S02","c":[121.9,333.7],"p":[[121.6,370.8],[159.1,334.0],[122.3,296.5],[84.8,333.4]]},{"setor":"S02","c":[208.3,334.4],"p":[[208.0,371.5],[245.5,334.7],[208.6,297.3],[171.2,334.1]]},{"setor":"S02","c":[78.4,376.5],"p":[[78.1,413.7],[115.5,376.8],[78.7,339.4],[41.3,376.2]]},{"setor":"S02","c":[164.8,377.2],"p":[[164.5,414.4],[201.9,377.5],[165.1,340.1],[127.6,376.9]]},{"setor":"S02","c":[121.2,420.1],"p":[[120.9,457.2],[158.4,420.4],[121.5,382.9],[84.1,419.7]]},{"setor":"S03","c":[511.7,207.3],"p":[[511.4,244.5],[548.8,207.6],[512.0,170.2],[474.6,207.0]]},{"setor":"S03","c":[381.8,249.4],"p":[[381.5,286.6],[418.9,249.7],[382.1,212.3],[344.6,249.1]]},{"setor":"S03","c":[468.2,250.2],"p":[[467.8,287.3],[505.3,250.5],[468.5,213.0],[431.0,249.8]]},{"setor":"S03","c":[554.5,250.9],"p":[[554.2,288.0],[591.7,251.2],[554.8,213.7],[517.4,250.6]]},{"setor":"S03","c":[338.2,292.3],"p":[[337.9,329.4],[375.4,292.6],[338.5,255.1],[301.1,292.0]]},{"setor":"S03","c":[424.6,293.0],"p":[[424.3,330.1],[461.8,293.3],[424.9,255.8],[387.5,292.7]]},{"setor":"S03","c":[511.0,293.7],"p":[[510.7,330.8],[548.1,294.0],[511.3,256.6],[473.8,293.4]]},{"setor":"S03","c":[294.7,335.1],"p":[[294.4,372.2],[331.8,335.4],[295.0,298.0],[257.6,334.8]]},{"setor":"S03","c":[381.1,335.8],"p":[[380.8,373.0],[418.2,336.1],[381.4,298.7],[343.9,335.5]]},{"setor":"S03","c":[467.4,336.5],"p":[[467.1,373.7],[504.6,336.8],[467.7,299.4],[430.3,336.2]]},{"setor":"S03","c":[251.2,377.9],"p":[[250.8,415.1],[288.3,378.2],[251.5,340.8],[214.0,377.6]]},{"setor":"S03","c":[337.5,378.6],"p":[[337.2,415.8],[374.7,379.0],[337.8,341.5],[300.4,378.3]]},{"setor":"S03","c":[423.9,379.4],"p":[[423.6,416.5],[461.0,379.7],[424.2,342.2],[386.8,379.1]]},{"setor":"S03","c":[294.0,421.5],"p":[[293.7,458.6],[331.1,421.8],[294.3,384.3],[256.8,421.2]]},{"setor":"S03","c":[380.4,422.2],"p":[[380.0,459.3],[417.5,422.5],[380.7,385.0],[343.2,421.9]]},{"setor":"S03","c":[336.8,465.0],"p":[[336.5,502.2],[374.0,465.3],[337.1,427.9],[299.7,464.7]]},{"setor":"S04","c":[597.4,294.4],"p":[[597.1,331.5],[634.5,294.7],[597.7,257.3],[560.2,294.1]]},{"setor":"S04","c":[553.8,337.2],"p":[[553.5,374.4],[591.0,337.5],[554.1,300.1],[516.7,336.9]]},{"setor":"S04","c":[640.2,338.0],"p":[[639.9,375.1],[677.3,338.3],[640.5,300.8],[603.1,337.6]]},{"setor":"S04","c":[510.3,380.1],"p":[[510.0,417.2],[547.4,380.4],[510.6,342.9],[473.1,379.8]]},{"setor":"S04","c":[596.6,380.8],"p":[[596.3,417.9],[633.8,381.1],[597.0,343.6],[559.5,380.5]]},{"setor":"S04","c":[466.7,422.9],"p":[[466.4,460.0],[503.9,423.2],[467.0,385.8],[429.6,422.6]]},{"setor":"S04","c":[553.1,423.6],"p":[[552.8,460.8],[590.2,423.9],[553.4,386.5],[516.0,423.3]]},{"setor":"S04","c":[639.5,424.3],"p":[[639.2,461.5],[676.6,424.6],[639.8,387.2],[602.3,424.0]]},{"setor":"S04","c":[423.2,465.7],"p":[[422.9,502.9],[460.3,466.0],[423.5,428.6],[386.0,465.4]]},{"setor":"S04","c":[509.6,466.4],"p":[[509.3,503.6],[546.7,466.8],[509.9,429.3],[472.4,466.1]]},{"setor":"S04","c":[595.9,467.2],"p":[[595.6,504.3],[633.1,467.5],[596.2,430.0],[558.8,466.9]]},{"setor":"S04","c":[379.6,508.6],"p":[[379.3,545.7],[416.8,508.9],[380.0,471.4],[342.5,508.3]]},{"setor":"S04","c":[466.0,509.3],"p":[[465.7,546.4],[503.2,509.6],[466.3,472.1],[428.9,509.0]]},{"setor":"S04","c":[552.4,510.0],"p":[[552.1,547.1],[589.5,510.3],[552.7,472.8],[515.3,509.7]]},{"setor":"S04","c":[422.5,552.1],"p":[[422.2,589.2],[459.6,552.4],[422.8,515.0],[385.3,551.8]]},{"setor":"S04","c":[508.8,552.8],"p":[[508.5,590.0],[546.0,553.1],[509.2,515.7],[471.7,552.5]]},{"setor":"S04","c":[595.2,553.5],"p":[[594.9,590.7],[632.4,553.8],[595.5,516.4],[558.1,553.2]]},{"setor":"S04","c":[681.6,554.2],"p":[[681.3,591.4],[718.7,554.6],[681.9,517.1],[644.5,553.9]]},{"setor":"S04","c":[465.3,595.7],"p":[[465.0,632.8],[502.4,596.0],[465.6,558.5],[428.2,595.3]]},{"setor":"S04","c":[551.7,596.4],"p":[[551.4,633.5],[588.8,596.7],[552.0,559.2],[514.5,596.1]]},{"setor":"S04","c":[638.1,597.1],"p":[[637.7,634.2],[675.2,597.4],[638.4,559.9],[600.9,596.8]]},{"setor":"S04","c":[508.1,639.2],"p":[[507.8,676.3],[545.3,639.5],[508.4,602.1],[471.0,638.9]]},{"setor":"S04","c":[594.5,639.9],"p":[[594.2,677.0],[631.7,640.2],[594.8,602.8],[557.4,639.6]]},{"setor":"S04","c":[551.0,682.7],"p":[[550.7,719.9],[588.1,683.0],[551.3,645.6],[513.8,682.4]]},{"setor":"S05","c":[205.5,679.9],"p":[[205.2,717.0],[242.6,680.2],[205.8,642.7],[168.3,679.6]]},{"setor":"S05","c":[248.3,723.4],"p":[[248.0,760.6],[285.4,723.7],[248.6,686.3],[211.2,723.1]]},{"setor":"S05","c":[291.1,767.0],"p":[[290.8,804.1],[328.3,767.3],[291.4,729.8],[254.0,766.7]]},{"setor":"S05","c":[334.0,810.5],"p":[[333.7,847.7],[371.1,810.8],[334.3,773.4],[296.8,810.2]]},{"setor":"S05","c":[376.8,854.1],"p":[[376.5,891.2],[413.9,854.4],[377.1,816.9],[339.7,853.8]]}],"predios":[{"t":"escola_mun","n":1,"c":[227.8,438.4],"p":[[209.1,443.6],[210.1,442.6],[211.0,441.7],[212.1,440.5],[213.5,439.1],[215.0,437.7],[216.6,436.1],[217.9,434.6],[219.6,433.1],[221.0,431.5],[222.5,430.1],[223.6,429.1],[224.6,428.0],[225.4,427.2],[225.6,427.0],[225.7,426.9],[226.9,428.2],[228.1,429.4],[229.3,430.5],[230.6,432.0],[232.0,433.4],[233.4,434.8],[234.8,436.1],[236.2,437.6],[237.5,438.9],[239.1,440.4],[240.3,441.8],[241.4,442.8],[242.7,444.2],[244.2,445.7],[245.6,447.1],[246.8,448.3],[248.0,449.5],[231.4,466.2],[228.6,463.3],[209.1,443.6]]},{"t":"escola_mun","n":2,"c":[383.0,458.1],"p":[[369.4,455.4],[370.9,454.0],[372.4,452.5],[374.3,450.6],[376.0,449.0],[377.2,447.9],[377.8,447.1],[378.9,448.3],[380.1,449.6],[381.4,450.8],[382.6,452.0],[384.0,453.4],[385.0,454.5],[386.3,455.8],[387.4,456.9],[388.9,458.2],[390.5,459.8],[392.4,461.8],[393.5,463.0],[394.1,463.6],[392.7,464.9],[391.1,466.4],[389.7,467.8],[388.1,469.5],[386.7,470.8],[385.7,471.9],[382.2,468.4],[379.2,465.4],[369.4,455.4]]},{"t":"escola_mun","n":3,"c":[324.6,607.8],"p":[[317.5,606.8],[324.3,600.1],[325.5,601.3],[327.1,602.9],[328.6,604.4],[330.0,605.8],[331.2,607.1],[330.5,607.7],[329.1,609.0],[327.7,610.3],[324.9,612.9],[324.0,613.8],[323.2,612.9],[321.9,611.5],[320.6,610.2],[319.6,609.1],[318.6,607.9],[317.5,606.8]]},{"t":"escola_mun","n":4,"c":[318.8,609.9],"p":[[314.3,609.5],[315.1,608.8],[315.7,608.2],[316.3,607.7],[316.9,607.2],[317.4,606.8],[317.7,607.1],[318.3,607.7],[318.9,608.3],[319.6,609.2],[320.3,610.0],[321.2,610.9],[321.8,611.5],[322.4,612.1],[323.0,612.8],[324.0,613.8],[321.0,616.7],[314.3,609.5]]},{"t":"escola_mun","n":5,"c":[307.2,624.8],"p":[[296.2,641.4],[293.1,638.3],[288.7,633.9],[288.8,633.8],[289.7,632.8],[291.0,631.7],[292.1,630.7],[293.6,629.3],[294.8,628.1],[296.2,626.8],[297.7,625.3],[299.0,624.0],[300.5,622.6],[301.8,621.4],[303.2,620.1],[305.0,618.5],[306.6,617.0],[308.1,615.6],[309.6,614.0],[311.2,612.5],[312.7,611.2],[313.9,610.0],[314.8,609.2],[316.1,608.0],[317.5,606.7],[317.7,607.0],[318.4,607.7],[319.2,608.5],[320.0,609.5],[321.0,610.6],[322.2,611.9],[324.2,613.9],[323.8,614.3],[322.6,615.4],[321.4,616.5],[320.5,617.5],[319.2,618.8],[317.7,620.2],[317.0,620.9],[316.0,621.9],[314.7,623.2],[313.6,624.3],[313.2,624.7],[312.4,625.4],[311.8,626.0],[311.2,626.6],[310.5,627.3],[309.7,628.1],[308.8,629.0],[307.9,629.9],[307.3,630.5],[306.8,631.0],[306.0,631.7],[305.2,632.5],[304.7,633.0],[304.2,633.5],[303.5,634.2],[302.9,634.8],[302.2,635.4],[301.7,636.0],[301.0,636.7],[300.4,637.3],[299.8,637.9],[299.1,638.7],[298.4,639.3],[297.8,639.9],[296.9,640.7],[296.2,641.4]]},{"t":"escola_mun","n":6,"c":[287.5,546.4],"p":[[288.2,537.1],[289.5,538.3],[290.7,539.6],[292.1,540.9],[293.5,542.2],[295.8,544.6],[295.9,544.6],[292.8,547.4],[291.1,549.2],[289.2,551.1],[287.7,552.6],[285.9,554.3],[285.7,554.5],[283.4,552.0],[282.1,550.7],[280.9,549.5],[279.6,548.2],[279.0,547.6],[278.3,547.0],[288.2,537.1]]},{"t":"escola_est","n":1,"c":[213.5,469.2],"p":[[196.1,463.2],[212.8,447.3],[214.8,449.2],[217.6,452.2],[220.6,455.2],[223.6,458.2],[226.5,461.2],[228.7,463.4],[230.3,465.1],[231.7,466.4],[231.4,466.7],[230.5,467.5],[228.7,469.1],[228.4,469.4],[226.7,471.0],[225.1,472.4],[222.6,474.8],[221.2,476.2],[219.7,477.7],[218.3,479.1],[215.0,482.4],[214.9,482.2],[214.3,481.6],[213.2,480.4],[211.9,479.2],[210.9,478.2],[209.8,477.0],[208.7,475.9],[207.3,474.5],[206.4,473.6],[206.1,473.3],[205.4,472.5],[204.3,471.5],[203.6,470.8],[202.9,470.0],[202.0,469.1],[201.1,468.2],[199.8,466.9],[198.9,465.9],[198.6,465.6],[197.7,464.8],[196.8,463.8],[196.1,463.2]]},{"t":"escola_est","n":2,"c":[352.7,489.8],"p":[[341.4,483.7],[343.0,481.8],[345.5,479.4],[348.0,476.9],[353.6,471.5],[354.6,472.6],[357.4,475.4],[359.5,477.7],[361.8,479.9],[363.6,481.7],[365.4,483.6],[367.2,485.4],[369.8,487.9],[369.0,488.7],[367.2,490.3],[365.6,491.9],[363.4,494.1],[361.3,496.1],[359.0,498.6],[355.4,502.3],[354.3,503.5],[350.6,507.3],[349.7,506.5],[347.7,504.7],[345.6,502.4],[341.4,498.7],[340.2,497.6],[340.7,497.1],[341.8,496.2],[344.0,493.9],[347.8,490.1],[347.3,489.7],[345.9,488.2],[344.7,487.0],[343.2,485.5],[341.4,483.7]]},{"t":"saude","n":1,"c":[340.9,508.3],"p":[[340.2,497.6],[342.1,499.4],[344.0,501.1],[345.5,502.4],[347.2,504.2],[349.0,505.9],[350.4,507.3],[348.5,509.0],[347.0,510.5],[345.4,512.1],[344.0,513.6],[342.5,515.2],[341.2,516.7],[340.3,517.4],[339.0,516.7],[336.9,514.4],[334.9,512.3],[333.2,510.6],[332.2,509.5],[331.0,508.4],[330.7,508.1],[336.3,501.4],[340.2,497.6]]},{"t":"saude","n":2,"c":[331.2,500.3],"p":[[330.7,508.0],[323.8,501.3],[324.8,500.2],[325.9,499.0],[327.7,497.3],[329.3,495.5],[330.8,494.1],[331.1,494.5],[332.3,495.7],[333.9,497.3],[335.6,498.9],[337.1,500.5],[336.2,501.3],[334.8,503.1],[333.8,504.3],[332.0,506.4],[330.7,508.0]]},{"t":"saude","n":3,"c":[582.9,533.2],"p":[[583.4,526.6],[590.2,533.5],[589.5,534.1],[586.7,536.6],[583.2,539.8],[581.8,538.2],[579.3,535.7],[576.8,532.9],[577.5,532.1],[580.2,529.6],[583.4,526.6]]},{"t":"saude","n":4,"c":[325.1,543.9],"p":[[322.5,542.6],[323.9,541.1],[325.4,542.7],[325.6,542.6],[329.7,546.8],[328.2,548.2],[324.2,544.1],[323.9,544.0],[322.5,542.6]]},{"t":"saude","n":5,"c":[467.5,628.6],"p":[[468.8,623.2],[474.4,629.0],[472.1,631.3],[467.9,635.3],[465.5,632.6],[462.7,629.5],[462.9,629.3],[465.1,626.9],[466.6,625.4],[468.8,623.2]]},{"t":"saude","n":6,"c":[393.5,452.9],"p":[[392.8,445.9],[402.7,455.2],[394.2,463.5],[384.9,454.0],[392.8,445.9]]},{"t":"saude","n":7,"c":[299.6,654.6],"p":[[299.7,652.3],[302.4,654.9],[299.3,657.9],[296.7,655.3],[299.7,652.3]]},{"t":"assistencia","n":1,"c":[469.9,550.8],"p":[[470.1,542.7],[479.3,552.4],[478.1,553.7],[475.1,556.5],[472.4,559.6],[471.6,559.0],[467.8,555.0],[462.6,550.0],[462.8,549.8],[464.0,548.4],[466.4,546.1],[468.2,544.5],[470.1,542.7]]},{"t":"assistencia","n":2,"c":[544.6,344.6],"p":[[543.4,339.3],[551.4,347.5],[546.5,352.3],[538.3,344.5],[543.4,339.3]]},{"t":"assistencia","n":3,"c":[385.7,446.5],"p":[[385.3,444.3],[388.6,447.6],[386.1,449.8],[382.9,446.6],[385.3,444.3]]}],"rural":["escola_mun"]};
+var QUADRAS=[];
+GEO_MAP.quadras.forEach(function(g,i){var st=SETORES.filter(function(x){return x.id===g.setor;})[0];
+  var v=Math.max(.05,Math.min(.95,st.vul+(R()-.5)*.36));
+  var pr=Math.max(.2,Math.min(1,st.prec+(R()-.5)*.3));
+  QUADRAS.push({id:"Q"+String(18+i).padStart(3,"0"),setor:g.setor,idx:i,vul:v,prec:pr,dom:between(22,58),casos:0,geo:g});
+});
+
+var ESCOLAS=["EMEF Castanheira","EMEF Rio Jamari","EMEIEF Pequeno Ipê","Creche Municipal Sementinha","EMEF Linha 45 (rural)","Rede estadual"];
+var LETRAS="ABCDEFGHIJLMNOPRSTV";
+function iniciais(){return pick(LETRAS)+". "+pick(LETRAS)+". "+pick(LETRAS)+".";}
+function cpfDigits(){var d="";for(var i=0;i<11;i++)d+=between(0,9);return d;}
+function cpfMask(d){return "***."+d.slice(3,6)+"."+d.slice(6,9)+"-**";}
+function cpfFull(d){return d.slice(0,3)+"."+d.slice(3,6)+"."+d.slice(6,9)+"-"+d.slice(9);}
+
+var CASOS=[];
+for(var c=0;c<74;c++){
+  var st=wpick([["Matriculado",33],["Visita realizada",11],["Encaminhado",13],["Identificado",11],["Não localizado",6]]);
+  var setor=wpick([["S01",8],["S02",10],["S03",24],["S04",12],["S05",14],["RUR",16]]);
+  var qs=QUADRAS.filter(function(q){return q.setor===setor;});
+  var q=qs.length?pick(qs):null; if(q)q.casos++;
+  var idade=between(4,17);
+  CASOS.push({
+    id:"BA-2026-"+String(301+c*7).padStart(4,"0"),
+    ini:iniciais(), cpf:cpfDigits(), idade:idade, setor:setor, quadra:q?q.id:"Linha "+pick(["C-10","C-15","45","65","B-20"]),
+    origem:wpick([["CadÚnico",44],["e-SUS",30],["Censo Municipal",26]]),
+    status:st, dias:st==="Matriculado"?between(6,38):between(1,52),
+    resp:st==="Identificado"?"SEMED":wpick([["Assistência Social",45],["Saúde (ACS)",30],["SEMED",25]]),
+    escola:st==="Matriculado"?(idade<6?pick(["EMEIEF Pequeno Ipê","Creche Municipal Sementinha"]):pick(ESCOLAS)):"—",
+    revelado:false
+  });
+}
+var R2=rng(77);
+QUADRAS.forEach(function(q){function d(b){return Math.max(.03,Math.min(.97,b+(R2()-.5)*.3));}
+  q.d={renda:d(q.vul+.05),saude:d(q.vul-.02),escola:d(q.vul-.05),imovel:d(q.vul),reg:d(q.setor==="S03"?.78:q.setor==="S05"?.45:.18)};});
+var DIMS=[["renda","Renda","Famílias no CadÚnico com renda per capita de até R$ 218","CadÚnico"],["saude","Saúde","Crianças com vacina atrasada e gestantes sem pré-natal adequado","e-SUS PEC"],["escola","Escola","Crianças fora da escola e alunos com infrequência","Gestão escolar"],["imovel","Condição do imóvel","Domicílios sem saneamento ou com material precário","Censo Municipal"],["reg","Regularização","Lotes ocupados sem titulação","Cadastro imobiliário e Reurb"]];
+var PESOS0={renda:30,saude:20,escola:20,imovel:15,reg:15};
+var NASC={S01:[26,25,25,24],S02:[24,23,24,23],S03:[36,37,38,39],S04:[22,23,22,22],S05:[19,20,21,22],RUR:[17,16,15,15]};
+var FILA={S01:9,S02:11,S03:31,S04:10,S05:14,RUR:6};
+function noSetor(id){return (id==="RUR"?"na ":"no ")+setorNome(id);}
+var LIM={"Identificado":5,"Encaminhado":20,"Visita realizada":30,"Não localizado":30};
+function prazo(c){if(c.status==="Matriculado")return{k:"mute",t:"Concluído",lvl:0,r:99};var r=LIM[c.status]-c.dias;
+  if(r>3)return{k:"good",t:"No prazo · "+r+" dias",lvl:0,r:r};
+  if(r>=0)return{k:"warn",t:r===0?"Vence hoje":"Vence em "+r+(r===1?" dia":" dias"),lvl:1,r:r};
+  if(r>=-7)return{k:"crit",t:"Vencido · coordenação",lvl:2,r:r};
+  return{k:"crit",t:"Escalonado ao Comitê",lvl:3,r:r};}
+/* ---------- fichas, notificações, pessoa idosa, lotes (dados fictícios) ---------- */
+var R3=rng(4242);
+function pk(a){return a[Math.floor(R3()*a.length)];}
+function bt(a,b){return a+Math.floor(R3()*(b-a+1));}
+function wp(items){var s=0,i,t;for(i=0;i<items.length;i++)s+=items[i][1];t=R3()*s;for(i=0;i<items.length;i++){t-=items[i][1];if(t<=0)return items[i][0];}return items[0][0];}
+var BASE=new Date(2026,10,8);
+function dAgo(n){var d=new Date(BASE.getTime()-n*864e5);return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear();}
+function ini3(){return pk(LETRAS)+". "+pk(LETRAS)+". "+pk(LETRAS)+".";}
+function cpf3(){var d="";for(var i=0;i<11;i++)d+=bt(0,9);return d;}
+function qOf(setor){var qs=QUADRAS.filter(function(q){return q.setor===setor;});return qs.length?qs[Math.floor(R3()*qs.length)]:null;}
+function lotPos(q,l){var p=q.geo.p,a=((l-1)%4+.5)/4,b=(Math.floor((l-1)/4)+.5)/3;function c(i){return (1-a)*(1-b)*p[0][i]+a*(1-b)*p[1][i]+a*b*p[2][i]+(1-a)*b*p[3][i];}return [c(0),c(1)];}
+var LINHAS=["C-10","C-15","45","65","B-20"];
+var VISIT=["Visitador(a) PCF 01","Visitador(a) PCF 02","Visitador(a) PCF 03","Visitador(a) PCF 04"];
+var LOTES={};
+QUADRAS.forEach(function(q){var a=[];for(var l=1;l<=12;l++)a.push(q.setor==="S03"?wp([["Regular",30],["Reurb em análise",45],["Sem inscrição",15],["Vazio",10]]):q.setor==="S05"?wp([["Regular",62],["Reurb em análise",14],["Sem inscrição",16],["Vazio",8]]):wp([["Regular",82],["Sem inscrição",8],["Reurb em análise",4],["Vazio",6]]));LOTES[q.id]=a;});
+function pickLot(q){for(var t=0;t<20;t++){var l=bt(1,12);if(LOTES[q.id][l-1]!=="Vazio")return l;}return 1;}
+
+var CRIANCAS=[];
+for(var ci=0;ci<620;ci++){
+  var cst=wp([["S01",14],["S02",15],["S03",24],["S04",19],["S05",10],["RUR",18]]),cq=qOf(cst),clote=cq?pickLot(cq):bt(10,90);
+  var rr=R3(),idade=rr<.3?bt(0,3):rr<.42?bt(4,5):rr<.86?bt(6,14):bt(15,17);
+  var vul=cq?cq.vul:.57,cad=R3()<vul+.15,matric,escola,turma;
+  if(idade<=3){matric=R3()<.36;escola=matric?"Creche Municipal Sementinha":"";turma=idade<1?"Berçário":"Maternal";}
+  else if(idade<=5){matric=R3()<.9;escola=matric?"EMEIEF Pequeno Ipê":"";turma="Pré-escola "+(idade-3);}
+  else if(idade<=14){matric=R3()<.96;escola=matric?(cst==="RUR"?"EMEF Linha 45 (rural)":pk(["EMEF Castanheira","EMEF Rio Jamari"])):"";turma=(idade-5)+"º ano";}
+  else{matric=R3()<.84;escola=matric?(R3()<.8?"Rede estadual":"EMEF Rio Jamari"):"";turma=(idade-14)+"ª série do ensino médio";}
+  var escolar=idade>=4&&matric,faltas=escolar?(R3()<.09?bt(5,9):bt(0,2)):0,aee=R3()<.055;
+  var c={id:"CI-"+String(10230+ci*7),ini:ini3(),cpf:cpf3(),idade:idade,setor:cst,q:cq,quadra:cq?cq.id:"Linha "+pk(LINHAS),lote:clote,
+    cad:cad,pbf:cad&&R3()<.7,cadDias:bt(20,400),matric:matric,escola:escola,turma:turma,matDias:bt(60,280),
+    freq:escolar?(faltas>=5?bt(58,78):bt(80,100)):null,faltas:faltas,vac:R3()<1-vul*.3,acs:R3()<.8?bt(4,90):bt(91,170),ubs:"Unidade de saúde "+bt(1,7),
+    cras:cad&&R3()<.33,crasUlt:bt(5,90),pcf:idade<=3&&cad&&R3()<.55,pcfUlt:R3()<.8?bt(1,14):bt(15,30),visitador:pk(VISIT),
+    aee:aee,apae:aee&&R3()<.5,bpc:aee&&cad&&R3()<.7,sala:aee&&escolar&&R3()<.6,ct:(idade>=4&&!matric&&R3()<.5),ctDias:bt(3,60),eventos:[],revelado:false};
+  c.pos=cq?lotPos(cq,clote):null;
+  CRIANCAS.push(c);
+}
+function motivosVisita(c){var m=[];if(c.idade>=4&&!c.matric)m.push("Fora da escola");if(c.faltas>=5)m.push(c.faltas+" faltas seguidas");if(!c.vac)m.push("Vacinação atrasada");if(c.acs>90)m.push("Sem visita do ACS há "+c.acs+" dias");if(c.pcf&&c.pcfUlt>14)m.push("Visita do Criança Feliz atrasada");if(c.aee&&!c.sala&&!c.apae)m.push("Sem atendimento especializado");if(c.idade<=3&&c.cad&&!c.matric&&!c.pcf)m.push("Sem creche e sem Criança Feliz");return m;}
+
+var PARECERES=[["Família visitada pelo CRAS. O aluno estava cuidando do irmão menor; a mãe foi orientada e o retorno à escola foi combinado para segunda-feira.","Retorno à escola combinado"],["A família mudou de endereço e não consegue levar a criança à escola. Solicitada a inclusão na rota do transporte escolar.","Encaminhado à SEMED (transporte)"],["Aluno em tratamento de saúde, com atestado entregue à escola. Família acompanhada pela unidade de saúde.","Ausência justificada (saúde)"],["Família não localizada no endereço após duas tentativas. Caso comunicado ao Conselho Tutelar.","Encaminhado ao Conselho Tutelar"]];
+var DESFECHOS=["Retorno à escola combinado","Encaminhado à SEMED (transporte)","Ausência justificada (saúde)","Encaminhado ao CREAS","Encaminhado ao Conselho Tutelar","Família não localizada"];
+var NOTIF=[],nseq=0;
+function novaNotifId(){return "NT-2026-"+String(120+(nseq++)*3).padStart(4,"0");}
+CRIANCAS.forEach(function(c){if(c.faltas>=5){var st=wp([["Nova",40],["Em análise",30],["Parecer emitido",30]]),pr=st==="Parecer emitido"?pk(PARECERES):null,crd=bt(0,9);
+  NOTIF.push({id:novaNotifId(),c:c,motivo:c.faltas+" dias letivos seguidos sem frequência",criada:crd,destino:"CRAS do território",status:st,parecer:pr?pr[0]:"",desfecho:pr?pr[1]:"",autor:pr?"Técnico(a) do CRAS (matr. 2210)":"",pDias:Math.max(0,crd-bt(1,3)),novaVisita:false});}});
+function notifDe(c){for(var i=0;i<NOTIF.length;i++)if(NOTIF[i].c===c)return NOTIF[i];return null;}
+
+var IDOSOS=[];
+for(var ii=0;ii<1048;ii++){
+  var ist=wp([["S01",17],["S02",16],["S03",19],["S04",20],["S05",11],["RUR",17]]),iq=qOf(ist),il=iq?pickLot(iq):0,icad=R3()<.45,icron=R3()<.48,ia=R3();
+  IDOSOS.push({id:"PI-"+String(5100+ii*3),ini:ini3(),idade:ia<.55?bt(60,69):ia<.85?bt(70,79):bt(80,96),setor:ist,q:iq,lote:il,quadra:iq?iq.id:"Linha "+pk(LINHAS),
+    so:R3()<.17,bpc:R3()<.08,acam:R3()<.04,scfv:R3()<.13,gripe:R3()<.72,cad:icad,cras:icad&&R3()<.22,cron:icron,cronA:icron&&R3()<.7,acs:R3()<.65?bt(3,90):bt(91,260),pos:iq?lotPos(iq,il):null});
+}
+function motivosIdoso(p){var m=[];if(p.so)m.push("Mora sozinha");if(p.acs>90)m.push("Sem visita há "+p.acs+" dias");if(p.acam)m.push("Acamada");if(p.bpc&&!p.cras)m.push("BPC sem CRAS");if(!p.gripe)m.push("Sem vacina da gripe");if(p.cron&&!p.cronA)m.push("Crônico sem consulta");return m;}
+
+var EJA=[{setor:"S01",pot:198,naoAlf:31,mat:34,freq:74},{setor:"S02",pot:221,naoAlf:38,mat:29,freq:70},{setor:"S03",pot:356,naoAlf:92,mat:41,freq:66},{setor:"S04",pot:262,naoAlf:57,mat:38,freq:72},{setor:"S05",pot:171,naoAlf:44,mat:22,freq:69},{setor:"RUR",pot:212,naoAlf:50,mat:22,freq:64}];
+
+var MESES=["nov/25","dez/25","jan/26","fev/26","mar/26","abr/26","mai/26","jun/26","jul/26","ago/26","set/26","out/26"];
+var ABERTOS=[58,61,63,66,62,57,52,48,44,40,37,35];
+var RESOLV=[2,4,3,6,9,11,10,12,9,11,8,9];
+var VACINA=[71.4,71.9,72.6,73.1,73.0,74.2,75.0,75.8,76.9,77.6,78.3,78.9];
+
+var INF=[
+  {setor:"S01",criancas:198,vac:85.3,pren:81.0,creche:44.2,pre:96.1,cad:38.4},
+  {setor:"S02",criancas:181,vac:82.2,pren:78.5,creche:41.0,pre:94.8,cad:45.9},
+  {setor:"S03",criancas:236,vac:72.6,pren:66.2,creche:29.7,pre:88.3,cad:71.2},
+  {setor:"S04",criancas:164,vac:80.8,pren:74.1,creche:36.5,pre:92.0,cad:52.4},
+  {setor:"S05",criancas:139,vac:78.0,pren:72.7,creche:33.8,pre:90.6,cad:60.1},
+  {setor:"RUR",criancas:152,vac:75.3,pren:63.9,creche:12.4,pre:81.7,cad:66.8}
+];
+var METAS={vac:85,pren:75,creche:40,pre:95};
+
+var GEO=[ /* fontes do ponto por setor, % dos domicílios */
+  {setor:"S01",p:[61,25,6,5,0,3]},{setor:"S02",p:[55,26,8,7,0,4]},{setor:"S03",p:[38,26,12,15,0,9]},
+  {setor:"S04",p:[50,27,9,9,0,5]},{setor:"S05",p:[44,26,11,12,0,7]},{setor:"RUR",p:[29,0,14,22,26,9]}
+];
+var GEOK=[["Censo (GPS)","--seq1"],["Lote cadastral","--seq2"],["e-SUS Território","--seq3"],["CNEFE 2022","--seq4"],["SIGEF/CAR","--seq5"],["Setor (baixa precisão)","--seq6"]];
+
+var IMOV=[
+  {setor:"S01",dom:610,semInsc:21,uso:14,semTit:6,end:48},{setor:"S02",dom:570,semInsc:33,uso:17,semTit:11,end:61},
+  {setor:"S03",dom:640,semInsc:118,uso:29,semTit:214,end:139},{setor:"S04",dom:520,semInsc:46,uso:19,semTit:23,end:72},
+  {setor:"S05",dom:398,semInsc:68,uso:18,semTit:41,end:92},{setor:"RUR",dom:410,semInsc:0,uso:0,semTit:0,end:0}
+];
+
+var CARGAS=[
+  {fonte:"Gestão escolar",sec:"SEMED",ult:"07/11/2026 23:40",reg:2318,st:"ok"},
+  {fonte:"Censo Municipal",sec:"SEMED",ult:"07/11/2026 23:41",reg:9742,st:"ok"},
+  {fonte:"e-SUS APS PEC",sec:"SEMSAU",ult:"07/11/2026 23:52",reg:10216,st:"ok"},
+  {fonte:"Cadastro Único",sec:"Assistência Social",ult:"23/10/2026 (mensal)",reg:4386,st:"ok"},
+  {fonte:"SICON",sec:"Assistência Social",ult:"Falhou em 06/11/2026",reg:0,st:"falha"},
+  {fonte:"Matrículas rede estadual",sec:"SEDUC-RO",ult:"02/08/2026 (semestral)",reg:612,st:"atraso"},
+  {fonte:"Cadastro imobiliário",sec:"Fazenda",ult:"07/11/2026 23:45",reg:3471,st:"ok"}
+];
+
+var ACESSOS=[
+  {quando:"07/11/2026 15:12",quem:"Servidor SEMED (matr. 1042)",reg:"BA-2026-0329",fin:"Contato para matrícula"},
+  {quando:"07/11/2026 10:03",quem:"Técnico CRAS (matr. 2210)",reg:"BA-2026-0364",fin:"Visita domiciliar"},
+  {quando:"06/11/2026 16:47",quem:"ACS microárea 04 (matr. 3118)",reg:"BA-2026-0420",fin:"Busca ativa no território"}
+];
+
+/* ---------- estado ---------- */
+var S={fq:"",ff:"todas",fsel:null,nf:"todas",nsel:null,mapEquip:true,pesos:JSON.parse(JSON.stringify(PESOS0)),creMeta:50,creSetor:"S03",creVagas:60,perfil:"comite",territorio:"todos",view:"visao-geral",busca:"",statusF:"todos",sort:{k:"dias",dir:-1},page:0,mapLayer:"vul",mapSel:null,siconOk:false};
+try{var saved=JSON.parse(localStorage.getItem("sii-prefs")||"{}");if(saved.perfil)S.perfil=saved.perfil;if(saved.territorio)S.territorio=saved.territorio;}catch(e){}
+function savePrefs(){try{localStorage.setItem("sii-prefs",JSON.stringify({perfil:S.perfil,territorio:S.territorio}));}catch(e){}}
+function nominal(){return S.perfil!=="tce";}
+function ivm(q){var s2=0,t=0;DIMS.forEach(function(k){s2+=q.d[k[0]]*S.pesos[k[0]];t+=S.pesos[k[0]];});return t?s2/t:0;}
+function ivmSetor(id){var qs=QUADRAS.filter(function(q){return q.setor===id;});if(!qs.length)return .57;return qs.reduce(function(a,q){return a+ivm(q);},0)/qs.length;}
+function ivmClass(v){return v>.65?["crit","Muito alta"]:v>.5?["warn","Alta"]:v>.35?["info","Moderada"]:["good","Baixa"];}
+function escalados(){return CASOS.filter(function(c){return inTerr(c.setor)&&prazo(c).lvl===3;});}
+function inTerr(setor){return S.territorio==="todos"||S.territorio===setor;}
+
+/* ---------- ícones (traço único, mesmo estilo) ---------- */
+var IC={
+  home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+  baby:'<circle cx="12" cy="8" r="4"/><path d="M5 21c1-4 4-6 7-6s6 2 7 6"/>',
+  map:'<path d="M9 4l-6 2v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',
+  house:'<path d="M4 21V10l8-6 8 6v11"/><path d="M9 21v-6h6v6"/>',
+  target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>',
+  alert:'<path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/>',
+  inbox:'<path d="M3 13l3-8h12l3 8v6H3z"/><path d="M3 13h5l1 2h6l1-2h5"/>',
+  copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/>',
+  check:'<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',
+  refresh:'<path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 4v7h-7"/>',
+  card:'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.5"/><path d="M14 10h4M14 14h4M6 16c.6-1.5 1.7-2 3-2s2.4.5 3 2"/>',
+  bell:'<path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/>',
+  hand:'<circle cx="12" cy="5" r="2"/><path d="M12 7v6M8 10h8M9 21l3-8 3 8"/>',
+  book:'<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 19V5"/>',
+  cane:'<circle cx="10" cy="4" r="2"/><path d="M10 7v6l-3 8M10 13l3 8M7 10h6"/><path d="M16 11a2 2 0 014 0v10"/>',
+  layers:'<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/><path d="M3 17.5l9 5 9-5"/>',
+  crib:'<path d="M4 20V8M20 20V8M4 12h16M4 17h16"/><path d="M8 12v5M12 12v5M16 12v5"/>',
+  eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'
+};
+function icon(n){return '<svg viewBox="0 0 24 24" aria-hidden="true">'+IC[n]+'</svg>';}
+
+var VIEWS=[
+  {id:"visao-geral",nome:"Visão geral",ic:"home",g:"Acompanhamento"},
+  {id:"ficha-crianca",nome:"Ficha da criança",ic:"card",g:"Acompanhamento"},
+  {id:"notificacoes",nome:"Notificações à Assistência",ic:"bell",g:"Acompanhamento"},
+  {id:"primeira-infancia",nome:"Primeira infância",ic:"baby",g:"Ciclos de vida"},
+  {id:"vagas-creche",nome:"Vagas de creche",ic:"crib",g:"Ciclos de vida"},
+  {id:"busca-ativa",nome:"Busca ativa escolar",ic:"search",g:"Ciclos de vida"},
+  {id:"educacao-inclusiva",nome:"Educação inclusiva",ic:"hand",g:"Ciclos de vida"},
+  {id:"eja",nome:"EJA",ic:"book",g:"Ciclos de vida"},
+  {id:"pessoa-idosa",nome:"Pessoa idosa",ic:"cane",g:"Ciclos de vida"},
+  {id:"territorio",nome:"Território",ic:"map",g:"Território"},
+  {id:"vulnerabilidade",nome:"Índice de vulnerabilidade",ic:"layers",g:"Território"},
+  {id:"cadastro-imobiliario",nome:"Cadastro imobiliário",ic:"house",g:"Território"},
+  {id:"qualidade-dados",nome:"Qualidade dos dados",ic:"target",g:"Gestão"},
+  {id:"controle-externo",nome:"Controle externo",ic:"shield",g:"Gestão"}
+];
+
+/* ---------- gráficos ---------- */
+function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function niceMax(v){var p=Math.pow(10,Math.floor(Math.log10(v))),m=v/p;return (m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10)*p;}
+function lineChart(series,labels,o){
+  o=o||{};var W=o.w||640,H=230,L=40,Rr=74,T=14,B=28,NT=o.ticks||4,w=W-L-Rr,h=H-T-B;
+  var all=[];series.forEach(function(s){all=all.concat(s.v);});
+  var lo=o.min!==undefined?o.min:0,hi=o.max||niceMax(Math.max.apply(null,all));
+  function X(i){return L+i*w/(labels.length-1);} function Y(v){return T+h-(v-lo)/(hi-lo)*h;}
+  var g='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(o.label||"")+'">';
+  for(var k=0;k<=NT;k++){var v=lo+(hi-lo)*k/NT,y=Y(v);g+='<line x1="'+L+'" x2="'+(W-Rr)+'" y1="'+y+'" y2="'+y+'" stroke="var(--grid)"/><text x="'+(L-6)+'" y="'+(y+4)+'" text-anchor="end">'+(o.unit==="%"?Math.round(v)+"%":fmt.format(Math.round(v)))+'</text>';}
+  labels.forEach(function(l,i){if(i%2===0||i===labels.length-1)g+='<text x="'+X(i)+'" y="'+(H-8)+'" text-anchor="middle">'+l+'</text>';});
+  series.forEach(function(s,si){
+    var d=s.v.map(function(v,i){return(i?"L":"M")+X(i).toFixed(1)+" "+Y(v).toFixed(1);}).join("");
+    if(si===0&&o.area)g+='<path d="'+d+"L"+X(s.v.length-1)+" "+Y(lo)+"L"+X(0)+" "+Y(lo)+'Z" fill="'+s.c+'" fill-opacity=".1"/>';
+    g+='<path d="'+d+'" fill="none" stroke="'+s.c+'" stroke-width="2.25" stroke-linejoin="round"'+(s.dash?' stroke-dasharray="5 4"':'')+'/>';
+    var li=s.v.length-1;g+='<circle cx="'+X(li)+'" cy="'+Y(s.v[li])+'" r="4" fill="'+s.c+'"/><text x="'+(X(li)+8)+'" y="'+(Y(s.v[li])+4)+'" style="fill:var(--text);font-weight:700">'+(o.unit==="%"?pct(s.v[li]):fmt.format(s.v[li]))+'</text>';
+  });
+  if(o.meta!==undefined){var ym=Y(o.meta);g+='<line x1="'+L+'" x2="'+(W-Rr)+'" y1="'+ym+'" y2="'+ym+'" stroke="var(--good)" stroke-dasharray="3 3"/><text x="'+(W-Rr+6)+'" y="'+(ym+4)+'" style="fill:var(--good)">meta '+o.meta+'%</text>';}
+  return g+'</svg>';
+}
+function hbars(rows,o){
+  o=o||{};var W=o.w||420,rh=30,L=o.l||132,Rr=56,H=rows.length*rh+8,max=o.max||Math.max.apply(null,rows.map(function(r){return r.v;}));
+  var g='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(o.label||"")+'">';
+  rows.forEach(function(r,i){var y=i*rh+6,bw=(W-L-Rr)*r.v/max;
+    g+='<text x="'+(L-8)+'" y="'+(y+15)+'" text-anchor="end" style="fill:var(--text)">'+esc(r.l)+'</text><rect x="'+L+'" y="'+(y+4)+'" width="'+(W-L-Rr)+'" height="14" rx="3" fill="var(--grid)"/><rect x="'+L+'" y="'+(y+4)+'" width="'+Math.max(2,bw)+'" height="14" rx="3" fill="'+(r.c||"var(--primary)")+'"/><text x="'+(L+bw+6)+'" y="'+(y+15)+'" style="fill:var(--text);font-weight:600">'+(o.fmt?o.fmt(r.v):fmt.format(r.v))+'</text>';});
+  return g+'</svg>';
+}
+function funnel(steps){
+  var W=560,rh=46,H=steps.length*rh+4,max=steps[0].v,L=10,w=W-170;
+  var g='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Funil da busca ativa">';
+  steps.forEach(function(s,i){var bw=w*s.v/max,y=i*rh;
+    g+='<rect x="'+L+'" y="'+(y+6)+'" width="'+bw+'" height="26" rx="4" fill="var(--primary)" fill-opacity="'+(1-i*.18)+'"/>';
+    g+='<text x="'+(L+w+12)+'" y="'+(y+18)+'" style="fill:var(--text);font-weight:700;font-size:13px">'+fmt.format(s.v)+' · '+esc(s.l)+'</text>';
+    if(i>0)g+='<text x="'+(L+w+12)+'" y="'+(y+33)+'">'+pct(s.v/steps[i-1].v*100,0)+' da etapa anterior</text>';
+  });
+  return g+'</svg>';
+}
+function stacked(rows,keys){
+  var W=620,rh=30,L=90,Rr=10,H=rows.length*rh+6,w=W-L-Rr;
+  var g='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Origem do ponto geográfico por setor">';
+  rows.forEach(function(r,i){var x=L,y=i*rh+4;g+='<text x="'+(L-8)+'" y="'+(y+15)+'" text-anchor="end" style="fill:var(--text)">'+esc(setorNome(r.setor))+'</text>';
+    r.p.forEach(function(v,k){var bw=w*v/100;if(bw>0){g+='<rect x="'+x+'" y="'+(y+3)+'" width="'+bw+'" height="18" fill="var('+keys[k][1]+')"><title>'+keys[k][0]+': '+v+'%</title></rect>';if(bw>28)g+='<text x="'+(x+bw/2)+'" y="'+(y+16)+'" text-anchor="middle" style="fill:'+(k<3?"#fff":"var(--text)")+';font-weight:600">'+v+'%</text>';}x+=bw;});});
+  return g+'</svg>';
+}
+function legend(keys){return '<div class="legend">'+keys.map(function(k){return '<span><i style="background:var('+k[1]+')"></i>'+k[0]+'</span>';}).join("")+'</div>';}
+function barCell(v,meta,max){max=max||100;var tone=meta===undefined?"var(--primary)":(v>=meta?"var(--good)":(v>=meta*.9?"var(--warn-fill)":"var(--crit)"));
+  return '<div class="bar-cell"><div class="track"><div class="fill" style="width:'+(v/max*100)+'%;background:'+tone+'"></div>'+(meta!==undefined?'<div class="meta" style="left:'+(meta/max*100)+'%" title="Meta '+meta+'%"></div>':'')+'</div><span>'+pct(v)+'</span></div>';}
+
+/* ---------- componentes ---------- */
+function kpi(l,v,sub,tone){return '<div class="kpi '+(tone||"")+'"><span class="lbl">'+l+'</span><span class="val">'+v+'</span>'+(sub?'<span class="sub">'+sub+'</span>':'')+'</div>';}
+function card(title,sub,body,actions){return '<section class="card"><div class="card-h"><div><h3>'+title+'</h3>'+(sub?'<p>'+sub+'</p>':'')+'</div>'+(actions||"")+'</div>'+body+'</section>';}
+function head(t,p,src){return '<div class="view-head"><div><h2>'+t+'</h2><p>'+p+'</p></div><span class="src">'+(src||"")+'</span></div>';}
+function stateBox(kind,ic,t,p,action){return '<div class="state '+(kind||"")+'">'+icon(ic)+'<div><h4>'+t+'</h4><p>'+p+'</p>'+(action?'<div style="margin-top:10px">'+action+'</div>':'')+'</div></div>';}
+function noPerm(){return stateBox("","lock","Sem permissão para dados nominais","O perfil de auditoria vê apenas indicadores agregados. Dados nominais são fornecidos mediante requisição formal à Controladoria, e esse acesso fica registrado.");}
+function statusPill(s){var m={"Matriculado":"good","Visita realizada":"info","Encaminhado":"info","Identificado":"warn","Não localizado":"crit"};return '<span class="pill '+(m[s]||"mute")+'">'+s+'</span>';}
+function terrLabel(){return S.territorio==="todos"?"todo o município":setorNome(S.territorio);}
+
+/* ---------- visões ---------- */
+function vGeral(){
+  var cs=CASOS.filter(function(c){return inTerr(c.setor);});
+  var abertos=cs.filter(function(c){return c.status!=="Matriculado";});
+  var atras=abertos.filter(function(c){return c.dias>30;});
+  var porResp={};abertos.forEach(function(r){porResp[r.resp]=(porResp[r.resp]||0)+1;});
+  var rows=Object.keys(porResp).map(function(k){return{l:k,v:porResp[k]};}).sort(function(a,b){return b.v-a.v;});
+  var h=head("Visão geral","Situação dos casos intersetoriais e das bases em "+terrLabel()+". Os números vêm do cruzamento entre as quatro secretarias.","Referência: outubro de 2026");
+  h+='<div class="kpis">'+kpi("Pessoas na base única",fmt.format(9742),"3.021 famílias · 3.148 domicílios","info")+kpi("Casos abertos",fmt.format(abertos.length),atras.length+" com mais de 30 dias",atras.length?"warn":"good")+kpi("Rematrículas no ano",fmt.format(cs.filter(function(c){return c.status==="Matriculado";}).length),"crianças e adolescentes de volta à escola","good")+kpi("Vacinação em dia (0 a 6 anos)",pct(78.9),"meta 85% · +7,5 p.p. desde nov/25","warn")+kpi("Domicílios com ponto preciso",pct(72,0),"lote ou melhor · meta 90% em 2028","warn")+'</div>';
+  h+='<div class="grid2">'+card("Casos abertos e resolvidos por mês","Todos os alertas intersetoriais, novembro de 2025 a outubro de 2026",'<div class="chart">'+lineChart([{v:ABERTOS,c:cssv("--primary")},{v:RESOLV,c:cssv("--good")}],MESES,{label:"Casos abertos e resolvidos por mês",area:true})+'</div><div class="legend"><span><i style="background:var(--primary)"></i>Casos abertos no fim do mês</span><span><i style="background:var(--good)"></i>Resolvidos no mês</span></div>')
+    +card("Precisa de atenção","",'<ul class="attn">'
+      +(S.siconOk?'':'<li class="crit"><div><b>Carga do SICON falhou</b><small>Condicionalidades sem atualização desde 06/11</small></div><a class="btn sm" href="#qualidade-dados">Ver carga</a></li>')
+      +(function(){var nn=NOTIF.filter(function(n){return inTerr(n.c.setor)&&n.status!=="Parecer emitido";}).length;return nn?'<li class="warn"><div><b>'+nn+' notificações aguardando parecer da Assistência</b><small>Alunos com 5 dias seguidos sem frequência</small></div><a class="btn sm" href="#notificacoes">Ver</a></li>':'';})()+'<li class="crit"><div><b>'+escalados().length+' casos escalonados ao Comitê Gestor</b><small>Prazo vencido há mais de 7 dias</small></div><a class="btn sm" href="#busca-ativa" data-esc="1">Ver casos</a></li>'
+      +'<li class="warn"><div><b>Vigência do PBF fecha em 23 dias</b><small>212 beneficiários sem acompanhamento de saúde</small></div><a class="btn sm" href="#primeira-infancia">Ver lista</a></li>'
+      +'<li class="info"><div><b>Matrículas estaduais desatualizadas</b><small>Última lista da SEDUC-RO em agosto</small></div><a class="btn sm" href="#qualidade-dados">Ver fontes</a></li>'
+      +'</ul>')+'</div>';
+  h+='<div class="grid2 even">'+card("Casos abertos por responsável","Quem está com cada caso agora",'<div class="chart">'+hbars(rows,{label:"Casos abertos por responsável"})+'</div>')
+    +card("Casos abertos por território","Onde estão as crianças fora da escola",'<div class="chart">'+hbars(SETORES.map(function(s){return{l:s.nome,v:CASOS.filter(function(c){return c.setor===s.id&&c.status!=="Matriculado";}).length,c:inTerr(s.id)?"var(--primary)":"var(--seq6)"};}),{label:"Casos abertos por território"})+'</div>')+'</div>';
+  var esc=escalados().sort(function(a,b){return prazo(a).r-prazo(b).r;});
+  h+=card("Pauta do Comitê Gestor","Casos com prazo vencido há mais de 7 dias, levados automaticamente à próxima reunião mensal",
+    !esc.length?stateBox("ok","check","Nenhum caso escalonado","Todos os casos estão dentro do prazo ou com a coordenação da secretaria.")
+    :'<div class="tablewrap"><table><thead><tr><th>Caso</th><th>Território</th><th>Etapa parada</th><th>Responsável</th><th class="n">Dias desde o alerta</th><th class="n">Dias de atraso</th></tr></thead><tbody>'+esc.slice(0,8).map(function(c){return '<tr><td class="nw">'+c.id+'</td><td>'+setorNome(c.setor)+'</td><td>'+c.status+'</td><td>'+c.resp+'</td><td class="n">'+c.dias+'</td><td class="n" style="color:var(--crit);font-weight:700">'+(-prazo(c).r)+'</td></tr>';}).join("")+'</tbody></table><caption>'+(esc.length>8?"Mostrando 8 de "+esc.length+". ":"")+'A lista completa está na busca ativa, filtro "Escalonados ao Comitê".</caption></div>');
+  return h;
+}
+
+function vBusca(){
+  var cs=CASOS.filter(function(c){return inTerr(c.setor);});
+  var enc=cs.filter(function(c){return c.status!=="Identificado";}).length,vis=cs.filter(function(c){return c.status==="Visita realizada"||c.status==="Matriculado";}).length,mat=cs.filter(function(c){return c.status==="Matriculado";}).length;
+  var h=head("Busca ativa escolar","Crianças e adolescentes de 4 a 17 anos que aparecem no CadÚnico, no e-SUS ou no Censo Municipal sem matrícula na rede municipal nem na estadual.","Fontes: CadÚnico (out/26), e-SUS PEC, gestão escolar, SEDUC-RO");
+  h+='<div class="kpis">'+kpi("Identificados",fmt.format(cs.length),"desde jan/2026","info")+kpi("Encaminhados em até 30 dias",pct(88,0),"meta: 100%","warn")+kpi("Matriculados",fmt.format(mat),pct(cs.length?mat/cs.length*100:0,0)+" dos identificados","good")+kpi("Não localizados",fmt.format(cs.filter(function(c){return c.status==="Não localizado";}).length),"seguem para o Conselho Tutelar","crit")+kpi("Escalonados ao Comitê",fmt.format(cs.filter(function(c){return prazo(c).lvl===3;}).length),"vencidos há mais de 7 dias","crit")+'</div>';
+  h+='<div class="grid2">'+card("Do alerta à matrícula","Quantos casos avançam em cada etapa",'<div class="chart">'+funnel([{l:"identificados",v:cs.length},{l:"encaminhados",v:enc},{l:"visitados",v:vis},{l:"matriculados",v:mat}])+'</div>')
+    +card("Origem do alerta","Base que revelou a criança fora da escola",'<div class="chart">'+hbars(["CadÚnico","e-SUS","Censo Municipal"].map(function(o){return{l:o,v:cs.filter(function(c){return c.origem===o;}).length};}),{label:"Origem do alerta"})+'</div>')+'</div>';
+  var body;
+  if(!nominal()){body=noPerm();}
+  else{
+    var list=cs.filter(function(c){return (S.statusF==="todos"||(S.statusF==="__esc"?prazo(c).lvl===3:c.status===S.statusF))&&(!S.busca||(c.id+" "+c.quadra+" "+c.escola+" "+c.resp).toLowerCase().indexOf(S.busca.toLowerCase())>=0);});
+    list.forEach(function(c){c._pr=prazo(c).r;});list.sort(function(a,b){var k=S.sort.k,x=a[k],y=b[k];return (x>y?1:x<y?-1:0)*S.sort.dir;});
+    var per=10,pages=Math.max(1,Math.ceil(list.length/per));if(S.page>=pages)S.page=pages-1;
+    var slice=list.slice(S.page*per,S.page*per+per);
+    body='<div class="toolbar"><div class="field grow"><label for="busca">Buscar por caso, quadra, escola ou responsável</label><input type="search" id="busca" value="'+esc(S.busca)+'" placeholder="Ex.: BA-2026-0329 ou Q052"></div><div class="field"><label for="statusF">Situação</label><select id="statusF">'+["todos","__esc","Identificado","Encaminhado","Visita realizada","Matriculado","Não localizado"].map(function(s){return '<option value="'+s+'"'+(S.statusF===s?" selected":"")+'>'+(s==="todos"?"Todas":s==="__esc"?"Escalonados ao Comitê":s)+'</option>';}).join("")+'</select></div><button class="btn" id="copyCsv" type="button">'+icon("copy")+'Copiar CSV</button></div>';
+    if(!list.length){body+=stateBox("","inbox","Nenhum caso encontrado","Nenhum caso corresponde à busca e aos filtros. Limpe a busca ou escolha outra situação.",'<button class="btn sm" type="button" id="clearF">Limpar filtros</button>');}
+    else{
+      var cols=[["id","Caso"],["ini","Criança"],["cpf","CPF"],["idade","Idade",1],["quadra","Quadra/Linha"],["origem","Origem"],["resp","Responsável"],["status","Situação"],["dias","Dias",1],["_pr","Prazo"]];
+      body+='<div class="tablewrap"><table><caption>CPF mascarado por padrão. Revelar o CPF registra o acesso (quem, quando e finalidade). Dados fictícios.</caption><thead><tr>'+cols.map(function(c){var on=S.sort.k===c[0];return '<th class="'+(c[2]?"n":"")+'" aria-sort="'+(on?(S.sort.dir>0?"ascending":"descending"):"none")+'"><button type="button" data-sort="'+c[0]+'">'+c[1]+(on?(S.sort.dir>0?" ↑":" ↓"):"")+'</button></th>';}).join("")+'</tr></thead><tbody>'
+        +slice.map(function(c){return '<tr><td class="nw">'+c.id+'</td><td class="nw">'+c.ini+'</td><td class="num nw">'+(c.revelado?cpfFull(c.cpf):cpfMask(c.cpf)+' <button class="linkbtn" type="button" data-reveal="'+c.id+'" aria-label="Revelar CPF do caso '+c.id+'">Revelar</button>')+'</td><td class="n">'+c.idade+'</td><td>'+c.quadra+' <span class="src">'+setorNome(c.setor)+'</span></td><td>'+c.origem+'</td><td>'+c.resp+'</td><td>'+statusPill(c.status)+'</td><td class="n">'+c.dias+'</td><td class="nw">'+(function(p){return '<span class="pill '+p.k+'">'+p.t+'</span>';})(prazo(c))+'</td></tr>';}).join("")
+        +'</tbody></table></div><div class="pager"><span>'+(S.page*per+1)+'–'+Math.min(list.length,S.page*per+per)+' de '+list.length+'</span><button class="btn sm" type="button" id="prev"'+(S.page===0?" disabled":"")+'>Anterior</button><button class="btn sm" type="button" id="next"'+(S.page>=pages-1?" disabled":"")+'>Próxima</button></div>';
+    }
+  }
+  h+=card("Prazos e escalonamento","Cada etapa tem um prazo contado a partir do alerta. Quando o prazo estoura, o caso sobe de nível sozinho.",'<div class="grid2 even" style="margin:0"><div class="tablewrap"><table><thead><tr><th>Etapa atual</th><th>Próximo passo</th><th class="n">Prazo desde o alerta</th></tr></thead><tbody><tr><td>Identificado</td><td>Encaminhar à secretaria responsável</td><td class="n">5 dias</td></tr><tr><td>Encaminhado</td><td>Fazer a visita domiciliar</td><td class="n">20 dias</td></tr><tr><td>Visita realizada</td><td>Efetivar a matrícula</td><td class="n">30 dias</td></tr><tr><td>Não localizado</td><td>Comunicar o Conselho Tutelar</td><td class="n">30 dias</td></tr></tbody></table></div><ul class="attn"><li class="info"><div><b>Faltam 3 dias ou menos</b><small>Aviso ao responsável pelo caso e ao ponto focal</small></div><span class="pill warn">Nível 1</span></li><li class="warn"><div><b>Prazo vencido</b><small>Caso vai para a coordenação da secretaria</small></div><span class="pill crit">Nível 2</span></li><li class="crit"><div><b>Vencido há mais de 7 dias</b><small>Entra na pauta da próxima reunião do Comitê Gestor</small></div><span class="pill crit">Nível 3</span></li></ul></div>');
+  h+=card("Casos","Lista de ação para as equipes, ordenada pelos casos mais antigos.",body);
+  return h;
+}
+
+function vInf(){
+  var rows=INF.filter(function(r){return inTerr(r.setor);});
+  var tot=rows.reduce(function(a,r){return a+r.criancas;},0);
+  function wavg(k){return rows.reduce(function(a,r){return a+r[k]*r.criancas;},0)/tot;}
+  var h=head("Primeira infância (0 a 6 anos)","Acompanhamento integrado de gestantes e crianças. Base para o Plano Municipal pela Primeira Infância e para a recomendação do TCE-RO de territorializar os indicadores.","Fontes: e-SUS PEC, SINASC, gestão escolar, CadÚnico");
+  h+='<div class="kpis">'+kpi("Crianças de 0 a 6 anos",fmt.format(tot),terrLabel(),"info")+kpi("Vacinação em dia",pct(wavg("vac")),"meta "+METAS.vac+"%",wavg("vac")>=METAS.vac?"good":"warn")+kpi("Pré-natal com 6+ consultas",pct(wavg("pren")),"meta "+METAS.pren+"%",wavg("pren")>=METAS.pren?"good":"warn")+kpi("Creche (0 a 3 anos)",pct(wavg("creche")),"meta PNE 50% · local "+METAS.creche+"%",wavg("creche")>=METAS.creche?"good":"crit")+kpi("Pré-escola (4 e 5 anos)",pct(wavg("pre")),"meta: universalização",wavg("pre")>=METAS.pre?"good":"warn")+'</div>';
+  h+=card("Vacinação em dia, 0 a 6 anos","Evolução mensal no município",'<div class="chart">'+lineChart([{v:VACINA,c:cssv("--primary")}],MESES,{label:"Vacinação em dia por mês",unit:"%",min:60,max:90,meta:85,area:true,w:960,ticks:3})+'</div>');
+  h+=card("Indicadores por território","A marca preta em cada barra é a meta. Verde: meta atingida · amarelo: até 10% abaixo · vermelho: mais distante.",'<div class="tablewrap"><table><thead><tr><th>Território</th><th class="n">Crianças</th><th>Vacinação em dia</th><th>Pré-natal 6+</th><th>Creche 0–3</th><th>Pré-escola 4–5</th><th class="n">No CadÚnico</th></tr></thead><tbody>'
+    +rows.map(function(r){return '<tr><td><b>'+setorNome(r.setor)+'</b></td><td class="n">'+r.criancas+'</td><td>'+barCell(r.vac,METAS.vac)+'</td><td>'+barCell(r.pren,METAS.pren)+'</td><td>'+barCell(r.creche,METAS.creche)+'</td><td>'+barCell(r.pre,METAS.pre)+'</td><td class="n">'+pct(r.cad)+'</td></tr>';}).join("")
+    +'</tbody></table></div>');
+  h+=pcfCards();
+  return h;
+}
+
+function vImov(){
+  var rows=IMOV.filter(function(r){return inTerr(r.setor)&&r.setor!=="RUR";});
+  function s(k){return rows.reduce(function(a,r){return a+r[k];},0);}
+  var h=head("Cadastro imobiliário (Fazenda)","Cruzamento entre os domicílios do Censo Municipal e o cadastro imobiliário. A Fazenda recebe apenas informação territorial e cadastral; dados sociais e de saúde não são usados para fins tributários.","Fontes: Censo Municipal, cadastro imobiliário (somente leitura)");
+  h+='<div class="kpis">'+kpi("Domicílios urbanos no Censo",fmt.format(s("dom")),"","info")+kpi("Sem inscrição imobiliária",fmt.format(s("semInsc")),"imóveis a cadastrar","warn")+kpi("Uso divergente",fmt.format(s("uso")),"declarado × observado em campo","warn")+kpi("Ocupados sem titulação",fmt.format(s("semTit")),"subsídio à Reurb","crit")+kpi("Endereços divergentes",fmt.format(s("end")),"entre secretarias","")+'</div>';
+  h+='<div class="grid2">'+card("Pendências cadastrais por setor","Domicílios do Censo sem inscrição imobiliária",'<div class="chart">'+hbars(rows.map(function(r){return{l:setorNome(r.setor),v:r.semInsc,c:r.setor==="S03"?"var(--crit)":"var(--primary)"};}),{label:"Domicílios sem inscrição por setor"})+'</div>')
+    +card("Regularização fundiária","Setor 03, Projeto IntegrAção Fundiária com Sepat/Nuref",'<ul class="trail"><li class="done"><b>Levantamento de campo</b><small>Censo Municipal, julho de 2026</small></li><li class="done"><b>Georreferenciamento da malha</b><small>Erro mediano de cerca de 4,7 m</small></li><li class="done"><b>Cruzamento com o cadastro</b><small>214 lotes ocupados sem titulação</small></li><li><b>Envio dos dados ao processo de Reurb</b><small>Aguardando definição do formato</small></li></ul>')+'</div>';
+  h+=card("Detalhe por setor","",'<div class="tablewrap"><table><thead><tr><th>Setor</th><th class="n">Domicílios</th><th class="n">Sem inscrição</th><th class="n">Uso divergente</th><th class="n">Sem titulação</th><th class="n">Endereço divergente</th></tr></thead><tbody>'+rows.map(function(r){return '<tr><td><b>'+setorNome(r.setor)+'</b></td><td class="n">'+fmt.format(r.dom)+'</td><td class="n">'+r.semInsc+'</td><td class="n">'+r.uso+'</td><td class="n">'+r.semTit+'</td><td class="n">'+r.end+'</td></tr>';}).join("")+'</tbody></table></div>');
+  return h;
+}
+
+function vQual(){
+  var h=head("Qualidade dos dados","Origem do ponto geográfico de cada domicílio, ligação de pessoas entre as bases e situação das cargas de cada fonte.","Atualizado a cada carga noturna");
+  h+='<div class="kpis">'+kpi("Domicílios com ponto de lote ou melhor",pct(72,0),"meta 90% em 2028","warn")+kpi("Pessoas com CPF ou CNS",pct(93.6),"","good")+kpi("Ligações em revisão manual",fmt.format(187),"grau de confiança baixo","warn")+kpi("Pontos do e-SUS descartados",fmt.format(341),"de 2.906 recebidos","")+'</div>';
+  h+=card("De onde vem o ponto de cada domicílio","Cascata de fontes, da mais precisa para a menos precisa",'<div class="chart">'+stacked(GEO.filter(function(r){return inTerr(r.setor);}),GEOK)+'</div>'+legend(GEOK));
+  h+='<div class="grid2 even">'+card("Como as pessoas foram ligadas entre as bases","Regra usada em cada ligação",'<div class="chart">'+hbars([{l:"CPF",v:81.2},{l:"CNS ou NIS",v:12.1},{l:"Nome, nascimento e mãe",v:4.8},{l:"Em revisão manual",v:1.9,c:"var(--warn-fill)"}],{max:100,l:160,fmt:function(v){return pct(v);},label:"Regra de ligação"})+'</div>')
+    +card("Pontos do e-SUS Território descartados","Motivo do descarte",'<div class="chart">'+hbars([{l:"Marcado na UBS",v:162},{l:"Mesmo ponto em vários imóveis",v:158},{l:"Fora do município",v:21}],{l:190,label:"Pontos descartados por motivo"})+'</div>')+'</div>';
+  var sicon=CARGAS[4];
+  var cargaBox=S.siconOk?stateBox("ok","check","Carga do SICON concluída","1.204 registros recebidos agora. Os indicadores de condicionalidades foram atualizados.")
+    :stateBox("err","alert","A carga do SICON falhou em 06/11/2026","O arquivo enviado pela Assistência Social veio com colunas diferentes do layout esperado. Peça um novo arquivo ao ponto focal ou tente processar de novo.",'<button class="btn primary" type="button" id="retry">'+icon("refresh")+'Tentar novamente</button>');
+  h+=card("Cargas das fontes","Cada fonte tem um ponto focal responsável pela atualização",cargaBox+'<div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Fonte</th><th>Secretaria</th><th>Última carga</th><th class="n">Registros</th><th>Situação</th></tr></thead><tbody>'
+    +CARGAS.map(function(c){var st=c===sicon&&S.siconOk?"ok":c.st;return '<tr><td><b>'+c.fonte+'</b></td><td>'+c.sec+'</td><td>'+(c===sicon&&S.siconOk?"08/11/2026 agora":c.ult)+'</td><td class="n">'+(c===sicon&&S.siconOk?"1.204":c.reg?fmt.format(c.reg):"—")+'</td><td>'+(st==="ok"?'<span class="pill good">Em dia</span>':st==="atraso"?'<span class="pill warn">Desatualizada</span>':'<span class="pill crit">Falhou</span>')+'</td></tr>';}).join("")+'</tbody></table></div>');
+  return h;
+}
+
+function vTce(){
+  var h=head("Controle externo","Indicadores agregados e desidentificados para o TCE-RO, a Controladoria e a Câmara, com trilha de evidências de cada caso e relação entre gasto e resultado.","Relatório semestral · 2º semestre de 2026");
+  var ind=[
+    ["OE1","Acesso e permanência escolar","Casos encaminhados em até 30 dias","—","88%","100%","warn","Em evolução"],
+    ["OE2","Primeira infância","Vacinação em dia, 0 a 6 anos","71,4% (nov/25)","78,9%","85%","warn","Em evolução"],
+    ["OE2","Primeira infância","Atendimento em creche, 0 a 3 anos","29,1% (nov/25)","33,4%","40%","crit","Abaixo do esperado"],
+    ["OE3","Bolsa Família","Acompanhamento de educação","89,0%","91,2%","Crescer por vigência","good","Em dia"],
+    ["OE3","Bolsa Família","Acompanhamento de saúde","72,3%","78,5%","Crescer por vigência","good","Em dia"],
+    ["OE4","Base territorial","Domicílios com ponto de lote ou melhor","58% (mar/26)","72%","90% (2028)","warn","Em evolução"],
+    ["OE5","Transparência","Relatórios semestrais entregues","—","1 de 1","Semestral","good","Em dia"],
+    ["OE6","Proteção de dados","Acessos a dado pessoal registrados","—","100%","100%","good","Em dia"]
+  ];
+  h+='<div class="kpis">'+kpi("Indicadores em dia",ind.filter(function(r){return r[6]==="good";}).length+" de "+ind.length,"","good")+kpi("Em evolução",ind.filter(function(r){return r[6]==="warn";}).length+"","","warn")+kpi("Abaixo do esperado",ind.filter(function(r){return r[6]==="crit";}).length+"","","crit")+kpi("Acessos nominais registrados",fmt.format(ACESSOS.length),"neste período","info")+'</div>';
+  h+=card("Indicadores dos objetivos estratégicos","Linha de base, valor atual e meta de cada objetivo do plano",'<div class="toolbar"><span class="grow"></span><button class="btn" id="copyInd" type="button">'+icon("copy")+'Copiar CSV</button></div><div class="tablewrap"><table><thead><tr><th>Objetivo</th><th>Eixo</th><th>Indicador</th><th class="n">Linha de base</th><th class="n">Atual</th><th class="n">Meta</th><th>Situação</th></tr></thead><tbody>'
+    +ind.map(function(r){return '<tr><td><b>'+r[0]+'</b></td><td>'+r[1]+'</td><td>'+r[2]+'</td><td class="n">'+r[3]+'</td><td class="n"><b>'+r[4]+'</b></td><td class="n">'+r[5]+'</td><td><span class="pill '+r[6]+'">'+r[7]+'</span></td></tr>';}).join("")+'</tbody></table></div>');
+  h+='<div class="grid2 even">'+card("Gasto × resultado","Despesa liquidada em 2026 por programa e o resultado associado",'<div class="chart">'+hbars([{l:"Atenção primária",v:3.9e6},{l:"Creche",v:2.1e6},{l:"Transporte escolar",v:1.6e6},{l:"CRAS / PAIF",v:0.9e6}],{fmt:brl,l:130,label:"Despesa por programa"})+'</div><div class="tablewrap" style="margin-top:8px"><table><thead><tr><th>Programa</th><th>Resultado</th></tr></thead><tbody><tr><td>Atenção primária</td><td>78,9% das crianças de 0 a 6 anos com vacinação em dia</td></tr><tr><td>Creche</td><td>33,4% de atendimento de 0 a 3 anos</td></tr><tr><td>Transporte escolar</td><td>94% dos alunos rurais atendidos</td></tr><tr><td>CRAS / PAIF</td><td>412 famílias em acompanhamento</td></tr></tbody></table></div><p class="src">Despesa: Portal da Transparência municipal (API de dados abertos).</p>')
+    +card("Trilha de evidências","Exemplo de caso BA-2026-0329, do alerta ao desfecho",'<ul class="trail"><li class="done"><b>Alerta gerado</b><small>03/09/2026 · cruzamento CadÚnico × matrícula · sistema</small></li><li class="done"><b>Encaminhado ao CRAS</b><small>04/09/2026 · Assistência Social</small></li><li class="done"><b>Visita domiciliar realizada</b><small>11/09/2026 · técnico do CRAS · motivo: falta de vaga perto de casa</small></li><li class="done"><b>Vaga ofertada e transporte incluído</b><small>15/09/2026 · SEMED</small></li><li class="done"><b>Matrícula efetivada</b><small>18/09/2026 · EMEF Castanheira · 15 dias do alerta</small></li></ul>')+'</div>';
+  h+=card("Registro de acessos a dado pessoal","Cada CPF revelado ou dado nominal consultado gera um registro. Revelar um CPF na busca ativa acrescenta uma linha aqui.",
+    S.perfil==="tce"?stateBox("","lock","Registro detalhado sob requisição","O perfil de auditoria vê a contagem de acessos. O registro detalhado é entregue pelo encarregado de dados mediante requisição formal.")
+    :'<div class="tablewrap"><table><thead><tr><th>Quando</th><th>Quem</th><th>Registro</th><th>Finalidade</th></tr></thead><tbody>'+ACESSOS.map(function(a){return '<tr><td class="num">'+a.quando+'</td><td>'+a.quem+'</td><td>'+a.reg+'</td><td>'+a.fin+'</td></tr>';}).join("")+'</tbody></table></div>');
+  return h;
+}
+
+function vVul(){
+  var qs=QUADRAS.filter(function(q){return inTerr(q.setor);}).slice().sort(function(a,b){return ivm(b)-ivm(a);});
+  var cls={crit:0,warn:0,info:0,good:0};qs.forEach(function(q){cls[ivmClass(ivm(q))[0]]++;});
+  var media=qs.length?qs.reduce(function(a,q){return a+ivm(q);},0)/qs.length:0,tot=0;DIMS.forEach(function(k){tot+=S.pesos[k[0]];});
+  var h=head("Índice de vulnerabilidade municipal","Um número de 0 a 1 por quadra, que soma renda, saúde, escola, condição do imóvel e regularização. Quanto maior, mais a quadra precisa de ação conjunta das secretarias.","Atualizado a cada carga · zona urbana");
+  h+='<div class="kpis">'+kpi("Quadras com vulnerabilidade muito alta",fmt.format(cls.crit),"índice acima de 0,65","crit")+kpi("Quadras com vulnerabilidade alta",fmt.format(cls.warn),"de 0,50 a 0,65","warn")+kpi("Índice médio",media.toFixed(2).replace(".",","),terrLabel(),"info")+kpi("Quadras avaliadas",fmt.format(qs.length),"Q018 a Q096","")+'</div>';
+  var sl=DIMS.map(function(k){var w=S.pesos[k[0]];return '<div class="field"><label for="w-'+k[0]+'">'+k[1]+' · <span class="num">'+(tot?Math.round(w/tot*100):0)+'%</span></label><input type="range" id="w-'+k[0]+'" min="0" max="50" step="5" value="'+w+'" aria-describedby="d-'+k[0]+'"><span class="src" id="d-'+k[0]+'">'+k[2]+'. Fonte: '+k[3]+'.</span></div>';}).join("");
+  h+='<div class="grid2">'+card("Ranking das quadras","As 12 quadras com maior índice. As colunas mostram o peso de cada dimensão, de 0 a 1.",
+    '<div class="tablewrap"><table><thead><tr><th class="n">#</th><th>Quadra</th><th>Índice</th>'+DIMS.map(function(k){return '<th class="n">'+k[1]+'</th>';}).join("")+'<th class="n">Domicílios</th></tr></thead><tbody>'
+    +qs.slice(0,12).map(function(q,i){var v=ivm(q),c=ivmClass(v);return '<tr><td class="n">'+(i+1)+'</td><td class="nw"><b>'+q.id+'</b> <span class="src">'+setorNome(q.setor)+'</span></td><td class="nw"><span class="pill '+c[0]+'">'+v.toFixed(2).replace(".",",")+' · '+c[1]+'</span></td>'+DIMS.map(function(k){var d=q.d[k[0]];return '<td class="n" style="background:color-mix(in srgb, var(--crit) '+Math.round(d*38)+'%, transparent)">'+d.toFixed(2).replace(".",",")+'</td>';}).join("")+'<td class="n">'+q.dom+'</td></tr>';}).join("")+'</tbody></table></div>')
+    +card("Pesos do índice","Ajuste e veja o ranking e o mapa mudarem. A proposta de pesos é aprovada pelo Comitê Gestor.",'<div style="display:flex;flex-direction:column;gap:14px">'+sl+'<div><button class="btn sm" type="button" id="resetW">Restaurar pesos propostos</button></div></div>')+'</div>';
+  h+=card("Quadras por faixa de vulnerabilidade","",'<div class="chart">'+hbars([{l:"Muito alta",v:cls.crit,c:"var(--crit)"},{l:"Alta",v:cls.warn,c:"var(--warn-fill)"},{l:"Moderada",v:cls.info,c:"var(--seq4)"},{l:"Baixa",v:cls.good,c:"var(--seq5)"}],{label:"Quadras por faixa"})+'</div><p class="src">O mapa da aba Território usa este índice na camada "Índice de vulnerabilidade".</p>');
+  return h;
+}
+
+function crecheRows(){
+  return SETORES.map(function(s){var n=NASC[s.id],cri=n[0]+n[1]+n[2]+n[3],cr=0;INF.forEach(function(r){if(r.setor===s.id)cr=r.creche;});
+    var vagas=Math.round(cri*cr/100),novas=S.creSetor===s.id?S.creVagas:0,dem=Math.round(cri*S.creMeta/100);
+    return{s:s,n:n,cri:cri,vagas:vagas,novas:novas,fila:FILA[s.id],dem:dem,def:Math.max(0,dem-vagas-novas),cobA:vagas/cri*100,cobN:(vagas+novas)/cri*100,iv:ivmSetor(s.id)};});
+}
+function vCreche(){
+  var rows=crecheRows(),T=function(k){return rows.reduce(function(a,r){return a+r[k];},0);};
+  var cri=T("cri"),vagas=T("vagas"),novas=T("novas"),def=T("def");
+  var semNova=rows.map(function(r){return{r:r,p:Math.max(0,r.dem-r.vagas)*(1+r.iv)};}).sort(function(a,b){return b.p-a.p;})[0].r;
+  var alvo=null;rows.forEach(function(r){if(r.s.id===S.creSetor)alvo=r;});
+  var h=head("Simulador de vagas de creche","Crianças de 0 a 3 anos por território, estimadas pelos nascidos vivos do SINASC, comparadas com as vagas existentes e a fila. Simule a abertura de uma unidade e veja o efeito na cobertura.","Fontes: SINASC, gestão escolar (vagas e fila), índice de vulnerabilidade");
+  h+='<div class="kpis">'+kpi("Crianças de 0 a 3 anos",fmt.format(cri),"nascidos de 2023 a 2026","info")+kpi("Vagas em creche hoje",fmt.format(vagas),pct(vagas/cri*100)+" de cobertura",vagas/cri*100>=S.creMeta?"good":"crit")+kpi("Fila de espera",fmt.format(T("fila")),"pedidos de vaga em aberto","warn")+kpi("Cobertura com a simulação",pct((vagas+novas)/cri*100),"+"+fmt.format(novas)+" vagas "+noSetor(S.creSetor),(vagas+novas)/cri*100>=S.creMeta?"good":"warn")+kpi("Déficit para a meta",fmt.format(def)+" vagas","meta de "+S.creMeta+"% de cobertura",def?"crit":"good")+'</div>';
+  h+='<div class="grid2">'+card("Déficit de vagas por território","Vagas que faltam para atingir a meta, já considerando a unidade simulada",'<div class="chart">'+hbars(rows.map(function(r){return{l:r.s.nome,v:r.def,c:r.s.id===S.creSetor&&r.novas?"var(--primary)":(r.def?"var(--crit)":"var(--good)")};}),{label:"Déficit de vagas por território",max:Math.max(10,Math.max.apply(null,rows.map(function(r){return r.dem-r.vagas;})))})+'</div>'
+    +stateBox("","target","Onde abrir primeiro: "+semNova.s.nome,"Maior déficit ponderado pela vulnerabilidade: faltam "+Math.max(0,semNova.dem-semNova.vagas)+" vagas para a meta e o índice médio é "+semNova.iv.toFixed(2).replace(".",",")+". "+(alvo&&alvo.novas?"Com "+alvo.novas+" vagas "+noSetor(alvo.s.id)+", a cobertura ali passa de "+pct(alvo.cobA)+" para "+pct(alvo.cobN)+".":"Escolha um território e o tamanho da unidade para simular.")))
+    +card("Simulação","Os valores mudam o painel na hora",'<div style="display:flex;flex-direction:column;gap:14px"><div class="field"><label for="creMeta">Meta de cobertura · <span class="num">'+S.creMeta+'%</span></label><input type="range" id="creMeta" min="30" max="70" step="5" value="'+S.creMeta+'" aria-describedby="creMetaD"><span class="src" id="creMetaD">O PNE fixa 50% de atendimento em creche.</span></div><div class="field"><label for="creSetor">Território da nova unidade</label><select id="creSetor">'+SETORES.map(function(s){return '<option value="'+s.id+'"'+(S.creSetor===s.id?" selected":"")+'>'+s.nome+'</option>';}).join("")+'</select></div><div class="field"><label for="creVagas">Tamanho da unidade</label><select id="creVagas">'+[0,30,60,90].map(function(v){return '<option value="'+v+'"'+(S.creVagas===v?" selected":"")+'>'+(v?v+" vagas":"Sem nova unidade")+'</option>';}).join("")+'</select></div></div>')+'</div>';
+  h+=card("Detalhe por território","Nascidos de 2026: estimativa até dezembro.",'<div class="tablewrap"><table><thead><tr><th>Território</th><th class="n">2023</th><th class="n">2024</th><th class="n">2025</th><th class="n">2026</th><th class="n">0 a 3 anos</th><th class="n">Vagas</th><th class="n">Fila</th><th>Cobertura atual</th><th>Com a simulação</th><th class="n">Déficit</th><th class="n">Índice médio</th></tr></thead><tbody>'
+    +rows.map(function(r){return '<tr><td><b>'+r.s.nome+'</b></td>'+r.n.map(function(v){return '<td class="n">'+v+'</td>';}).join("")+'<td class="n"><b>'+r.cri+'</b></td><td class="n nw">'+r.vagas+(r.novas?' <span class="pill info">+'+r.novas+'</span>':'')+'</td><td class="n">'+r.fila+'</td><td>'+barCell(r.cobA,S.creMeta)+'</td><td>'+barCell(r.cobN,S.creMeta)+'</td><td class="n" style="'+(r.def?"color:var(--crit);font-weight:700":"")+'">'+r.def+'</td><td class="n">'+r.iv.toFixed(2).replace(".",",")+'</td></tr>';}).join("")
+    +'</tbody></table></div>');
+  return h;
+}
+
+/* ---------- ficha da criança ---------- */
+function sn(b){return b?'<span class="pill good">Sim</span>':'<span class="pill mute">Não</span>';}
+function anos(n){return n+(n===1?" ano":" anos");}
+function loteTxt(c){return c.q?c.quadra+", lote "+String(c.lote).padStart(2,"0"):c.quadra;}
+function needScore(c){var n=notifDe(c);return motivosVisita(c).length*10+(n&&n.status!=="Parecer emitido"?5:0);}
+function timeline(c){var e=[];
+  if(c.cad)e.push({d:c.cadDias,t:"Cadastro atualizado no CadÚnico",s:"Assistência Social"});
+  if(c.matric)e.push({d:c.matDias,t:"Matrícula: "+c.escola+" ("+c.turma+")",s:"SEMED"});
+  e.push({d:c.acs,t:"Visita domiciliar do ACS",s:"Saúde"});
+  if(c.cras)e.push({d:c.crasUlt,t:"Atendimento no CRAS (PAIF)",s:"Assistência Social"});
+  if(c.pcf)e.push({d:c.pcfUlt,t:"Visita do Criança Feliz",s:"Assistência Social",x:c.visitador});
+  if(c.ct)e.push({d:c.ctDias,t:"Encaminhada ao Conselho Tutelar",s:"Rede de proteção"});
+  var n=notifDe(c);
+  if(n){if(c.faltas>=5)e.push({d:n.criada+1,t:"Alerta: "+n.motivo,s:"Sistema (frequência escolar)"});e.push({d:n.criada,t:"Notificação "+n.id+" enviada ao CRAS",s:"SEMED para Assistência Social"});if(n.status==="Parecer emitido")e.push({d:n.pDias,t:"Parecer da Assistência: "+n.desfecho,s:"Assistência Social",x:n.autor});}
+  c.eventos.forEach(function(x){e.push(x);});
+  return e.sort(function(a,b){return a.d-b.d;});}
+function visitas(c){var v=[];
+  v.push({d:c.acs,q:"ACS · Saúde",t:c.vac?"Cartão de vacina conferido, sem pendências. Família orientada sobre a próxima consulta.":"Vacina atrasada identificada no cartão. Família orientada a procurar a "+c.ubs+"."});
+  if(c.pcf)v.push({d:c.pcfUlt,q:c.visitador,t:"Atividade de estimulação com o responsável. Desenvolvimento adequado para a idade; próxima visita agendada."});
+  if(c.cras)v.push({d:c.crasUlt,q:"Técnico(a) do CRAS",t:"Acompanhamento familiar no PAIF. Família orientada sobre a atualização do CadÚnico."});
+  var n=notifDe(c);if(n&&n.status==="Parecer emitido")v.push({d:n.pDias,q:n.autor,t:n.parecer});
+  v.sort(function(a,b){return a.d-b.d;});
+  return '<ul class="vlist">'+v.map(function(x){return '<li><small>'+dAgo(x.d)+' · '+esc(x.q)+'</small><p>'+esc(x.t)+'</p></li>';}).join("")+'</ul>';}
+function blk(t,src,rows){return '<div class="fblk"><h4>'+t+' <span class="src">'+src+'</span></h4><dl>'+rows.map(function(r){return '<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>';}).join("")+'</dl></div>';}
+function fichaHtml(c){
+  var m=motivosVisita(c),n=notifDe(c);
+  var h='<section class="card"><div class="card-h"><div><h3>'+c.ini+' · '+anos(c.idade)+'</h3><p>'+c.id+' · CPF <span class="num">'+(c.revelado?cpfFull(c.cpf):cpfMask(c.cpf))+'</span> · '+loteTxt(c)+' · '+setorNome(c.setor)+'</p></div><div style="display:flex;gap:8px;flex-wrap:wrap">'+(c.revelado?'':'<button class="btn sm" type="button" data-freveal="'+c.id+'">'+icon("eye")+'Revelar CPF</button>')+(n?'<a class="btn sm" href="#notificacoes" data-gonotif="'+n.id+'">Ver notificação '+n.id+'</a>':'<button class="btn sm primary" type="button" data-encaminhar="'+c.id+'">Encaminhar à Assistência</button>')+'</div></div>';
+  h+=m.length?'<div class="state warnbox">'+icon("alert")+'<div><h4>Precisa de visita</h4><p>'+m.join(" · ")+'</p></div></div>':'<div class="state ok">'+icon("check")+'<div><h4>Acompanhamento em dia</h4><p>Nenhum alerta aberto para esta criança.</p></div></div>';
+  h+='<div class="fblocks" style="margin-top:12px">'
+   +blk("Educação","SEMED",[["Situação",c.matric?"Matriculada":(c.idade>=4?'<span class="pill crit">Fora da escola</span>':"Sem matrícula em creche")],["Escola",c.escola||"—"],["Turma",c.matric?c.turma:"—"],["Frequência no mês",c.freq===null?"—":pct(c.freq,0)],["Faltas seguidas",c.faltas>=5?'<b style="color:var(--crit)">'+c.faltas+' dias</b>':String(c.faltas)]])
+   +blk("Saúde","SEMSAU",[["Unidade de referência",c.ubs],["Vacinação",c.vac?'<span class="pill good">Em dia</span>':'<span class="pill crit">Atrasada</span>'],["Última visita do ACS",dAgo(c.acs)+' <span class="src">('+c.acs+' dias)</span>']])
+   +blk("Assistência Social","CRAS",[["CadÚnico",c.cad?"Atualizado em "+dAgo(c.cadDias):"Não cadastrada"],["Bolsa Família",sn(c.pbf)],["Acompanhada pelo CRAS",c.cras?"Sim, em "+dAgo(c.crasUlt):"Não"],["Criança Feliz",c.pcf?"Sim, visita em "+dAgo(c.pcfUlt):(c.idade<=3?"Não":"Fora da faixa etária")]])
+   +blk("Proteção e inclusão","Acesso restrito",[["Conselho Tutelar",c.ct?"Encaminhada em "+dAgo(c.ctDias):"Sem encaminhamento"],["Atendimento especializado",c.aee?(c.sala?"Sala de recursos":c.apae?"APAE":'<span class="pill crit">Necessita, sem atendimento</span>'):"Não indicado"],["BPC",c.aee?sn(c.bpc):"—"]])
+   +'</div><p class="src" style="margin:8px 0 0">Laudo e CID não aparecem na ficha. A Educação e a Assistência veem só a necessidade de atendimento.</p></section>';
+  h+='<div class="grid2 even">'+card("Histórico no município","Eventos das três secretarias, do mais recente ao mais antigo",'<ul class="trail">'+timeline(c).map(function(e){return '<li class="done"><b>'+esc(e.t)+'</b><small>'+dAgo(e.d)+' · '+esc(e.s)+(e.x?' · '+esc(e.x):'')+'</small></li>';}).join("")+'</ul>')
+    +card("Relatórios de visita","Registrados pelas equipes de campo",visitas(c))+'</div>';
+  return h;}
+function vFicha(){
+  var h=head("Ficha da criança","Uma ficha por criança e adolescente, com o histórico nas três secretarias: escola e frequência, vacinação e visitas do ACS, CRAS, Criança Feliz e encaminhamentos.","Fontes: gestão escolar, e-SUS PEC, CadÚnico, CRAS, Criança Feliz");
+  if(!nominal())return h+card("Fichas","",noPerm());
+  var base=CRIANCAS.filter(function(c){return inTerr(c.setor);}),vis=base.filter(function(c){return motivosVisita(c).length;}).length;
+  h+='<div class="kpis">'+kpi("Fichas no território",fmt.format(base.length),"0 a 17 anos · amostra do protótipo","info")+kpi("Precisam de visita",fmt.format(vis),pct(base.length?vis/base.length*100:0,0)+" das fichas","warn")+kpi("Acompanhadas pelo CRAS",fmt.format(base.filter(function(c){return c.cras;}).length),"PAIF","")+kpi("No Criança Feliz",fmt.format(base.filter(function(c){return c.pcf;}).length),"0 a 3 anos","")+'</div>';
+  var q=S.fq.toLowerCase();
+  var list=base.filter(function(c){return (!q||(c.id+" "+c.ini+" "+c.quadra+" "+c.escola).toLowerCase().indexOf(q)>=0)&&(S.ff==="todas"||(S.ff==="visita"?motivosVisita(c).length>0:S.ff==="03"?c.idade<=3:S.ff==="aee"?c.aee:S.ff==="notif"?!!notifDe(c):true));}).sort(function(a,b){return needScore(b)-needScore(a);});
+  if(!S.fsel||!list.some(function(c){return c.id===S.fsel;}))S.fsel=list.length?list[0].id:null;
+  var sel=null;CRIANCAS.forEach(function(c){if(c.id===S.fsel)sel=c;});
+  var lh='<div class="toolbar"><div class="field grow"><label for="fq">Buscar por código, iniciais, quadra ou escola</label><input type="search" id="fq" value="'+esc(S.fq)+'" placeholder="Ex.: CI-10237 ou Q052"></div><div class="field"><label for="ff">Mostrar</label><select id="ff">'+[["todas","Todas"],["visita","Precisam de visita"],["notif","Com notificação"],["03","0 a 3 anos"],["aee","Educação especial"]].map(function(o){return '<option value="'+o[0]+'"'+(S.ff===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select></div></div>';
+  lh+=!list.length?stateBox("","inbox","Nenhuma ficha encontrada","Nenhuma criança corresponde à busca. Limpe a busca ou escolha outro filtro."):'<ul class="flist">'+list.slice(0,40).map(function(c){var m=motivosVisita(c);return '<li><button type="button" data-ficha="'+c.id+'" aria-pressed="'+(c.id===S.fsel)+'"><span><b>'+c.ini+'</b> · '+anos(c.idade)+'<small>'+c.id+' · '+c.quadra+' · '+setorNome(c.setor)+'</small></span>'+(m.length?'<span class="pill warn">'+m.length+(m.length>1?" alertas":" alerta")+'</span>':'<span class="pill good">Em dia</span>')+'</button></li>';}).join("")+'</ul>'+(list.length>40?'<p class="src">Mostrando 40 de '+list.length+'. Refine a busca.</p>':'');
+  h+='<div class="fgrid">'+card("Crianças","Ordenadas pela necessidade de acompanhamento",lh)+'<div>'+(sel?fichaHtml(sel):stateBox("","inbox","Nenhuma ficha selecionada","Escolha uma criança na lista."))+'</div></div>';
+  return h;}
+
+/* ---------- notificações à Assistência Social ---------- */
+function npill(n){return '<span class="pill '+(n.status==="Nova"?"warn":n.status==="Em análise"?"info":"good")+'">'+n.status+'</span>';}
+function notifSel(){var r=null;NOTIF.forEach(function(n){if(n.id===S.nsel)r=n;});return r;}
+function vNotif(){
+  var h=head("Notificações à Assistência Social","Quando um aluno completa 5 dias letivos seguidos sem frequência, o sistema notifica o CRAS do território. A Assistência registra um parecer, que volta para a escola e fica na ficha da criança.","Gatilho automático · prazo do parecer: 5 dias úteis");
+  if(!nominal())return h+card("Notificações","",noPerm());
+  var base=NOTIF.filter(function(n){return inTerr(n.c.setor);});
+  function cnt(s){return base.filter(function(n){return n.status===s;}).length;}
+  var atras=base.filter(function(n){return n.status!=="Parecer emitido"&&n.criada>7;}).length;
+  h+='<div class="kpis">'+kpi("Novas",cnt("Nova"),"aguardando o CRAS","warn")+kpi("Em análise",cnt("Em análise"),"visita em andamento","info")+kpi("Pareceres emitidos",cnt("Parecer emitido"),"devolvidos à escola","good")+kpi("Fora do prazo",atras,"mais de 5 dias úteis sem parecer",atras?"crit":"good")+'</div>';
+  var podeResp=S.perfil==="assistencia"||S.perfil==="comite";
+  var ord={"Nova":0,"Em análise":1,"Parecer emitido":2};
+  var list=base.filter(function(n){return S.nf==="todas"||n.status===S.nf;}).sort(function(a,b){return ord[a.status]-ord[b.status]||b.criada-a.criada;});
+  if(!S.nsel||!list.some(function(n){return n.id===S.nsel;}))S.nsel=list.length?list[0].id:null;
+  var sel=notifSel();
+  var lh='<div class="toolbar"><div class="field"><label for="nf">Situação</label><select id="nf">'+["todas","Nova","Em análise","Parecer emitido"].map(function(s){return '<option value="'+s+'"'+(S.nf===s?" selected":"")+'>'+(s==="todas"?"Todas":s)+'</option>';}).join("")+'</select></div></div>';
+  lh+=!list.length?stateBox("","inbox","Nenhuma notificação nesta situação","Escolha outra situação no filtro."):'<ul class="flist">'+list.map(function(n){return '<li><button type="button" data-notif="'+n.id+'" aria-pressed="'+(n.id===S.nsel)+'"><span><b>'+n.id+'</b> · '+n.c.ini+'<small>'+(n.c.escola||"Sem escola")+' · '+(n.criada?"há "+n.criada+(n.criada===1?" dia":" dias"):"hoje")+'</small></span>'+npill(n)+'</button></li>';}).join("")+'</ul>';
+  var dh='';
+  if(sel){var c=sel.c;
+    dh='<section class="card"><div class="card-h"><div><h3>'+sel.id+'</h3><p>'+sel.motivo+' · recebida em '+dAgo(sel.criada)+' · '+sel.destino+'</p></div>'+npill(sel)+'</div>'
+      +'<div class="fblocks">'+blk("Criança","SEMED",[["Ficha",'<a href="#ficha-crianca" data-goficha="'+c.id+'">'+c.id+' · '+c.ini+'</a>'],["Idade",anos(c.idade)],["Escola",c.escola||"—"],["Turma",c.turma],["Endereço",loteTxt(c)+" · "+setorNome(c.setor)]])
+      +blk("Situação na rede","Integrado",[["Frequência no mês",c.freq===null?"—":pct(c.freq,0)],["CadÚnico / Bolsa Família",(c.cad?"Sim":"Não")+" / "+(c.pbf?"Sim":"Não")],["Acompanhada pelo CRAS",c.cras?"Sim":"Não"],["Última visita do ACS",dAgo(c.acs)]])+'</div>';
+    if(sel.status==="Parecer emitido")dh+='<div class="state ok" style="margin-top:12px">'+icon("check")+'<div><h4>Parecer: '+esc(sel.desfecho)+'</h4><p>'+esc(sel.parecer)+'</p><p class="src" style="margin-top:6px">'+esc(sel.autor)+' · '+dAgo(sel.pDias)+(sel.novaVisita?' · nova visita programada':'')+'. A escola foi notificada.</p></div></div>';
+    else if(podeResp)dh+='<form id="pform" novalidate class="pform"><h4>Registrar parecer</h4>'
+      +'<div class="field"><label for="pdesf">Desfecho</label><select id="pdesf" aria-describedby="pdesf-err"><option value="">Selecione o desfecho</option>'+DESFECHOS.map(function(d){return '<option>'+d+'</option>';}).join("")+'</select><span class="ferr" id="pdesf-err"></span></div>'
+      +'<div class="field"><label for="ptxt">Parecer</label><textarea id="ptxt" rows="4" aria-describedby="ptxt-help ptxt-err" placeholder="O que foi verificado na visita e o que foi combinado com a família"></textarea><span class="src" id="ptxt-help">Mínimo de 30 caracteres. Não registre diagnóstico de saúde.</span><span class="ferr" id="ptxt-err"></span></div>'
+      +'<label class="chk"><input type="checkbox" id="pvis"> Programar nova visita em 15 dias</label>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'+(sel.status==="Nova"?'<button class="btn" type="button" id="panal">Marcar como em análise</button>':'')+'<button class="btn primary" type="submit" id="psend">Enviar parecer à escola</button></div></form>';
+    else dh+='<div style="margin-top:12px">'+stateBox("","inbox","Aguardando parecer da Assistência Social","A escola recebe o parecer automaticamente quando o CRAS registrar a visita.")+'</div>';
+    dh+='</section>';}
+  h+='<div class="fgrid">'+card("Caixa de entrada","CRAS do território",lh)+'<div>'+(dh||stateBox("","inbox","Nenhuma notificação selecionada",""))+'</div></div>';
+  return h;}
+
+/* ---------- pessoa idosa ---------- */
+function vIdosa(){
+  var b=IDOSOS.filter(function(p){return inTerr(p.setor);});
+  function n(f){return b.filter(f).length;}
+  var h=head("Pessoa idosa","Acompanhamento das pessoas com 60 anos ou mais, cruzando a Saúde (visitas do ACS, vacinação, condições crônicas) com a Assistência Social (BPC, CRAS e Serviço de Convivência).","Fontes: e-SUS PEC, CadÚnico, CRAS");
+  var so=n(function(p){return p.so;});
+  h+='<div class="kpis">'+kpi("Pessoas com 60 anos ou mais",fmt.format(b.length),terrLabel(),"info")+kpi("Moram sozinhas",fmt.format(so),pct(b.length?so/b.length*100:0)+" das pessoas idosas","warn")+kpi("Sem visita do ACS há 90+ dias",fmt.format(n(function(p){return p.acs>90;})),"","crit")+kpi("Vacina da gripe em dia",pct(b.length?n(function(p){return p.gripe;})/b.length*100:0),"meta 90%","warn")+kpi("No Serviço de Convivência",fmt.format(n(function(p){return p.scfv;})),"grupos do CRAS","")+'</div>';
+  var rows=SETORES.filter(function(s){return inTerr(s.id);}).map(function(s){var x=IDOSOS.filter(function(p){return p.setor===s.id;});function k(f){return x.filter(f).length;}return{s:s,t:x.length,so:k(function(p){return p.so;}),bpc:k(function(p){return p.bpc;}),acam:k(function(p){return p.acam;}),semv:k(function(p){return p.acs>90;}),gripe:k(function(p){return p.gripe;})/x.length*100,cron:k(function(p){return p.cron;}),cronA:k(function(p){return p.cron&&p.cronA;}),scfv:k(function(p){return p.scfv;}),prio:k(function(p){return p.so&&p.acs>90;})};});
+  h+='<div class="grid2">'+card("Cruzamentos Saúde × Assistência","Situações que pedem ação conjunta",'<ul class="attn">'
+    +'<li class="crit"><div><b>'+n(function(p){return p.so&&p.acs>90;})+' moram sozinhas e estão sem visita do ACS há mais de 90 dias</b><small>Prioridade para a visita domiciliar</small></div><span class="pill crit">Saúde</span></li>'
+    +'<li class="crit"><div><b>'+n(function(p){return p.acam&&!p.cras;})+' acamadas ou domiciliadas sem acompanhamento do CRAS</b><small>Avaliar cuidador e benefícios</small></div><span class="pill crit">Assistência</span></li>'
+    +'<li class="warn"><div><b>'+n(function(p){return p.bpc&&!p.cras;})+' recebem BPC e não são acompanhadas pelo CRAS</b><small>Inclusão no acompanhamento familiar</small></div><span class="pill warn">Assistência</span></li>'
+    +'<li class="warn"><div><b>'+n(function(p){return p.cron&&!p.cronA;})+' com condição crônica sem consulta no semestre</b><small>Hipertensão ou diabetes, dado agregado</small></div><span class="pill warn">Saúde</span></li>'
+    +'<li class="info"><div><b>'+n(function(p){return p.so&&!p.scfv;})+' moram sozinhas e não participam do Serviço de Convivência</b><small>Convite do CRAS para os grupos</small></div><span class="pill info">Assistência</span></li></ul>')
+    +card("Sozinhas e sem visita, por território","Pessoas idosas que moram sozinhas sem visita do ACS há mais de 90 dias",'<div class="chart">'+hbars(rows.map(function(r){return{l:r.s.nome,v:r.prio,c:"var(--crit)"};}),{label:"Pessoas idosas sozinhas sem visita"})+'</div><a class="btn sm" href="#territorio" data-layer="calorIdosos" style="margin-top:8px">Ver no mapa de calor</a>')+'</div>';
+  h+=card("Indicadores por território","",'<div class="tablewrap"><table><thead><tr><th>Território</th><th class="n">60+</th><th class="n">Sozinhas</th><th class="n">BPC</th><th class="n">Acamadas</th><th class="n">Sem visita 90+ dias</th><th>Vacina da gripe</th><th class="n">Crônicos acompanhados</th><th class="n">Convivência</th></tr></thead><tbody>'+rows.map(function(r){return '<tr><td><b>'+r.s.nome+'</b></td><td class="n">'+r.t+'</td><td class="n">'+r.so+'</td><td class="n">'+r.bpc+'</td><td class="n">'+r.acam+'</td><td class="n" style="color:var(--crit);font-weight:700">'+r.semv+'</td><td>'+barCell(r.gripe,90)+'</td><td class="n">'+r.cronA+' de '+r.cron+'</td><td class="n">'+r.scfv+'</td></tr>';}).join("")+'</tbody></table></div>');
+  var pri=b.filter(function(p){return motivosIdoso(p).length>=3;}).sort(function(a,c){return motivosIdoso(c).length-motivosIdoso(a).length||c.acs-a.acs;});
+  h+=card("Lista prioritária de visitas","Pessoas com três ou mais alertas. Nenhuma condição de saúde é exibida por nome.",!nominal()?noPerm():(!pri.length?stateBox("ok","check","Nenhuma pessoa com três ou mais alertas",""):'<div class="tablewrap"><table><thead><tr><th>Código</th><th>Pessoa</th><th class="n">Idade</th><th>Endereço</th><th>Alertas</th></tr></thead><tbody>'+pri.slice(0,12).map(function(p){return '<tr><td class="nw">'+p.id+'</td><td class="nw">'+p.ini+'</td><td class="n">'+p.idade+'</td><td class="nw">'+p.quadra+' · '+setorNome(p.setor)+'</td><td>'+motivosIdoso(p).map(function(m){return '<span class="pill warn tag">'+m+'</span>';}).join(" ")+'</td></tr>';}).join("")+'</tbody></table><caption>Mostrando '+Math.min(12,pri.length)+' de '+pri.length+'. Dados fictícios.</caption></div>'));
+  return h;}
+
+/* ---------- EJA ---------- */
+function groupBars(rows){var W=440,L=92,rh=40,H=rows.length*rh+6,max=niceMax(Math.max.apply(null,rows.map(function(r){return r.pot;}))),w=W-L-40;var g='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Público potencial e matriculados por território">';rows.forEach(function(r,i){var y=i*rh+4;g+='<text x="'+(L-8)+'" y="'+(y+19)+'" text-anchor="end" style="fill:var(--text)">'+setorNome(r.setor)+'</text><rect x="'+L+'" y="'+(y+2)+'" width="'+(w*r.pot/max)+'" height="13" rx="2" fill="var(--seq4)"/><text x="'+(L+w*r.pot/max+5)+'" y="'+(y+13)+'">'+r.pot+'</text><rect x="'+L+'" y="'+(y+18)+'" width="'+(w*r.mat/max)+'" height="13" rx="2" fill="var(--primary)"/><text x="'+(L+w*r.mat/max+5)+'" y="'+(y+29)+'" style="fill:var(--text);font-weight:600">'+r.mat+'</text>';});return g+'</svg>';}
+function vEja(){
+  var rows=EJA.filter(function(r){return inTerr(r.setor);});function T(k){return rows.reduce(function(a,r){return a+r[k];},0);}
+  var h=head("Educação de Jovens e Adultos (EJA)","Pessoas com 15 anos ou mais sem o ensino fundamental completo, identificadas no CadÚnico e no Censo Municipal, comparadas com as matrículas na EJA.","Fontes: CadÚnico (escolaridade), Censo Municipal, gestão escolar");
+  h+='<div class="kpis">'+kpi("Público potencial",fmt.format(T("pot")),"15 anos ou mais sem fundamental","info")+kpi("Sem alfabetização",fmt.format(T("naoAlf")),"prioridade para alfabetização","crit")+kpi("Matriculados na EJA",fmt.format(T("mat")),pct(T("mat")/T("pot")*100)+" do público potencial","warn")+kpi("Frequência média",pct(rows.reduce(function(a,r){return a+r.freq*r.mat;},0)/T("mat")),"turmas noturnas","warn")+kpi("Evasão no semestre",pct(18,0),"meta: abaixo de 10%","crit")+'</div>';
+  h+='<div class="grid2">'+card("Público potencial e matriculados","Por território",'<div class="chart">'+groupBars(rows)+'</div><div class="legend"><span><i style="background:var(--seq4)"></i>Público potencial</span><span><i style="background:var(--primary)"></i>Matriculados na EJA</span></div>')
+    +card("Busca ativa da EJA","Cruzamentos que geram convites",'<ul class="attn"><li class="warn"><div><b>640 responsáveis familiares no CadÚnico sem fundamental completo</b><small>Convite no atendimento do CRAS</small></div><span class="pill info">Assistência</span></li><li class="warn"><div><b>214 pais de alunos da rede sem fundamental completo</b><small>Convite pela escola dos filhos</small></div><span class="pill info">SEMED</span></li><li class="info"><div><b>58 jovens de 15 a 17 anos fora da escola</b><small>Encaminhar à EJA ou à rede estadual</small></div><span class="pill info">Busca ativa</span></li><li class="info"><div><b>97 pessoas idosas sem alfabetização no Serviço de Convivência</b><small>Turma de alfabetização no CRAS</small></div><span class="pill info">Assistência</span></li></ul>')+'</div>';
+  h+=card("Detalhe por território","A marca preta é a meta de 25% de cobertura do público potencial.",'<div class="tablewrap"><table><thead><tr><th>Território</th><th class="n">Público potencial</th><th class="n">Sem alfabetização</th><th class="n">Matriculados</th><th>Cobertura</th><th class="n">Frequência</th></tr></thead><tbody>'+rows.map(function(r){return '<tr><td><b>'+setorNome(r.setor)+'</b></td><td class="n">'+r.pot+'</td><td class="n">'+r.naoAlf+'</td><td class="n">'+r.mat+'</td><td>'+barCell(r.mat/r.pot*100,25,40)+'</td><td class="n">'+pct(r.freq,0)+'</td></tr>';}).join("")+'</tbody></table></div>');
+  return h;}
+
+/* ---------- educação inclusiva ---------- */
+function vIncl(){
+  var b=CRIANCAS.filter(function(c){return inTerr(c.setor)&&c.aee;});function n(f){return b.filter(f).length;}
+  var sem=b.filter(function(c){return !c.sala&&!c.apae;});
+  var h=head("Educação inclusiva","Crianças e adolescentes com deficiência ou necessidade de atendimento educacional especializado. As secretarias compartilham só a necessidade de atendimento; laudo e CID ficam restritos à Saúde.","Fontes: gestão escolar, e-SUS PEC (sinalizador), CadÚnico (BPC), APAE");
+  h+='<div class="kpis">'+kpi("Crianças identificadas",fmt.format(b.length),"0 a 17 anos · amostra","info")+kpi("Em sala de recursos",fmt.format(n(function(c){return c.sala;})),"","good")+kpi("Atendidas pela APAE",fmt.format(n(function(c){return c.apae;})),"com professoras cedidas pela SEMED","")+kpi("Recebem BPC",fmt.format(n(function(c){return c.bpc;})),"","")+kpi("Sem nenhum atendimento",fmt.format(sem.length),"prioridade",sem.length?"crit":"good")+'</div>';
+  var rows=SETORES.filter(function(s){return inTerr(s.id);}).map(function(s){return{l:s.nome,v:sem.filter(function(c){return c.setor===s.id;}).length,c:"var(--crit)"};});
+  h+='<div class="grid2 even">'+card("Sem atendimento especializado","Por território",'<div class="chart">'+hbars(rows,{label:"Sem atendimento por território"})+'</div>')
+    +card("Primeira infância e inclusão","Quanto antes a estimulação começa, melhor o desenvolvimento",'<ul class="attn"><li class="warn"><div><b>'+n(function(c){return c.idade<=3;})+' crianças de 0 a 3 anos identificadas</b><small>Encaminhar à estimulação precoce e ao Criança Feliz</small></div><span class="pill warn">0 a 3 anos</span></li><li class="info"><div><b>'+n(function(c){return c.idade<=3&&c.pcf;})+' delas já no Criança Feliz</b><small>O programa atende até 6 anos quando a criança recebe BPC</small></div><span class="pill info">Assistência</span></li><li class="crit"><div><b>'+n(function(c){return c.idade>=4&&!c.matric;})+' em idade escolar fora da escola</b><small>Entram na busca ativa com prioridade</small></div><span class="pill crit">Busca ativa</span></li></ul>')+'</div>';
+  h+=card("Crianças sem atendimento","Lista de ação, sem diagnóstico: só a necessidade.",!nominal()?noPerm():(!sem.length?stateBox("ok","check","Todas as crianças identificadas têm atendimento",""):'<div class="tablewrap"><table><thead><tr><th>Ficha</th><th>Criança</th><th class="n">Idade</th><th>Endereço</th><th>Escola</th><th>CRAS</th><th>BPC</th><th><span class="sr">Ação</span></th></tr></thead><tbody>'+sem.map(function(c){return '<tr><td class="nw">'+c.id+'</td><td class="nw">'+c.ini+'</td><td class="n">'+c.idade+'</td><td class="nw">'+c.quadra+' · '+setorNome(c.setor)+'</td><td>'+(c.escola||'<span class="pill crit">Sem matrícula</span>')+'</td><td>'+sn(c.cras)+'</td><td>'+sn(c.bpc)+'</td><td><a class="btn sm" href="#ficha-crianca" data-goficha="'+c.id+'">Abrir ficha</a></td></tr>';}).join("")+'</tbody></table></div>'));
+  return h;}
+
+/* ---------- Criança Feliz (cartão da primeira infância) ---------- */
+function pcfCards(){
+  var pb=CRIANCAS.filter(function(c){return inTerr(c.setor)&&c.idade<=3;}),pcf=pb.filter(function(c){return c.pcf;}),atr=pcf.filter(function(c){return c.pcfUlt>14;}).length,gap=pb.filter(function(c){return c.cad&&!c.matric&&!c.pcf;}).length;
+  return '<div class="grid2 even">'+card("Criança Feliz (Primeira Infância no SUAS)","Visitas domiciliares às famílias com crianças de 0 a 3 anos no CadÚnico",'<div class="kpis" style="margin:0">'+kpi("Famílias acompanhadas",pcf.length,"amostra do protótipo","info")+kpi("Visitas em dia",pct(pcf.length?(pcf.length-atr)/pcf.length*100:0,0),"visita nos últimos 14 dias",atr?"warn":"good")+kpi("Visitadores",4,"","")+'</div><a class="btn sm" href="#territorio" data-layer="pcf" style="margin-top:10px">Ver famílias no mapa</a>')
+    +card("De 0 a 3 anos sem cuidado","No CadÚnico, fora da creche e fora do Criança Feliz",'<div class="kpis" style="margin:0">'+kpi("Sem creche e sem Criança Feliz",gap,"prioridade para inclusão no programa","crit")+'</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><a class="btn sm" href="#territorio" data-layer="calor03">Mapa de calor de 0 a 3 anos</a><a class="btn sm" href="#ficha-crianca" data-fficha="03">Ver fichas</a></div>')+'</div>';}
+
+/* ---------- território com a malha do Geoportal ---------- */
+var LAYERS=[["vul","Índice de vulnerabilidade"],["calor03","Calor: crianças de 0 a 3 anos"],["pcf","Criança Feliz: famílias acompanhadas"],["calorIdosos","Calor: pessoas idosas sozinhas sem visita"],["casos","Casos de busca ativa"],["reurb","Situação dos lotes (Reurb e cadastro)"],["prec","Verificação: precisão do ponto"]];
+var LOTC={"Regular":"var(--seq5)","Sem inscrição":"var(--warn-fill)","Reurb em análise":"var(--crit)","Vazio":"var(--surface-2)"};
+function irregular(q){return LOTES[q.id].filter(function(s){return s==="Sem inscrição"||s==="Reurb em análise";}).length;}
+function quadFill(q){var L=S.mapLayer;
+  if(L==="vul"){var v=ivm(q);return v>.65?"var(--crit)":v>.5?"var(--warn-fill)":v>.35?"var(--seq4)":"var(--seq5)";}
+  if(L==="prec"){var p=q.prec;return p>.85?"var(--seq1)":p>.7?"var(--seq2)":p>.55?"var(--seq3)":p>.4?"var(--seq4)":"var(--seq6)";}
+  if(L==="casos")return q.casos>=3?"var(--crit)":q.casos===2?"var(--warn-fill)":q.casos===1?"var(--seq3)":"var(--seq5)";
+  if(L==="reurb"){var irr=irregular(q)/12;return irr>.5?"var(--crit)":irr>.25?"var(--warn-fill)":irr>0?"var(--seq4)":"var(--seq5)";}
+  return "var(--surface)";}
+function pts(arr){return arr.map(function(p){return p[0]+","+p[1];}).join(" ");}
+var EQ={escola_mun:["E","Escola municipal"],escola_est:["E","Escola estadual"],saude:["S","Unidade de saúde"],assistencia:["A","Assistência Social"]};
+function mapSvg(){
+  var G=GEO_MAP,L=S.mapLayer,s='<svg viewBox="0 0 '+G.W+' '+G.H+'" role="group" aria-label="Mapa da zona urbana por setor e quadra">';
+  s+='<defs><radialGradient id="heatR"><stop offset="0" stop-color="var(--crit)" stop-opacity=".5"/><stop offset="1" stop-color="var(--crit)" stop-opacity="0"/></radialGradient><radialGradient id="heatB"><stop offset="0" stop-color="var(--primary)" stop-opacity=".5"/><stop offset="1" stop-color="var(--primary)" stop-opacity="0"/></radialGradient></defs>';
+  G.setores.forEach(function(st){s+='<polygon class="setor'+(inTerr(st.id)?'':' dim')+'" points="'+pts(st.p)+'"/>';});
+  QUADRAS.forEach(function(q){s+='<polygon class="q'+(S.mapSel===q.id?" sel":"")+(inTerr(q.setor)?"":" dim")+'" data-q="'+q.id+'" tabindex="0" role="button" aria-label="Quadra '+q.id+', '+setorNome(q.setor)+'" points="'+pts(q.geo.p)+'" fill="'+quadFill(q)+'"/>';});
+  if(L==="calor03")CRIANCAS.forEach(function(c){if(c.pos&&c.idade<=3&&inTerr(c.setor))s+='<circle class="heat" cx="'+c.pos[0].toFixed(1)+'" cy="'+c.pos[1].toFixed(1)+'" r="36" fill="url(#heatB)"/>';});
+  if(L==="calorIdosos")IDOSOS.forEach(function(p){if(p.pos&&p.so&&p.acs>90&&inTerr(p.setor))s+='<circle class="heat" cx="'+p.pos[0].toFixed(1)+'" cy="'+p.pos[1].toFixed(1)+'" r="36" fill="url(#heatR)"/>';});
+  if(L==="pcf")CRIANCAS.forEach(function(c){if(c.pos&&c.pcf&&inTerr(c.setor))s+='<circle class="dot" cx="'+c.pos[0].toFixed(1)+'" cy="'+c.pos[1].toFixed(1)+'" r="5" fill="'+(c.pcfUlt>14?"var(--warn-fill)":"var(--primary)")+'"/>';});
+  QUADRAS.forEach(function(q){s+='<text class="ql" x="'+q.geo.c[0]+'" y="'+(q.geo.c[1]+3.5)+'" text-anchor="middle">'+q.id.slice(1)+'</text>';});
+  if(S.mapEquip)G.predios.forEach(function(p){var m=EQ[p.t];s+='<g class="eq eq-'+p.t+'"><polygon points="'+pts(p.p)+'"/><circle cx="'+p.c[0]+'" cy="'+p.c[1]+'" r="10"/><text x="'+p.c[0]+'" y="'+(p.c[1]+4)+'" text-anchor="middle">'+m[0]+'</text><title>'+m[1]+' '+p.n+'</title></g>';});
+  G.setores.forEach(function(st){s+='<text class="sl" x="'+st.c[0]+'" y="'+st.c[1]+'" text-anchor="middle">'+setorNome(st.id)+'</text>';});
+  var bar=500/G.mpu;s+='<g class="scale"><line x1="24" x2="'+(24+bar).toFixed(1)+'" y1="'+(G.H-24)+'" y2="'+(G.H-24)+'"/><text x="24" y="'+(G.H-32)+'">0</text><text x="'+(24+bar).toFixed(1)+'" y="'+(G.H-32)+'" text-anchor="end">500 m</text></g><g class="north"><path d="M'+(G.W-34)+' 30 l9 24 h-18z"/><text x="'+(G.W-34)+'" y="70" text-anchor="middle">N</text></g>';
+  return s+'</svg>';}
+function mapLegend(){var L=S.mapLayer,it;
+  if(L==="vul")it=[["var(--seq5)","Baixa"],["var(--seq4)","Moderada"],["var(--warn-fill)","Alta"],["var(--crit)","Muito alta"]];
+  else if(L==="prec")it=[["var(--seq1)","GPS do Censo"],["var(--seq2)","Lote cadastral"],["var(--seq3)","e-SUS"],["var(--seq4)","CNEFE"],["var(--seq6)","Baixa precisão"]];
+  else if(L==="casos")it=[["var(--seq5)","Nenhum caso"],["var(--seq3)","1"],["var(--warn-fill)","2"],["var(--crit)","3 ou mais"]];
+  else if(L==="reurb")it=[["var(--seq5)","Todos regulares"],["var(--seq4)","Até 25% irregulares"],["var(--warn-fill)","De 25% a 50%"],["var(--crit)","Mais de 50%"]];
+  else if(L==="pcf")it=[["var(--primary)","Família com visita em dia"],["var(--warn-fill)","Visita atrasada (14+ dias)"]];
+  else if(L==="calor03")it=[["var(--primary)","Concentração de crianças de 0 a 3 anos"]];
+  else it=[["var(--crit)","Concentração de pessoas idosas sozinhas sem visita"]];
+  return '<div class="ramp">'+it.map(function(i){return '<span><i style="background:'+i[0]+'"></i> '+i[1]+'</span>';}).join("")+(S.mapEquip?'<span><b class="eqk eq-escola_mun">E</b>Escola municipal</span><span><b class="eqk eq-escola_est">E</b>Escola estadual</span><span><b class="eqk eq-saude">S</b>Saúde</span><span><b class="eqk eq-assistencia">A</b>Assistência</span>':'')+'</div>';}
+function lotGrid(q){var W=264,H=152,cw=60,ch=44,g='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Lotes da quadra '+q.id+'">';
+  for(var l=1;l<=12;l++){var col=(l-1)%4,row=Math.floor((l-1)/4),x=6+col*(cw+4),y=6+row*(ch+4),st=LOTES[q.id][l-1];
+    g+='<rect x="'+x+'" y="'+y+'" width="'+cw+'" height="'+ch+'" rx="3" fill="'+LOTC[st]+'" stroke="var(--border)"><title>Lote '+String(l).padStart(2,"0")+': '+st+'</title></rect><text x="'+(x+5)+'" y="'+(y+13)+'" style="font-size:10px;fill:'+(st==="Reurb em análise"?"#fff":"#1B2430")+'">L'+String(l).padStart(2,"0")+'</text>';
+    var ll=l;
+    CRIANCAS.filter(function(c){return c.q===q&&c.lote===ll;}).slice(0,4).forEach(function(c,i){g+='<circle cx="'+(x+10+i*12)+'" cy="'+(y+31)+'" r="4.5" fill="'+(c.pcf?"var(--primary)":"#fff")+'" stroke="var(--primary-strong)" stroke-width="1.5"/>';});
+    IDOSOS.filter(function(p){return p.q===q&&p.lote===ll;}).slice(0,2).forEach(function(p,i){g+='<rect x="'+(x+cw-13-i*11)+'" y="'+(y+27)+'" width="8" height="8" fill="'+(p.so?"var(--crit)":"#fff")+'" stroke="#1B2430"/>';});}
+  return g+'</svg>';}
+function vTerr(){
+  var h=head("Território","Setores da zona urbana e equipamentos públicos vindos do Geoportal. Clique em uma quadra para ver os lotes, as crianças e as pessoas idosas.","Fontes: Geoportal (setores, escolas, saúde, assistência), Censo Municipal, cadastro imobiliário");
+  var q=null;QUADRAS.forEach(function(x){if(x.id===S.mapSel)q=x;});
+  var det;
+  if(q){var kids=CRIANCAS.filter(function(c){return c.q===q;}),old=IDOSOS.filter(function(p){return p.q===q;});
+    det='<h3 style="font-size:16px">Quadra '+q.id+'</h3><p class="src" style="margin:2px 0 8px">'+setorNome(q.setor)+' · 12 lotes (esquemático)</p>'+lotGrid(q)
+      +'<div class="ramp" style="margin-top:4px"><span><i style="background:var(--seq5)"></i> Regular</span><span><i style="background:var(--warn-fill)"></i> Sem inscrição</span><span><i style="background:var(--crit)"></i> Reurb em análise</span><span><i style="background:var(--surface-2);border:1px solid var(--border)"></i> Vazio</span></div>'
+      +'<div class="ramp"><span><b class="mk c"></b> Criança</span><span><b class="mk c f"></b> Criança Feliz</span><span><b class="mk i"></b> Pessoa idosa</span><span><b class="mk i s"></b> Idosa sozinha</span></div>'
+      +'<dl><dt>Índice de vulnerabilidade</dt><dd>'+ivm(q).toFixed(2).replace(".",",")+' · '+ivmClass(ivm(q))[1]+'</dd><dt>Lotes irregulares</dt><dd>'+irregular(q)+' de 12</dd><dt>Crianças de 0 a 3 anos</dt><dd>'+kids.filter(function(c){return c.idade<=3;}).length+'</dd><dt>Crianças que precisam de visita</dt><dd>'+kids.filter(function(c){return motivosVisita(c).length;}).length+'</dd><dt>Famílias no Criança Feliz</dt><dd>'+kids.filter(function(c){return c.pcf;}).length+'</dd><dt>Pessoas idosas</dt><dd>'+old.length+' ('+old.filter(function(p){return p.so;}).length+' sozinhas)</dd><dt>Casos de busca ativa</dt><dd>'+q.casos+'</dd></dl>';}
+  else det=stateBox("","map","Nenhuma quadra selecionada","Clique ou use Enter em uma quadra do mapa para ver os lotes e quem mora neles.");
+  h+=card("Mapa da zona urbana","Setores e equipamentos reais. As quadras são uma grade provisória alinhada às ruas, até a malha de quadras e lotes ser carregada.",
+    '<div class="toolbar"><div class="field"><label for="layer">Camada</label><select id="layer">'+LAYERS.map(function(l){return '<option value="'+l[0]+'"'+(S.mapLayer===l[0]?" selected":"")+'>'+l[1]+'</option>';}).join("")+'</select></div><label class="chk"><input type="checkbox" id="equip"'+(S.mapEquip?" checked":"")+'> Mostrar equipamentos públicos</label></div><div class="mapwrap"><div class="map">'+mapSvg()+mapLegend()+'</div><div class="detail" aria-live="polite">'+det+'</div></div>');
+  var zr=SETORES[5];
+  h+=card("Zona rural","Endereços em Linha, Lote e Gleba, localizados pelos polígonos do SIGEF/INCRA e do CAR.",'<div class="kpis" style="margin:0">'+kpi("Domicílios rurais",fmt.format(zr.dom),"","info")+kpi("Escolas municipais rurais",GEO_MAP.rural.length,"fora da área do mapa","")+kpi("Localizados por SIGEF/CAR",pct(26,0),"polígono do imóvel rural","")+kpi("Ainda com baixa precisão",pct(9,0),"centroide do setor censitário","warn")+kpi("Casos de busca ativa",fmt.format(CASOS.filter(function(c){return c.setor==="RUR";}).length),"","crit")+'</div>');
+  return h;}
+
+/* ---------- eventos dos módulos novos ---------- */
+function bindNovos(){
+  function $(id){return document.getElementById(id);}
+  var fq=$("fq");if(fq)fq.addEventListener("input",function(){S.fq=fq.value;S.fsel=null;render("fq");});
+  var ff=$("ff");if(ff)ff.addEventListener("change",function(){S.ff=ff.value;S.fsel=null;render("ff");});
+  main.querySelectorAll("[data-ficha]").forEach(function(b){b.addEventListener("click",function(){S.fsel=b.getAttribute("data-ficha");render();var n=main.querySelector('[data-ficha="'+S.fsel+'"]');if(n)n.focus();var fc=main.querySelector(".fgrid > div");if(fc&&window.innerWidth<960)fc.scrollIntoView({block:"start"});});});
+  main.querySelectorAll("[data-goficha]").forEach(function(a){a.addEventListener("click",function(){S.fsel=a.getAttribute("data-goficha");S.fq="";S.ff="todas";});});
+  main.querySelectorAll("[data-fficha]").forEach(function(a){a.addEventListener("click",function(){S.ff=a.getAttribute("data-fficha");S.fq="";S.fsel=null;});});
+  main.querySelectorAll("[data-gonotif]").forEach(function(a){a.addEventListener("click",function(){S.nsel=a.getAttribute("data-gonotif");S.nf="todas";});});
+  main.querySelectorAll("[data-layer]").forEach(function(a){a.addEventListener("click",function(){S.mapLayer=a.getAttribute("data-layer");S.mapSel=null;});});
+  main.querySelectorAll("[data-freveal]").forEach(function(b){b.addEventListener("click",function(){var id=b.getAttribute("data-freveal");CRIANCAS.forEach(function(c){if(c.id===id)c.revelado=true;});var d=new Date();ACESSOS.unshift({quando:d.toLocaleDateString("pt-BR")+" "+d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),quem:perfilNome()+" (você)",reg:id,fin:"Consulta à ficha da criança"});render();toast("CPF revelado. O acesso foi registrado no painel de controle externo.");});});
+  main.querySelectorAll("[data-encaminhar]").forEach(function(b){b.addEventListener("click",function(){var id=b.getAttribute("data-encaminhar"),c=null;CRIANCAS.forEach(function(x){if(x.id===id)c=x;});if(!c)return;var n={id:novaNotifId(),c:c,motivo:"Encaminhamento feito pela escola",criada:0,destino:"CRAS do território",status:"Nova",parecer:"",desfecho:"",autor:"",pDias:0,novaVisita:false};NOTIF.push(n);render();toast("Caso "+n.id+" enviado ao CRAS. A Assistência Social foi notificada.");});});
+  var nf=$("nf");if(nf)nf.addEventListener("change",function(){S.nf=nf.value;S.nsel=null;render("nf");});
+  main.querySelectorAll("[data-notif]").forEach(function(b){b.addEventListener("click",function(){S.nsel=b.getAttribute("data-notif");render();var n=main.querySelector('[data-notif="'+S.nsel+'"]');if(n)n.focus();});});
+  var pa=$("panal");if(pa)pa.addEventListener("click",function(){var n=notifSel();n.status="Em análise";n.c.eventos.push({d:0,t:"Notificação "+n.id+" em análise pelo CRAS",s:"Assistência Social"});render();toast("Notificação marcada como em análise.");});
+  var pf=$("pform");if(pf)pf.addEventListener("submit",function(e){e.preventDefault();var d=$("pdesf"),t=$("ptxt"),ok=true,first=null;
+    function err(el,id,msg){el.setAttribute("aria-invalid",msg?"true":"false");$(id).textContent=msg;if(msg&&!first)first=el;if(msg)ok=false;}
+    err(d,"pdesf-err",d.value?"":"Escolha o desfecho do caso.");
+    err(t,"ptxt-err",t.value.trim().length>=30?"":"Escreva pelo menos 30 caracteres sobre a visita.");
+    if(!ok){first.focus();return;}
+    var btn=$("psend");btn.disabled=true;btn.textContent="Enviando…";
+    setTimeout(function(){var n=notifSel();n.status="Parecer emitido";n.parecer=t.value.trim();n.desfecho=d.value;n.autor=perfilNome()+" (você)";n.pDias=0;n.novaVisita=$("pvis").checked;
+      if(n.novaVisita)n.c.eventos.push({d:0,t:"Nova visita programada para 15 dias",s:"Assistência Social"});
+      render();toast("Parecer enviado. A escola e a ficha da criança foram atualizadas.");},700);});
+  var eq=$("equip");if(eq)eq.addEventListener("change",function(){S.mapEquip=eq.checked;render("equip");});
+}
+function perfilNome(){return {comite:"Comitê Gestor",semed:"Servidor SEMED",assistencia:"Técnico(a) do CRAS",tce:"Auditoria"}[S.perfil];}
+
+var RENDER={"ficha-crianca":vFicha,"notificacoes":vNotif,"pessoa-idosa":vIdosa,"eja":vEja,"educacao-inclusiva":vIncl,"vulnerabilidade":vVul,"vagas-creche":vCreche,"visao-geral":vGeral,"busca-ativa":vBusca,"primeira-infancia":vInf,"territorio":vTerr,"cadastro-imobiliario":vImov,"qualidade-dados":vQual,"controle-externo":vTce};
+
+/* ---------- montagem ---------- */
+var main=document.getElementById("conteudo"),menu=document.getElementById("menu"),toastEl=document.getElementById("toast"),tt;
+function toast(m){toastEl.textContent=m;toastEl.classList.add("show");clearTimeout(tt);tt=setTimeout(function(){toastEl.classList.remove("show");},2600);}
+function drawMenu(){var g="";menu.innerHTML=VIEWS.map(function(v){var hd=v.g!==g?'<li class="navg">'+v.g+'</li>':'';g=v.g;return hd+'<li><a href="#'+v.id+'"'+(S.view===v.id?' aria-current="page"':'')+'>'+icon(v.ic)+v.nome+'</a></li>';}).join("");}
+function render(keepFocusId){
+  drawMenu();main.innerHTML=RENDER[S.view]();bind();
+  if(keepFocusId){var el=document.getElementById(keepFocusId);if(el){el.focus();if(el.type==="search"&&el.value)el.setSelectionRange(el.value.length,el.value.length);}}
+}
+function copy(text,msg){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){toast(msg);},function(){toast("Não foi possível copiar. Selecione a tabela e copie manualmente.");});}else toast("Não foi possível copiar neste navegador.");}
+function bind(){
+  var b=document.getElementById("busca");if(b)b.addEventListener("input",function(){S.busca=b.value;S.page=0;render("busca");});
+  var sf=document.getElementById("statusF");if(sf)sf.addEventListener("change",function(){S.statusF=sf.value;S.page=0;render("statusF");});
+  var cl=document.getElementById("clearF");if(cl)cl.addEventListener("click",function(){S.busca="";S.statusF="todos";render("busca");});
+  var pv=document.getElementById("prev");if(pv)pv.addEventListener("click",function(){S.page--;render("prev");});
+  var nx=document.getElementById("next");if(nx)nx.addEventListener("click",function(){S.page++;render("next");});
+  main.querySelectorAll("[data-sort]").forEach(function(btn){btn.addEventListener("click",function(){var k=btn.getAttribute("data-sort");if(S.sort.k===k)S.sort.dir*=-1;else S.sort={k:k,dir:k==="dias"?-1:1};render();});});
+  main.querySelectorAll("[data-reveal]").forEach(function(btn){btn.addEventListener("click",function(){var id=btn.getAttribute("data-reveal");CASOS.forEach(function(c){if(c.id===id)c.revelado=true;});var d=new Date();ACESSOS.unshift({quando:d.toLocaleDateString("pt-BR")+" "+d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),quem:S.perfil==="semed"?"Servidor SEMED (você)":"Membro do Comitê Gestor (você)",reg:id,fin:"Contato para matrícula"});render();toast("CPF revelado. O acesso foi registrado no painel de controle externo.");});});
+  var cc=document.getElementById("copyCsv");if(cc)cc.addEventListener("click",function(){var rows=CASOS.filter(function(c){return inTerr(c.setor);});copy("caso;situacao;idade;setor;quadra;origem;responsavel;dias\n"+rows.map(function(c){return[c.id,c.status,c.idade,setorNome(c.setor),c.quadra,c.origem,c.resp,c.dias].join(";");}).join("\n"),"CSV copiado sem CPF ("+rows.length+" casos). Cole na planilha.");});
+  var ci=document.getElementById("copyInd");if(ci)ci.addEventListener("click",function(){var t=[];main.querySelectorAll("table")[0].querySelectorAll("tr").forEach(function(tr){t.push(Array.prototype.map.call(tr.children,function(td){return td.textContent.trim();}).join(";"));});copy(t.join("\n"),"Indicadores copiados em CSV.");});
+  DIMS.forEach(function(k){var el=document.getElementById("w-"+k[0]);if(el)el.addEventListener("input",function(){S.pesos[k[0]]=+el.value;render("w-"+k[0]);});});
+  var rw=document.getElementById("resetW");if(rw)rw.addEventListener("click",function(){S.pesos=JSON.parse(JSON.stringify(PESOS0));render("resetW");toast("Pesos propostos restaurados.");});
+  var cm=document.getElementById("creMeta");if(cm)cm.addEventListener("input",function(){S.creMeta=+cm.value;render("creMeta");});
+  var cse=document.getElementById("creSetor");if(cse)cse.addEventListener("change",function(){S.creSetor=cse.value;render("creSetor");});
+  var cv=document.getElementById("creVagas");if(cv)cv.addEventListener("change",function(){S.creVagas=+cv.value;render("creVagas");});
+  main.querySelectorAll("[data-esc]").forEach(function(a){a.addEventListener("click",function(){S.statusF="__esc";S.page=0;});});
+  var ly=document.getElementById("layer");if(ly)ly.addEventListener("change",function(){S.mapLayer=ly.value;render("layer");});
+  main.querySelectorAll("[data-q]").forEach(function(r){function sel(){S.mapSel=r.getAttribute("data-q");render();var n=main.querySelector('rect.q[data-q="'+S.mapSel+'"]');if(n)n.focus();}r.addEventListener("click",sel);r.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();sel();}});});
+  bindNovos();
+  var rt=document.getElementById("retry");if(rt)rt.addEventListener("click",function(){rt.disabled=true;rt.innerHTML=icon("refresh")+"Processando…";setTimeout(function(){S.siconOk=true;render();toast("Carga do SICON concluída.");},900);});
+}
+function route(){var h=(location.hash||"").replace("#","");var ok=VIEWS.some(function(v){return v.id===h;});S.view=ok?h:"visao-geral";S.page=0;if(S.view!=="busca-ativa"&&S.statusF==="__esc")S.statusF="todos";render();if(ok)main.focus({preventScroll:true});}
+
+var terr=document.getElementById("territorio");
+terr.innerHTML='<option value="todos">Todo o município</option>'+SETORES.map(function(s){return '<option value="'+s.id+'">'+s.nome+'</option>';}).join("");
+terr.value=S.territorio;terr.addEventListener("change",function(){S.territorio=terr.value;S.page=0;savePrefs();render();});
+var perf=document.getElementById("perfil");perf.value=S.perfil;perf.addEventListener("change",function(){S.perfil=perf.value;savePrefs();render();toast(S.perfil==="tce"?"Perfil de auditoria: dados nominais ocultos.":"Perfil alterado para "+perfilNome()+".");});
+document.getElementById("periodo").addEventListener("change",function(){toast("Protótipo: o período não altera os dados fictícios.");});
+window.addEventListener("hashchange",route);
+if(window.matchMedia)window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",function(){render();});
+route();
+})();
+</script>
+</body>
+</html>

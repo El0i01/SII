@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig/biblioteca.json",
+  "compilerOptions": {
+    "rootDir": "tokens/src",
+    "outDir": "dist/tokens"
+  },
+  "include": ["tokens/src"]
+}

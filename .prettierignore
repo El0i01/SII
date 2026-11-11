@@ -1,0 +1,7 @@
+pnpm-lock.yaml
+docs/prototipo/
+dist/
+.next/
+.expo/
+docs/
+CLAUDE.md

@@ -1,0 +1,10 @@
+{
+  "extends": "@sii/config/tsconfig/biblioteca.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "verbatimModuleSyntax": false
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts"]
+}

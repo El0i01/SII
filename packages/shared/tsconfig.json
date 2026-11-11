@@ -1,0 +1,8 @@
+{
+  "extends": "@sii/config/tsconfig/biblioteca.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "verbatimModuleSyntax": false
+  },
+  "include": ["src", "vitest.config.mts"]
+}

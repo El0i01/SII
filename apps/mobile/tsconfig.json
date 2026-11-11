@@ -1,0 +1,14 @@
+{
+  "extends": "@sii/config/tsconfig/expo.json",
+  "compilerOptions": {
+    "types": ["jest"]
+  },
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
+}

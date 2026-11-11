@@ -1,0 +1,39 @@
+{
+  "name": "@sii/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Configurações compartilhadas: tsconfig, eslint, prettier e tokens visuais gov.br",
+  "exports": {
+    "./tsconfig/base.json": "./tsconfig/base.json",
+    "./tsconfig/nest.json": "./tsconfig/nest.json",
+    "./tsconfig/next.json": "./tsconfig/next.json",
+    "./tsconfig/expo.json": "./tsconfig/expo.json",
+    "./tsconfig/biblioteca.json": "./tsconfig/biblioteca.json",
+    "./eslint": "./eslint/base.js",
+    "./prettier": "./prettier.json",
+    "./tokens.css": "./tokens/tokens.css",
+    "./tokens": {
+      "types": "./dist/tokens/index.d.ts",
+      "default": "./dist/tokens/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.5.0",
+    "typescript-eslint": "^8.72.2"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "typescript": "~5.9.3"
+  },
+  "peerDependencies": {
+    "eslint": "^9"
+  }
+}

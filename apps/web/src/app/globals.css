@@ -1,0 +1,33 @@
+@import 'tailwindcss';
+@import '@sii/config/tokens.css';
+
+/* Rawline não está no Google Fonts: se não estiver instalada, cai na Raleway (next/font). */
+@theme {
+  --font-sans: 'Rawline', var(--font-raleway), system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--color-fundo);
+    color: var(--color-texto);
+    font-family: var(--font-sans);
+  }
+
+  :focus-visible {
+    outline: 4px dashed var(--color-foco);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

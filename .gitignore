@@ -1,0 +1,26 @@
+node_modules/
+dist/
+.next/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# Expo
+.expo/
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/dist/
+
+# Segredos e dados reais: nunca commitar
+.env
+.env.*
+!.env.example
+*.shp
+*.dbf
+*.shx
+*.prj
+*.csv
+!**/fixtures/**/*.csv
+
+.DS_Store
+*.log
