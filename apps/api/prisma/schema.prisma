@@ -1,0 +1,29 @@
+// Schema único do SII (API e worker). Banco em snake_case, Prisma em camelCase com @map/@@map.
+// Cada domínio tem schema próprio no PostgreSQL (territorio, pessoas, educacao…), o que facilita a
+// Row-Level Security. O schema public fica fora do Prisma: é onde o PostGIS guarda a spatial_ref_sys.
+// Os schemas stg_<fonte> (cargas brutas) também ficam fora: são recriados pelo ogr2ogr e pelo worker.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["territorio"]
+}
+
+/// Setor urbano da sede (S01..S05 e industrial). Modelo mínimo do P02: o P05 completa e o P06 popula
+/// a partir do geoportal. Geometria em SIRGAS 2000 (EPSG:4674).
+model Setor {
+  id       Int                                         @id @default(autoincrement())
+  codigo   String                                      @unique @db.VarChar(10)
+  nome     String                                      @db.VarChar(80)
+  geom     Unsupported("geometry(MultiPolygon, 4674)")?
+  criadoEm DateTime                                    @default(now()) @map("criado_em") @db.Timestamptz(3)
+
+  @@index([geom], map: "setor_geom_gist", type: Gist)
+  @@map("setor")
+  @@schema("territorio")
+}

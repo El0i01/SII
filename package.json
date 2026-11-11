@@ -12,7 +12,15 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "infra:up": "docker compose --env-file .env -f infra/docker-compose.yml up -d --wait",
+    "infra:down": "docker compose --env-file .env -f infra/docker-compose.yml down",
+    "infra:logs": "docker compose --env-file .env -f infra/docker-compose.yml logs -f",
+    "infra:ps": "docker compose --env-file .env -f infra/docker-compose.yml ps",
+    "db:migrate": "pnpm --filter @sii/api db:migrate",
+    "db:generate": "turbo run db:generate",
+    "db:studio": "pnpm --filter @sii/api db:studio",
+    "geo:importar": "infra/scripts/import-shapefile.sh"
   },
   "devDependencies": {
     "prettier": "^3.6.2",

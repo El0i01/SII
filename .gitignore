@@ -24,3 +24,6 @@ apps/mobile/dist/
 
 .DS_Store
 *.log
+
+# Client gerado pelo Prisma (pnpm db:generate)
+apps/api/src/generated/

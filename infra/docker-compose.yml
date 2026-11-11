@@ -1,0 +1,71 @@
+# Infraestrutura local do SII. Use pelos scripts da raiz: pnpm infra:up | infra:down | infra:logs
+# (eles passam --env-file .env). Portas só em 127.0.0.1 e fora das padrão, que já estão em uso.
+name: sii
+
+services:
+  db:
+    image: postgis/postgis:16-3.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER no .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:-sii}
+      TZ: UTC
+    ports:
+      - '127.0.0.1:${POSTGRES_PORTA:-5444}:5432'
+    volumes:
+      - sii_pg:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--requirepass',
+        '${REDIS_SENHA:?defina REDIS_SENHA no .env}',
+      ]
+    environment:
+      REDISCLI_AUTH: ${REDIS_SENHA}
+    ports:
+      - '127.0.0.1:${REDIS_PORTA:-6390}:6379'
+    volumes:
+      - sii_redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    # RELEASE.2025-09-07T16-13-09Z, fixada por digest: a MinIO parou de publicar tags novas no
+    # Docker Hub e a tag RELEASE não está disponível para pull. Ver ADR 0002.
+    image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    restart: unless-stopped
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?defina MINIO_ROOT_USER no .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?defina MINIO_ROOT_PASSWORD no .env}
+    ports:
+      - '127.0.0.1:${MINIO_PORTA:-9010}:9000'
+      - '127.0.0.1:${MINIO_CONSOLE_PORTA:-9011}:9001'
+    volumes:
+      - sii_minio:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  sii_pg:
+  sii_redis:
+  sii_minio:

@@ -51,7 +51,7 @@ sii-itapua/
     shared/       zod, tipos, enums, regras (prazos, índice, motivos de visita, máscaras)
     config/       eslint, tsconfig, prettier, tokens gov.br (tokens.css para Tailwind 4 + espelho TS para o mobile)
   infra/
-    docker-compose.yml, scripts de import de shapefile (ogr2ogr), backups
+    docker-compose.yml, postgres/init (extensões), scripts/import-shapefile.sh (ogr2ogr), backups
   docs/
     ESPECIFICACAO.md, prototipo/index.html, adr/ (decisões de arquitetura)
 ```
@@ -102,13 +102,18 @@ Seguir o Padrão Digital de Governo e o protótipo:
 ```
 nvm use                  # Node 24 (.nvmrc)
 pnpm i
+pnpm infra:up            # postgres+postgis (5444), redis (6390), minio (9010/9011); espera ficar healthy
+pnpm db:migrate          # prisma migrate dev
 pnpm dev                 # api (3333), worker e web (3000)
-pnpm --filter mobile start
-pnpm db:migrate          # prisma migrate dev (a partir do P02)
+pnpm --filter @sii/mobile start
 pnpm db:seed             # dados fictícios, mesmo gerador do protótipo (a partir do P05)
 pnpm test && pnpm lint && pnpm typecheck
-docker compose -f infra/docker-compose.yml up -d
+pnpm --filter @sii/api test:integracao     # precisa da infra no ar
+pnpm geo:importar <arquivo.shp> <tabela>   # shapefile → stg_geoportal.<tabela> em EPSG:4674
+pnpm infra:down
 ```
+
+Portas locais fora do padrão porque a máquina já roda outros sistemas (ADR 0002). O `.env` fica na raiz.
 
 ## Como trabalhar neste repositório
 
