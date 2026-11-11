@@ -113,9 +113,13 @@ Estabelecimentos municipais com CNES que ainda não têm polígono: SEMSAU (7121
 
 | Camada | Valor no shapefile | Nome oficial | Endereço | Código |
 | --- | --- | --- | --- | --- |
-| assistencia (id 1) | `CRAS` | CRAS · Centro de Referência de Assistência Social | Rua Maria Vitaliano de Souza, 1940, Centro | CadSUAS **a informar** |
-| assistencia (id 2) | `CREAS` | CREAS · Centro de Referência Especializado de Assistência Social | Rua Moisés de Freitas, 1786 *ou* 2476 (**confirmar o número**), Centro | CadSUAS **a informar** |
+| assistencia (id 1) | `CRAS` | CRAS · Centro de Referência de Assistência Social | Rua Maria Vitaliano de Souza, 1940, Centro | CadSUAS 11011015018 |
+| assistencia (id 2) | `CREAS` | CREAS · Centro de Referência Especializado de Assistência Social | Rua Moisés de Freitas, 1786 *ou* 2476 (**confirmar o número**), Centro | CadSUAS 11101102797 |
 | assistencia (id 3) | `Con. Tutel` | Conselho Tutelar | *a informar* | não tem |
+
+A **APAE Itapuã** (`outros` id 1) é também a unidade **Centro-Dia e similares** do SUAS: CadSUAS 1101103503753, mesmo CNPJ do CNES (07.525.228/0001-44). Conta para a Educação inclusiva (atendimento especializado) e para a Pessoa idosa/PCD (Centro-Dia), além da Saúde (CNES 2899418).
+
+Os números do CadSUAS começam por 110110, os 6 primeiros dígitos do código IBGE; daí a confusão com "1101103" no texto anterior.
 
 Há um único CRAS no município: toda notificação de infrequência (4.1) vai para ele, qualquer que seja o setor do domicílio.
 
