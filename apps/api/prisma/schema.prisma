@@ -343,6 +343,8 @@ model Domicilio {
 /// Equipamento público (escola, UBS, CRAS…), com o código nacional quando houver.
 model Equipamento {
   id            Int                                      @id @default(autoincrement())
+  /// Chave estável do cadastro (CUST, UBS4, CRAS…): liga o shapefile do geoportal ao equipamento.
+  codigo        String?                                  @unique @db.VarChar(20)
   tipo          TipoEquipamento
   nome          String                                   @db.VarChar(160)
   codigoInep    String?                                  @unique @map("codigo_inep") @db.VarChar(8)
@@ -375,6 +377,34 @@ model AreaReferencia {
   @@unique([tipo, codigo])
   @@index([geom], map: "area_referencia_geom_gist", type: Gist)
   @@map("area_referencia")
+  @@schema("territorio")
+}
+
+/// Limite do município (malha do IBGE). Uma linha só.
+model LimiteMunicipal {
+  id         Int                                          @id @default(1)
+  codigoIbge String                                       @map("codigo_ibge") @db.Char(7)
+  nome       String                                       @db.VarChar(80)
+  geom       Unsupported("geometry(MultiPolygon, 4674)")?
+
+  @@index([geom], map: "limite_municipal_geom_gist", type: Gist)
+  @@map("limite_municipal")
+  @@schema("territorio")
+}
+
+/// Ruas, avenidas e linhas rurais (geoportal). Base da busca de endereço por similaridade.
+model Logradouro {
+  id              Int                                             @id @default(autoincrement())
+  nome            String                                          @db.VarChar(160)
+  /// normalizarEndereco (shared): maiúsculas, sem acento, tipo por extenso.
+  nomeNormalizado String                                          @map("nome_normalizado") @db.VarChar(160)
+  tipo            String?                                         @db.VarChar(20)
+  extensaoKm      Float?                                          @map("extensao_km") @db.Real
+  geom            Unsupported("geometry(MultiLineString, 4674)")?
+
+  @@index([geom], map: "logradouro_geom_gist", type: Gist)
+  @@index([nomeNormalizado(ops: raw("gin_trgm_ops"))], map: "logradouro_nome_trgm", type: Gin)
+  @@map("logradouro")
   @@schema("territorio")
 }
 

@@ -5,8 +5,13 @@
  */
 import type { CodigoSetor } from './gerador';
 
-export const CRAS_CADSUAS = '11011015018';
-export const UBS_JACIR_BONI = '7327862';
+export {
+  CRAS_CADSUAS,
+  EQUIPAMENTOS,
+  MICROAREAS_RURAIS,
+  MICROAREAS_SEDE,
+  UBS_JACIR_BONI,
+} from '../../referencia/cadastro';
 
 /** Escola do protótipo → INEP real. */
 export const INEP_POR_ESCOLA_PROTOTIPO: Record<string, string> = {
@@ -17,137 +22,6 @@ export const INEP_POR_ESCOLA_PROTOTIPO: Record<string, string> = {
   'EMEF Linha 45 (rural)': '11005122', // EMEIEF Cecília Meireles (rural)
   'Rede estadual': '11005360', // EEEFM Paulo Freire
 };
-
-export interface EquipamentoSeed {
-  chave: string;
-  tipo: 'ESCOLA' | 'SAUDE' | 'ASSISTENCIA' | 'OUTRO';
-  nome: string;
-  inep?: string;
-  cnes?: string;
-  cadsuas?: string;
-  endereco?: string;
-  principal?: string;
-  escola?: { rede: 'MUNICIPAL' | 'ESTADUAL'; rural: boolean };
-}
-
-/** Cadastro real (público) de equipamentos: INEP, CNES e CadSUAS informados pelas secretarias. */
-export const EQUIPAMENTOS: EquipamentoSeed[] = [
-  {
-    chave: 'CRECHE',
-    tipo: 'ESCOLA',
-    nome: 'Creche Municipal Pequeninos de Cristo',
-    inep: '11048395',
-    endereco: 'Rua Ana Ferreira esq. c/ Presidente Médici, s/n',
-    escola: { rede: 'MUNICIPAL', rural: false },
-  },
-  {
-    chave: 'CUST',
-    tipo: 'ESCOLA',
-    nome: 'EMEF Dr. Custódio',
-    inep: '11005165',
-    endereco: 'Av. Costa e Silva, 2166, Centro',
-    escola: { rede: 'MUNICIPAL', rural: false },
-  },
-  {
-    chave: 'PEQ',
-    tipo: 'ESCOLA',
-    nome: 'EMEI Pequeno Príncipe',
-    inep: '11005378',
-    endereco: 'Av. Costa e Silva, 2166, Centro',
-    escola: { rede: 'MUNICIPAL', rural: false },
-  },
-  {
-    chave: 'SOG',
-    tipo: 'ESCOLA',
-    nome: 'EMEIEF Sossego da Mamãe',
-    inep: '11005300',
-    endereco: 'Rua Senador Olavo Pires, 1367',
-    escola: { rede: 'MUNICIPAL', rural: false },
-  },
-  {
-    chave: 'CECILIA',
-    tipo: 'ESCOLA',
-    nome: 'EMEIEF Cecília Meireles',
-    inep: '11005122',
-    endereco: 'Linha B-40-A, km 10, zona rural',
-    escola: { rede: 'MUNICIPAL', rural: true },
-  },
-  {
-    chave: 'JOAO_FRANCISCO',
-    tipo: 'ESCOLA',
-    nome: 'EEEF João Francisco Correia',
-    inep: '11040882',
-    endereco: 'Rua Senador Olavo Pires, 1363',
-    escola: { rede: 'ESTADUAL', rural: false },
-  },
-  {
-    chave: 'PAULO_FREIRE',
-    tipo: 'ESCOLA',
-    nome: 'EEEFM Paulo Freire',
-    inep: '11005360',
-    endereco: 'Av. Ayrton Senna, 1655',
-    escola: { rede: 'ESTADUAL', rural: false },
-  },
-  { chave: 'AN_CUST', tipo: 'ESCOLA', nome: 'Anexo da EMEF Dr. Custódio', principal: 'CUST' },
-  {
-    chave: 'NOVO_PEQ',
-    tipo: 'ESCOLA',
-    nome: 'Prédio novo da EMEI Pequeno Príncipe',
-    principal: 'PEQ',
-  },
-  { chave: 'HPP', tipo: 'SAUDE', nome: 'Hospital de Pequeno Porte José Baioco', cnes: '4002768' },
-  { chave: 'UBS1', tipo: 'SAUDE', nome: 'UBS Edson Cavalheiro', cnes: '2806509' },
-  { chave: 'UBS4', tipo: 'SAUDE', nome: 'UBS Jacir Boni', cnes: UBS_JACIR_BONI },
-  { chave: 'ALMO', tipo: 'SAUDE', nome: 'Almoxarifado da Saúde' },
-  { chave: 'VISA', tipo: 'SAUDE', nome: 'Vigilância Sanitária', cnes: '7121237' },
-  {
-    chave: 'VIGEP',
-    tipo: 'SAUDE',
-    nome: 'Unidade de Vigilância Epidemiológica e Endemias',
-    cnes: '7346050',
-  },
-  { chave: 'FARMACIA', tipo: 'SAUDE', nome: 'Farmácia Básica Municipal', cnes: '0392553' },
-  {
-    chave: 'APAE',
-    tipo: 'OUTRO',
-    nome: 'APAE Itapuã (também Centro-Dia)',
-    cnes: '2899418',
-    cadsuas: '1101103503753',
-  },
-  {
-    chave: 'CRAS',
-    tipo: 'ASSISTENCIA',
-    nome: 'CRAS · Centro de Referência de Assistência Social',
-    cadsuas: CRAS_CADSUAS,
-    endereco: 'Rua Maria Vitaliano de Souza, 1940, Centro',
-  },
-  {
-    chave: 'CREAS',
-    tipo: 'ASSISTENCIA',
-    nome: 'CREAS · Centro de Referência Especializado de Assistência Social',
-    cadsuas: '11101102797',
-    endereco: 'Rua Moisés de Freitas, 2476, Centro',
-  },
-  { chave: 'CT', tipo: 'ASSISTENCIA', nome: 'Conselho Tutelar' },
-];
-
-/** Microáreas do geoportal (MalhaACS), todas da UBS Jacir Boni (SEMSAU, 11/11/2026). */
-export const MICROAREAS_SEDE = ['area01', 'area02', 'area03', 'area04', 'area05', 'area06'];
-export const MICROAREAS_RURAIS = [
-  'urb1',
-  'urb2',
-  'urb3',
-  'urb4',
-  'urb6',
-  'urb8',
-  'urb9',
-  'urb10',
-  'urb11',
-  'urb12',
-  'urb13',
-  'urb14',
-  'urb16',
-];
 
 /** Microárea de quem mora numa quadra da sede. S03 é o maior setor: metade das quadras é a área 06. */
 export function microareaDaQuadra(

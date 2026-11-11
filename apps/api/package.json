@@ -15,7 +15,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "test:integracao": "jest --config test/jest-integracao.config.js --runInBand",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "geo:carregar": "tsx scripts/geo-carregar.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.22",

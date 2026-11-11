@@ -51,6 +51,10 @@ Decisões de 11/11/2026 (ADR 0003):
 - Situação do lote: `REGULAR`, `SEM_INSCRICAO`, `REURB_EM_ANALISE`, `TITULADO`, `VAZIO`.
 - Equipamentos públicos (`Equipamento`): tipo, nome, CNES/INEP, geometria, território de referência.
 - Áreas de referência: microárea do ACS, território do CRAS, zona da escola (para rotear notificações).
+- Carga do geoportal (`pnpm geo:carregar`, ADR 0005):
+  - os setores S01–S05 e o industrial (`SIND`) vêm dos shapefiles;
+  - a zona rural (`RUR`) é o município menos os setores urbanos;
+  - até a malha da Fazenda chegar, as quadras e os lotes são a **grade provisória**: células de 216 m giradas no ângulo das ruas, cada quadra em 4 × 3 lotes, marcadas `provisoria`.
 
 #### 3.1.1 Shapefiles do Geoportal (inventário de 11/11/2026)
 

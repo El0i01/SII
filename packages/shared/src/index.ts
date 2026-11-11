@@ -14,3 +14,6 @@ export * from './territorio/geocodificacao';
 export * from './schemas/entrada';
 export * from './casos/verificador';
 export * from './calendario/letivos';
+export * from './territorio/grade';
+export * from './territorio/endereco';
+export * from './territorio/limpeza-esus';

@@ -44,7 +44,8 @@ export type Parecer = z.infer<typeof Parecer>;
 // Caixa que contém Rondônia (com folga): pega GPS trocado ou zerado.
 const RO = { lat: [-13.8, -7.8], lon: [-66.9, -59.7] } as const;
 
-const PontoGps = z.object({
+/** Ponto GPS dentro de Rondônia, com a precisão do aparelho (visita e confirmação do pino). */
+export const PontoGps = z.object({
   latitude: z
     .number()
     .min(RO.lat[0], 'Ponto fora de Rondônia.')
@@ -114,3 +115,5 @@ export const UploadCarga = z.object({
     .max(TAMANHO_MAXIMO_CARGA, 'O arquivo passa de 100 MB.'),
 });
 export type UploadCarga = z.infer<typeof UploadCarga>;
+
+export type PontoGps = z.infer<typeof PontoGps>;

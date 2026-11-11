@@ -9,6 +9,7 @@ import { EducacaoModule } from './educacao/educacao.module';
 import { PessoasModule } from './pessoas/pessoas.module';
 import { RedisModule } from './redis/redis.module';
 import { StatusModule } from './status/status.module';
+import { TerritorioModule } from './territorio/territorio.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 
 @Module({
@@ -28,6 +29,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     UsuariosModule,
     PessoasModule,
     EducacaoModule,
+    TerritorioModule,
   ],
 })
 export class AppModule {}

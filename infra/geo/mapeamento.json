@@ -1,0 +1,65 @@
+{
+  "$comentario": "Mapeamento do geoportal (~/geoportal_itapua-main(1)/geoportal_itapua-main) para o cadastro do SII. ESPECIFICACAO §3.1.1 e §3.1.2. Usado por pnpm geo:carregar.",
+  "camadas": [
+    { "tabela": "limite", "arquivo": "malha_municipal/limite_mun_itapua.shp" },
+    { "tabela": "setor1", "arquivo": "setores/setor1.shp" },
+    { "tabela": "setor2", "arquivo": "setores/setor2.shp" },
+    { "tabela": "setor3", "arquivo": "setores/setor3.shp" },
+    { "tabela": "setor4", "arquivo": "setores/setor4.shp" },
+    { "tabela": "setor5", "arquivo": "setores/setor5.shp" },
+    { "tabela": "industrial", "arquivo": "setores/industrial.shp" },
+    { "tabela": "ruas", "arquivo": "Ruas_Itapuã/RuasItapuã.shp" },
+    { "tabela": "escolas_mun", "arquivo": "predios_publicos/escolas/municipais/escolas_mun.shp" },
+    { "tabela": "escolas_est", "arquivo": "predios_publicos/escolas/estaduais/escolas_est.shp" },
+    { "tabela": "saude", "arquivo": "predios_publicos/saude/saude.shp" },
+    { "tabela": "assistencia", "arquivo": "predios_publicos/assistencia/assistencia.shp" },
+    { "tabela": "outros", "arquivo": "predios_publicos/outros/predios_outros.shp" },
+    {
+      "tabela": "pontos",
+      "arquivo": "PrediosItap/Pontos.shp",
+      "encoding": "LATIN1",
+      "nota": ".dbf em LATIN1 sem .cpg"
+    },
+    {
+      "tabela": "acs_sede",
+      "arquivo": "MalhaACS/AreaACS.shp",
+      "nota": "nome do arquivo trocado: AreaACS.shp é a SEDE"
+    },
+    {
+      "tabela": "acs_rural",
+      "arquivo": "MalhaACS/AreaACS_Urbano.shp",
+      "nota": "nome do arquivo trocado: AreaACS_Urbano.shp é a ZONA RURAL"
+    }
+  ],
+  "equipamentos": [
+    { "camada": "escolas_mun", "campo": "nome", "valor": "CRECHE", "codigo": "CRECHE" },
+    { "camada": "escolas_mun", "campo": "nome", "valor": "CUST", "codigo": "CUST" },
+    { "camada": "escolas_mun", "campo": "nome", "valor": "AN. CUST", "codigo": "AN_CUST" },
+    { "camada": "escolas_mun", "campo": "nome", "valor": "PEQ", "codigo": "PEQ" },
+    { "camada": "escolas_mun", "campo": "nome", "valor": "NOVO PEQ", "codigo": "NOVO_PEQ" },
+    { "camada": "escolas_mun", "campo": "nome", "valor": "SOG", "codigo": "SOG" },
+    { "camada": "escolas_mun", "campo": "nome", "valor": "CECILIA", "codigo": "CECILIA" },
+    { "camada": "escolas_est", "campo": "cod", "valor": "1", "codigo": "JOAO_FRANCISCO" },
+    { "camada": "escolas_est", "campo": "cod", "valor": "2", "codigo": "PAULO_FREIRE" },
+    { "camada": "saude", "campo": "id", "valor": "1", "codigo": "HPP" },
+    { "camada": "saude", "campo": "id", "valor": "2", "codigo": "UBS1" },
+    { "camada": "saude", "campo": "id", "valor": "3", "codigo": "UBS4" },
+    { "camada": "saude", "campo": "id", "valor": "4", "codigo": "ALMO" },
+    { "camada": "saude", "campo": "id", "valor": "5", "codigo": "VISA" },
+    { "camada": "saude", "campo": "id", "valor": "6", "codigo": "VIGEP" },
+    { "camada": "saude", "campo": "id", "valor": "7", "codigo": "FARMACIA" },
+    { "camada": "assistencia", "campo": "id", "valor": "1", "codigo": "CRAS" },
+    { "camada": "assistencia", "campo": "id", "valor": "2", "codigo": "CREAS" },
+    { "camada": "assistencia", "campo": "id", "valor": "3", "codigo": "CT" },
+    { "camada": "outros", "campo": "id", "valor": "1", "codigo": "APAE" }
+  ],
+  "setores": [
+    { "codigo": "S01", "camada": "setor1" },
+    { "codigo": "S02", "camada": "setor2" },
+    { "codigo": "S03", "camada": "setor3" },
+    { "codigo": "S04", "camada": "setor4" },
+    { "codigo": "S05", "camada": "setor5" },
+    { "codigo": "SIND", "camada": "industrial" }
+  ],
+  "grade": { "tamanhoInicialM": 216, "coberturaMinima": 0.25, "colunasLote": 4, "linhasLote": 3 }
+}

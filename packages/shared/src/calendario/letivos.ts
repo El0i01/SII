@@ -3,12 +3,10 @@ import { adicionarDias, type DataISO, diaDaSemana, ehDataISO } from './dias';
 
 const data = z.string().refine(ehDataISO, 'Data inválida (use AAAA-MM-DD).');
 
-const Periodo = z
-  .object({ inicio: data, fim: data })
-  .refine((p) => p.fim >= p.inicio, {
-    path: ['fim'],
-    message: 'O fim precisa ser depois do início.',
-  });
+const Periodo = z.object({ inicio: data, fim: data }).refine((p) => p.fim >= p.inicio, {
+  path: ['fim'],
+  message: 'O fim precisa ser depois do início.',
+});
 
 /**
  * Parâmetros do calendário escolar de uma escola num ano (configurável pela SEMED/CTI).

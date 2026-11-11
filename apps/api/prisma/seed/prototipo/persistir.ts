@@ -12,17 +12,16 @@ import {
 } from '@sii/shared';
 import { protegerDocumento } from '../../../src/cripto/cifra';
 import { Prisma, type PrismaClient } from '../../../src/generated/prisma/client';
+import { garantirCadastro } from '../../referencia/cadastro';
 import { type Complementos, criarComplementos, normalizarNome } from './complementos';
 import { type CodigoSetor, DATA_BASE, gerarPrototipo, SETORES } from './gerador';
 import {
   CRAS_CADSUAS,
   DESFECHO_POR_ROTULO,
-  EQUIPAMENTOS,
   FERIADOS_2026,
   FONTES_GEO_POR_SETOR,
   INEP_POR_ESCOLA_PROTOTIPO,
   MICROAREAS_RURAIS,
-  MICROAREAS_SEDE,
   microareaDaQuadra,
   ORDEM_FONTES_GEO,
   PARAMETROS_CALENDARIO_2026,
@@ -89,7 +88,6 @@ const TABELAS_DO_SEED = [
   'educacao.calendario_parametros',
   'educacao.fila_creche',
   'educacao.atendimento_especializado',
-  'educacao.escola',
   'saude.sinalizador_saude',
   'assistencia.cadunico_familia',
   'assistencia.acompanhamento_paif',
@@ -105,8 +103,6 @@ const TABELAS_DO_SEED = [
   'indicadores.dimensao_ivm_quadra',
   'territorio.lote',
   'territorio.quadra',
-  'territorio.area_referencia',
-  'territorio.equipamento',
   'indicadores.pesos_ivm',
 ];
 
@@ -367,61 +363,10 @@ export async function semearPrototipo(prisma: PrismaClient, chaves: Chaves): Pro
     async (tx) => {
       await limparDadosFicticios(tx);
 
-      // Território e equipamentos.
-      const setorId = new Map<string, number>();
-      for (const s of SETORES) {
-        const r = await tx.setor.upsert({
-          where: { codigo: s.id },
-          create: { codigo: s.id, nome: s.nome, tipo: s.id === 'RUR' ? 'RURAL' : 'URBANO' },
-          update: { nome: s.nome, tipo: s.id === 'RUR' ? 'RURAL' : 'URBANO' },
-        });
-        setorId.set(s.id, r.id);
-      }
-
-      const equipamentoId = new Map<string, number>();
-      for (const e of EQUIPAMENTOS) {
-        const r = await tx.equipamento.create({
-          data: {
-            tipo: e.tipo,
-            nome: e.nome,
-            codigoInep: e.inep ?? null,
-            codigoCnes: e.cnes ?? null,
-            codigoCadsuas: e.cadsuas ?? null,
-            endereco: e.endereco ?? null,
-            principalId: e.principal ? (equipamentoId.get(e.principal) ?? null) : null,
-          },
-        });
-        equipamentoId.set(e.chave, r.id);
-      }
-      const escolaId = new Map<string, number>();
-      for (const e of EQUIPAMENTOS.filter((x) => x.escola && x.inep)) {
-        const r = await tx.escola.create({
-          data: {
-            inep: e.inep as string,
-            nome: e.nome,
-            rede: e.escola?.rede ?? 'MUNICIPAL',
-            rural: e.escola?.rural ?? false,
-            equipamentoId: equipamentoId.get(e.chave) as number,
-          },
-        });
-        escolaId.set(e.inep as string, r.id);
-      }
-      await tx.areaReferencia.createMany({
-        data: [
-          ...[...MICROAREAS_SEDE, ...MICROAREAS_RURAIS].map((codigo) => ({
-            tipo: 'MICROAREA' as const,
-            codigo,
-            nome: `Microárea ${codigo}`,
-            equipamentoId: equipamentoId.get('UBS4') as number,
-          })),
-          {
-            tipo: 'TERRITORIO_CRAS' as const,
-            codigo: CRAS_CADSUAS,
-            nome: 'Território do CRAS (município inteiro)',
-            equipamentoId: equipamentoId.get('CRAS') as number,
-          },
-        ],
-      });
+      // Cadastro de referência (upsert: preserva a geometria do geoportal).
+      const cadastro = await garantirCadastro(tx);
+      const setorId = cadastro.setor;
+      const escolaId = cadastro.escola;
 
       const quadras = await tx.quadra.createManyAndReturn({
         data: g.quadras.map((q) => ({ setorId: setorId.get(q.setor) as number, codigo: q.id })),

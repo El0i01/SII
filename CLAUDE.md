@@ -128,6 +128,7 @@ pnpm db:seed             # usuários fictícios (1 por perfil, senha SEED_SENHA 
 pnpm test && pnpm lint && pnpm typecheck
 pnpm --filter @sii/api test:integracao     # precisa da infra no ar
 pnpm geo:importar <arquivo.shp> <tabela>   # shapefile → stg_geoportal.<tabela> em EPSG:4674
+pnpm geo:carregar        # geoportal inteiro: setores, equipamentos, microáreas, ruas, grade provisória (ADR 0005)
 pnpm infra:down
 ```
 
