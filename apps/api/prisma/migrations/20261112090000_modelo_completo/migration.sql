@@ -1,3 +1,11 @@
+-- Schemas novos do P05. (Corrigido em 11/11/2026: o SQL foi gerado num banco em que o reset do
+-- Prisma já tinha criado os schemas, e os CREATE SCHEMA tinham ficado de fora.)
+CREATE SCHEMA IF NOT EXISTS "educacao";
+CREATE SCHEMA IF NOT EXISTS "saude";
+CREATE SCHEMA IF NOT EXISTS "assistencia";
+CREATE SCHEMA IF NOT EXISTS "indicadores";
+CREATE SCHEMA IF NOT EXISTS "auditoria";
+
 -- CreateEnum
 CREATE TYPE "territorio"."TipoSetor" AS ENUM ('URBANO', 'RURAL');
 

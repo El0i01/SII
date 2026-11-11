@@ -516,17 +516,18 @@ enum SituacaoFrequencia {
 }
 
 model Escola {
-  id            Int                 @id @default(autoincrement())
-  inep          String              @unique @db.VarChar(8)
-  nome          String              @db.VarChar(160)
-  rede          Rede
-  rural         Boolean             @default(false)
-  equipamentoId Int?                @unique @map("equipamento_id")
-  equipamento   Equipamento?        @relation(fields: [equipamentoId], references: [id])
-  turmas        Turma[]
-  matriculas    Matricula[]
-  calendario    CalendarioEscolar[]
-  filaCreche    FilaCreche[]
+  id                   Int                    @id @default(autoincrement())
+  inep                 String                 @unique @db.VarChar(8)
+  nome                 String                 @db.VarChar(160)
+  rede                 Rede
+  rural                Boolean                @default(false)
+  equipamentoId        Int?                   @unique @map("equipamento_id")
+  equipamento          Equipamento?           @relation(fields: [equipamentoId], references: [id])
+  turmas               Turma[]
+  matriculas           Matricula[]
+  calendario           CalendarioEscolar[]
+  calendarioParametros CalendarioParametros[]
+  filaCreche           FilaCreche[]
 
   @@map("escola")
   @@schema("educacao")
@@ -572,6 +573,23 @@ model CalendarioEscolar {
 
   @@id([escolaId, dia])
   @@map("calendario_escolar")
+  @@schema("educacao")
+}
+
+/// Parâmetros do calendário de uma escola num ano (configurável pela SEMED/CTI). Os dias de
+/// calendario_escolar são gerados a partir deles com gerarDiasLetivos (@sii/shared).
+model CalendarioParametros {
+  escolaId      Int      @map("escola_id")
+  ano           Int      @db.SmallInt
+  /// { inicio, fim, recessos[], feriados[], letivosExtras[] } (ParametrosCalendario do shared).
+  parametros    Json
+  diasLetivos   Int      @map("dias_letivos") @db.SmallInt
+  atualizadoPor Int?     @map("atualizado_por")
+  atualizadoEm  DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+  escola        Escola   @relation(fields: [escolaId], references: [id])
+
+  @@id([escolaId, ano])
+  @@map("calendario_parametros")
   @@schema("educacao")
 }
 

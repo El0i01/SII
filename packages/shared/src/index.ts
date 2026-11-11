@@ -13,3 +13,4 @@ export * from './creche/cobertura';
 export * from './territorio/geocodificacao';
 export * from './schemas/entrada';
 export * from './casos/verificador';
+export * from './calendario/letivos';

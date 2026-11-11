@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { BancoModule } from './banco/banco.module';
 import { validarEnv } from './config/env';
 import { CriptoModule } from './cripto/cripto.service';
+import { EducacaoModule } from './educacao/educacao.module';
 import { PessoasModule } from './pessoas/pessoas.module';
 import { RedisModule } from './redis/redis.module';
 import { StatusModule } from './status/status.module';
@@ -26,6 +27,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     StatusModule,
     UsuariosModule,
     PessoasModule,
+    EducacaoModule,
   ],
 })
 export class AppModule {}

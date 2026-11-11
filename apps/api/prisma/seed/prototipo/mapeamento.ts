@@ -126,6 +126,7 @@ export const EQUIPAMENTOS: EquipamentoSeed[] = [
     tipo: 'ASSISTENCIA',
     nome: 'CREAS · Centro de Referência Especializado de Assistência Social',
     cadsuas: '11101102797',
+    endereco: 'Rua Moisés de Freitas, 2476, Centro',
   },
   { chave: 'CT', tipo: 'ASSISTENCIA', nome: 'Conselho Tutelar' },
 ];
@@ -225,8 +226,8 @@ export const PRECISAO_SEED_M: Record<(typeof ORDEM_FONTES_GEO)[number], number> 
 };
 
 /**
- * Calendário escolar 2026 fictício: dias úteis de 09/02 a 18/12, sem o recesso de julho (06 a 24/07)
- * e sem os feriados nacionais e estaduais de RO. Feriado municipal: a confirmar com a SEMED.
+ * Feriados nacionais e estaduais (RO) de 2026, usados na contagem de dias úteis dos prazos.
+ * Feriado municipal: a SEMED inclui pela configuração do calendário (decisão de 11/11/2026).
  */
 export const FERIADOS_2026 = [
   '2026-01-01',
@@ -245,6 +246,14 @@ export const FERIADOS_2026 = [
   '2026-11-20',
   '2026-12-25',
 ];
-export const INICIO_LETIVO = '2026-02-09';
-export const FIM_LETIVO = '2026-12-18';
-export const RECESSO = ['2026-07-06', '2026-07-24'] as const;
+/**
+ * Calendário inicial de 2026 que o seed grava para todas as escolas. É só o ponto de partida: a
+ * SEMED ajusta por escola ou por rede (PUT /escolas/:inep/calendario/:ano, PUT /calendarios/:ano).
+ */
+export const PARAMETROS_CALENDARIO_2026 = {
+  inicio: '2026-02-09',
+  fim: '2026-12-18',
+  recessos: [{ inicio: '2026-07-06', fim: '2026-07-24' }],
+  feriados: FERIADOS_2026,
+  letivosExtras: [] as string[],
+};

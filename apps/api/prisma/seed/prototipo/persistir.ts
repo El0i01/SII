@@ -4,6 +4,7 @@
  */
 import {
   diasUteisEntre,
+  gerarDiasLetivos,
   LIMITES_BUSCA_ATIVA,
   prazoCaso,
   PRAZO_PARECER_DIAS_UTEIS,
@@ -18,16 +19,14 @@ import {
   DESFECHO_POR_ROTULO,
   EQUIPAMENTOS,
   FERIADOS_2026,
-  FIM_LETIVO,
   FONTES_GEO_POR_SETOR,
   INEP_POR_ESCOLA_PROTOTIPO,
-  INICIO_LETIVO,
   MICROAREAS_RURAIS,
   MICROAREAS_SEDE,
   microareaDaQuadra,
   ORDEM_FONTES_GEO,
+  PARAMETROS_CALENDARIO_2026,
   PRECISAO_SEED_M,
-  RECESSO,
   SECRETARIA_POR_RESP,
   SITUACAO_LOTE,
   STATUS_BUSCA_ATIVA,
@@ -76,20 +75,6 @@ function nascimento(cx: Complementos, idade: number): Date {
   return new Date(d.getTime() - cx.between(1, 364) * 86_400_000);
 }
 
-/** Dias letivos de 2026 (calendário fictício igual para todas as escolas, até ajuste da SEMED). */
-export function diasLetivos2026(): string[] {
-  const feriados = new Set(FERIADOS_2026);
-  const dias: string[] = [];
-  for (let d = dia(INICIO_LETIVO); iso(d) <= FIM_LETIVO; d = new Date(d.getTime() + 86_400_000)) {
-    const s = iso(d);
-    const semana = d.getUTCDay();
-    if (semana === 0 || semana === 6 || feriados.has(s)) continue;
-    if (s >= RECESSO[0] && s <= RECESSO[1]) continue;
-    dias.push(s);
-  }
-  return dias;
-}
-
 // ── Limpeza (só dados do seed) ───────────────────────────────────────────────────────────────────
 const TABELAS_DO_SEED = [
   'casos.evento_caso',
@@ -101,6 +86,7 @@ const TABELAS_DO_SEED = [
   'educacao.matricula',
   'educacao.turma',
   'educacao.calendario_escolar',
+  'educacao.calendario_parametros',
   'educacao.fila_creche',
   'educacao.atendimento_especializado',
   'educacao.escola',
@@ -204,7 +190,7 @@ export interface ResumoSeed {
 export async function semearPrototipo(prisma: PrismaClient, chaves: Chaves): Promise<ResumoSeed> {
   const g = gerarPrototipo();
   const cx = criarComplementos();
-  const letivos = diasLetivos2026();
+  const letivos = gerarDiasLetivos(PARAMETROS_CALENDARIO_2026);
   const ultimosLetivos = letivos.filter((d) => d < DATA_BASE).slice(-DIAS_FREQUENCIA);
   let cpfsTrocados = 0;
 
@@ -558,6 +544,14 @@ export async function semearPrototipo(prisma: PrismaClient, chaves: Chaves): Pro
       const escolas = [...escolaId.entries()];
       await tx.calendarioEscolar.createMany({
         data: escolas.flatMap(([, id]) => letivos.map((d) => ({ escolaId: id, dia: dia(d) }))),
+      });
+      await tx.calendarioParametros.createMany({
+        data: escolas.map(([, id]) => ({
+          escolaId: id,
+          ano: 2026,
+          parametros: PARAMETROS_CALENDARIO_2026,
+          diasLetivos: letivos.length,
+        })),
       });
       const turmasPlano = new Map<string, { escolaId: number; nome: string }>();
       for (const c of g.criancas.filter((x) => x.matric)) {

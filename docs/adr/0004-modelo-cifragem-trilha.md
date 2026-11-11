@@ -1,6 +1,6 @@
 # 0004 · Modelo de dados, cifragem de documentos, trilha e seed
 
-Data: 12/11/2026 · Situação: aceita · Prompt: P05
+Data: 11/11/2026 · Situação: aceita · Prompt: P05
 
 ## Contexto
 
@@ -65,9 +65,8 @@ trilha dos casos à prova de alteração e cria o seed fictício que reproduz o 
     usam uma quarta sequência, para não deslocar os números.
 15. **Equipamentos reais, pessoas fictícias** (decisão de 11/11/2026). O mapeamento das escolas inventadas
     para os INEP reais fica em `mapeamento.ts`. Trocar o nome não muda nenhum número.
-16. O calendário escolar 2026 é fictício e igual para todas as escolas: de 09/02 a 18/12, sem o recesso de
-    6 a 24/07 e sem os feriados nacionais e estaduais. **O feriado municipal precisa ser confirmado pela
-    SEMED.**
+16. O calendário escolar 2026 do seed é só o ponto de partida, igual para todas as escolas: de 09/02 a 18/12, sem o recesso de
+    6 a 24/07 e sem os feriados nacionais e estaduais. Depois, o calendário é **configurável** por escola ou por rede, pela API, e o feriado municipal entra por lá.
 17. O seed é idempotente e roda numa transação. Ele recusa limpar o banco se houver qualquer pessoa sem
     vínculo `SEED`. Para apagar a trilha, desliga os triggers só naquela transação, o que exige
     superusuário (dev).
@@ -83,3 +82,8 @@ trilha dos casos à prova de alteração e cria o seed fictício que reproduz o 
   matrículas por escola.
 - Frequência: as faltas seguidas recalculadas pelo shared, a partir do que foi lançado no banco,
   reproduzem as do protótipo em todos os alunos.
+
+## Correções posteriores (11/11/2026)
+
+- **`CREATE SCHEMA` que faltavam:** o SQL da migration `20261112090000_modelo_completo` tinha sido gerado num banco em que o reset do Prisma já criara os schemas novos, então ficou sem os `CREATE SCHEMA` deles. Num banco vazio, a migration falhava. Acrescentei `CREATE SCHEMA IF NOT EXISTS` no início do arquivo e atualizei a soma de verificação nos dois bancos locais. Ninguém mais tinha aplicado a migration. Testei o caminho do zero num banco descartável.
+- **Data no nome da pasta:** o nome `20261112…` traz uma data errada (a migration é de 11/11). Mantive o nome porque ele só define a ordem; a migration seguinte, `20261112090100_calendario_configuravel`, foi nomeada para vir depois dela.
