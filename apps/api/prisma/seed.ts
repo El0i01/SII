@@ -40,6 +40,7 @@ async function principal() {
       `Seed ok em ${((Date.now() - inicio) / 1000).toFixed(1)} s: 11 usuários; ${r.pessoas} pessoas ` +
         `(${r.criancas} crianças, ${r.idosos} idosos, ${r.casosBuscaAtiva} casos de busca ativa e responsáveis); ` +
         `${r.notificacoes} notificações; ${r.eventos} eventos de trilha; ${r.frequencias} lançamentos de frequência.` +
+        ` Segunda fonte: ${r.segundaFonte.LIGADA} ligados, ${r.segundaFonte.NOVA} novos, ${r.segundaFonte.REVISAO} em revisão (${r.revisoesPendentes} pares).` +
         (r.cpfsDuplicadosTrocados
           ? ` ${r.cpfsDuplicadosTrocados} CPF(s) sorteados em duplicidade foram trocados.`
           : ''),

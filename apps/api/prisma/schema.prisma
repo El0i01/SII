@@ -443,6 +443,8 @@ enum RegraVinculo {
   CNS_NIS
   NOME_NASCIMENTO_MAE
   MANUAL
+  /// Registro que deu origem à pessoa (nenhuma pessoa existente casou com ele).
+  ORIGEM
   /// Dado fictício do seed de desenvolvimento.
   SEED
 
@@ -494,8 +496,12 @@ model VinculoFonte {
   idExterno String       @map("id_externo") @db.VarChar(60)
   regra     RegraVinculo
   confianca Decimal      @db.Decimal(3, 2)
-  criadoEm  DateTime     @default(now()) @map("criado_em") @db.Timestamptz(3)
-  pessoa    PessoaMestra @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
+
+  /// Dados do registro na fonte (nome, nascimento, mãe, sexo): permitem separar uma união errada.
+  /// Nunca leva documento: CPF, NIS e CNS ficam só cifrados na pessoa.
+  dados    Json?
+  criadoEm DateTime     @default(now()) @map("criado_em") @db.Timestamptz(3)
+  pessoa   PessoaMestra @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
 
   @@unique([fonte, idExterno])
   @@index([pessoaId])
@@ -963,6 +969,33 @@ model DimensaoIvmQuadra {
 }
 
 // ─── Auditoria (§3.12) ───────────────────────────────────────────────────────────────────────────
+
+enum TipoEventoIdentidade {
+  LIGACAO_AUTOMATICA
+  REVISAO_ACEITA
+  REVISAO_REJEITADA
+  UNIAO_MANUAL
+  SEPARACAO
+
+  @@schema("auditoria")
+}
+
+/// Trilha de quem uniu, separou ou decidiu revisões de identidade. Só ids: nunca documento.
+model EventoIdentidade {
+  id          BigInt               @id @default(autoincrement())
+  tipo        TipoEventoIdentidade
+  pessoaId    Int                  @map("pessoa_id")
+  outraPessoa Int?                 @map("outra_pessoa")
+  revisaoId   Int?                 @map("revisao_id")
+  vinculoIds  Int[]                @map("vinculo_ids")
+  usuarioId   Int?                 @map("usuario_id")
+  motivo      String?              @db.VarChar(300)
+  quando      DateTime             @default(now()) @db.Timestamptz(3)
+
+  @@index([pessoaId])
+  @@map("evento_identidade")
+  @@schema("auditoria")
+}
 
 enum StatusCarga {
   EXECUTANDO

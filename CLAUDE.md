@@ -92,6 +92,7 @@ sii-itapua/
 - **Trilha**: todo evento de caso gera registro encadeado por hash (código verificador). Registros de trilha são append-only.
 - Variáveis sensíveis só em `.env` (nunca commitado). `.env.example` sempre atualizado.
 - **CPF, NIS e CNS só cifrados + hash** (`CriptoService.proteger` ou `protegerDocumento`). Nunca grave nem logue o número em texto. Para buscar, use o hash (`PessoasRepositorio.buscarPorCpf`). Para revelar, só pelo fluxo com finalidade (P12).
+- **Registro de fonte entra sempre por `LigacaoPessoas.ligar`** (CPF → CNS/NIS → nome+nascimento+mãe → revisão). Nunca crie `PessoaMestra` direto numa carga: a identidade única depende disso (ADR 0006).
 - A trilha (`casos.evento_caso`) é append-only e encadeada pelo banco: só INSERT, sem informar `seq` nem `hash`, e sem dado pessoal em `dados`.
 - **Dado nominal só por `PrismaService.comoUsuario(usuario, tx => ...)`**: é isso que liga o papel do banco e a RLS. O cliente Prisma direto (dono) fica restrito a autenticação, health e tarefas da CTI. Tabela nominal nova vai num schema com RLS e policy na mesma migration (ADR 0003).
 - Rotas exigem login por padrão; `@Publico()` é exceção e precisa de motivo. Restrinja com `@Perfis(...)` e, quando a rota tiver escola/microárea/CRAS no caminho, `@Escopo(...)`.

@@ -17,3 +17,4 @@ export * from './calendario/letivos';
 export * from './territorio/grade';
 export * from './territorio/endereco';
 export * from './territorio/limpeza-esus';
+export * from './pessoas/similaridade';

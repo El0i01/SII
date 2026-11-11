@@ -11,6 +11,11 @@ import {
   somarDiasUteis,
 } from '@sii/shared';
 import { protegerDocumento } from '../../../src/cripto/cifra';
+import {
+  LigacaoPessoas,
+  type RegistroFonte,
+  type ResultadoLigacao,
+} from '../../../src/pessoas/ligacao';
 import { Prisma, type PrismaClient } from '../../../src/generated/prisma/client';
 import { garantirCadastro } from '../../referencia/cadastro';
 import { type Complementos, criarComplementos, normalizarNome } from './complementos';
@@ -104,6 +109,8 @@ const TABELAS_DO_SEED = [
   'territorio.lote',
   'territorio.quadra',
   'indicadores.pesos_ivm',
+  // Auditoria de identidade gerada pelo próprio seed (pessoas fictícias).
+  'auditoria.evento_identidade',
 ];
 
 /**
@@ -181,6 +188,9 @@ export interface ResumoSeed {
   eventos: number;
   frequencias: number;
   cpfsDuplicadosTrocados: number;
+  /** Registros da segunda fonte fictícia, por resultado da ligação (P07). */
+  segundaFonte: Record<ResultadoLigacao['acao'], number>;
+  revisoesPendentes: number;
 }
 
 export async function semearPrototipo(prisma: PrismaClient, chaves: Chaves): Promise<ResumoSeed> {
@@ -357,6 +367,13 @@ export async function semearPrototipo(prisma: PrismaClient, chaves: Chaves): Pro
 
   // ── Gravação ───────────────────────────────────────────────────────────────────────────────────
   let eventos = 0;
+  const segundaFonte: Record<ResultadoLigacao['acao'], number> = {
+    LIGADA: 0,
+    NOVA: 0,
+    REVISAO: 0,
+    JA_LIGADA: 0,
+  };
+  let revisoesPendentes = 0;
   let frequencias = 0;
 
   await prisma.$transaction(
@@ -871,6 +888,15 @@ export async function semearPrototipo(prisma: PrismaClient, chaves: Chaves): Pro
       });
       eventos = evs.length;
 
+      // Segunda fonte fictícia (P07): os mesmos cidadãos chegando por outro sistema, para exercitar
+      // as regras de ligação e criar a fila de revisão.
+      const ligacao = new LigacaoPessoas(tx, chaves);
+      for (const r of registrosSegundaFonte(pessoas, cx)) {
+        const res = await ligacao.ligar(r);
+        segundaFonte[res.acao] += 1;
+        revisoesPendentes += res.revisoes.length;
+      }
+
       await tx.logCarga.create({
         data: {
           fonte: 'SEED_PROTOTIPO',
@@ -894,5 +920,110 @@ export async function semearPrototipo(prisma: PrismaClient, chaves: Chaves): Pro
     eventos,
     frequencias,
     cpfsDuplicadosTrocados: cpfsTrocados,
+    segundaFonte,
+    revisoesPendentes,
   };
+}
+
+// ── Segunda fonte fictícia (P07) ────────────────────────────────────────────────────────────────
+
+const isoData = (d: Date) => d.toISOString().slice(0, 10);
+
+/** "Maria Silva Oliveira" → "Maria S. Oliveira" (como vem em muitos cadastros). */
+function abreviarMeio(nome: string): string {
+  const t = nome.split(' ');
+  return t.length < 3 ? nome : [t[0], ...t.slice(1, -1).map((x) => `${x[0]}.`), t.at(-1)].join(' ');
+}
+
+const semAcento = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase();
+
+/**
+ * Registros de uma segunda fonte para pessoas que já existem, cada grupo exercitando uma regra:
+ * - 60 idosos com o mesmo CPF (nome em maiúsculas, sem acento) → ligam por CPF;
+ * - 30 crianças só com o CNS → ligam por documento;
+ * - 25 crianças sem documento, mãe abreviada → ligam por nome, nascimento e mãe;
+ * - 25 crianças sem documento, nascimento com 3 dias de diferença → revisão manual;
+ * - 5 gêmeos (mesma mãe e nascimento, outro primeiro nome) → nunca ligam sozinhos.
+ */
+function registrosSegundaFonte(pessoas: PlanoPessoa[], cx: Complementos): RegistroFonte[] {
+  const idosos = pessoas.filter((p) => p.idExterno.startsWith('PI-'));
+  const criancas = pessoas.filter((p) => p.idExterno.startsWith('CI-') && p.nomeMae);
+  const escopo = (p: PlanoPessoa) => ({
+    setorCodigo: p.setor,
+    microarea: p.microarea,
+    crasCodigo: CRAS_CADSUAS,
+  });
+  const r: RegistroFonte[] = [];
+
+  for (const p of idosos.slice(0, 60)) {
+    r.push({
+      fonte: 'CENSO',
+      idExterno: `CENSO-${p.idExterno}`,
+      cpf: p.cpf,
+      nome: semAcento(p.nome),
+      nascimento: isoData(p.nascimento),
+      mae: null,
+      sexo: p.sexo,
+      escopo: escopo(p),
+      doSeed: true,
+    });
+  }
+  for (const p of criancas.slice(0, 30)) {
+    r.push({
+      fonte: 'ESUS',
+      idExterno: `ESUS2-${p.idExterno}`,
+      cns: p.cns,
+      nome: p.nome,
+      nascimento: isoData(p.nascimento),
+      mae: p.nomeMae,
+      sexo: p.sexo,
+      escopo: escopo(p),
+      doSeed: true,
+    });
+  }
+  for (const p of criancas.slice(30, 55)) {
+    r.push({
+      fonte: 'SEDUC',
+      idExterno: `SEDUC-${p.idExterno}`,
+      nome: semAcento(p.nome),
+      nascimento: isoData(p.nascimento),
+      mae: abreviarMeio(p.nomeMae as string),
+      sexo: p.sexo,
+      escopo: escopo(p),
+      doSeed: true,
+    });
+  }
+  for (const p of criancas.slice(55, 80)) {
+    const errado = new Date(p.nascimento.getTime() + 3 * 86_400_000);
+    r.push({
+      fonte: 'CADUNICO',
+      idExterno: `CAD2-${p.idExterno}`,
+      nome: p.nome,
+      nascimento: isoData(errado),
+      mae: p.nomeMae,
+      sexo: p.sexo,
+      escopo: escopo(p),
+      doSeed: true,
+    });
+  }
+  for (const p of criancas.slice(80, 85)) {
+    const sexo = cx.sexo();
+    const [, ...resto] = p.nome.split(' ');
+    const gemeo = `${cx.nomeAleatorio(sexo).split(' ')[0]} ${resto.join(' ')}`;
+    r.push({
+      fonte: 'SINASC',
+      idExterno: `GEMEO-${p.idExterno}`,
+      nome: gemeo,
+      nascimento: isoData(p.nascimento),
+      mae: p.nomeMae,
+      sexo,
+      escopo: escopo(p),
+      doSeed: true,
+    });
+  }
+  return r;
 }

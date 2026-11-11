@@ -169,6 +169,15 @@ Toda tela de cadastro (web e mobile) mostra o pino sugerido para o usuário conf
   3. Nome normalizado + data de nascimento + nome da mãe (similaridade ≥ 0,92) → 0,85
   4. Abaixo disso → fila de revisão manual (`RevisaoVinculo`)
 - Nunca fundir duas pessoas automaticamente com confiança < 0,85.
+- Como a regra funciona (ADR 0006, decisões de 11/11/2026):
+  - a similaridade é Jaro-Winkler sobre o nome normalizado, com as iniciais expandidas (mãe abreviada casa);
+  - o primeiro nome é conferido à parte (gêmeos);
+  - CPF diferente nos dois lados nunca une;
+  - nascimento com erro de digitação (até 31 dias ou dia e mês trocados) vai no máximo para revisão.
+- Revisão: só a CTI (`ADMIN_CTI`).
+  - **Aceitar** une o par; **Rejeitar** marca como pessoas diferentes.
+  - Fora da fila, a CTI também pode **unir** dois registros quaisquer e **separar** uma união errada.
+  - Tudo vai para `auditoria.evento_identidade`.
 
 ### 3.4 Educação (`educacao`)
 

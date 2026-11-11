@@ -67,7 +67,19 @@ describe('seed fictício = protótipo', () => {
         SELECT split_part(id_externo, '-', 1) AS chave, count(*) AS n
         FROM pessoas.vinculo_fonte GROUP BY 1`,
     );
-    expect(porPrefixo).toEqual({ BA: 74, CI: 620, PI: 1048, RESP: 694 });
+    // Pessoas do protótipo e responsáveis, mais a segunda fonte fictícia do P07 (CENSO, ESUS2,
+    // SEDUC e CAD2 ligam ou viram revisão; GEMEO são gêmeos novos).
+    expect(porPrefixo).toEqual({
+      BA: 74,
+      CI: 620,
+      PI: 1048,
+      RESP: 694,
+      CENSO: 60,
+      ESUS2: 30,
+      SEDUC: 25,
+      CAD2: 25,
+      GEMEO: 5,
+    });
   });
 
   it('casos de busca ativa por status, notificações e lotes', async () => {
@@ -118,7 +130,7 @@ describe('seed fictício = protótipo', () => {
       SELECT v.id_externo AS chave, f.dia, f.situacao::text AS situacao
       FROM educacao.frequencia f
       JOIN educacao.matricula m ON m.id = f.matricula_id
-      JOIN pessoas.vinculo_fonte v ON v.pessoa_id = m.pessoa_id`;
+      JOIN pessoas.vinculo_fonte v ON v.pessoa_id = m.pessoa_id AND v.id_externo LIKE 'CI-%'`;
     const porAluno = new Map<string, { data: string; situacao: 'PRESENTE' | 'FALTA' }[]>();
     for (const l of linhas) {
       const lista = porAluno.get(l.chave) ?? [];
@@ -146,7 +158,7 @@ describe('seed fictício = protótipo', () => {
     const [l] = await dono.$queryRaw<
       { n: bigint }[]
     >`SELECT count(*) AS n FROM pessoas.pessoa_mestra`;
-    expect(Number(l?.n)).toBe(2436);
+    expect(Number(l?.n)).toBe(2436 + 25 + 5); // + pessoas criadas pela revisão e os gêmeos
   }, 120_000);
 
   it('recusa limpar um banco com pessoa que não veio do seed', async () => {
