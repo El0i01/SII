@@ -65,7 +65,8 @@ Problemas conhecidos, a tratar na tabela de mapeamento (não corrigir o shapefil
 - **Arquivos de ACS trocados**: `AreaACS_Urbano.shp` é a zona rural e `AreaACS.shp` é a sede.
 - **ACS rural**: `id` 9 duplicado; faltam 5, 7 e 15; regiões chamadas `urb*` apesar de rurais. Grafia inconsistente na sede (`area01` × `Area02`).
 - **Outros prédios**: uma feição sem `id` nem `nome`.
-- **Pontos**: categoria `educaca` (erro de digitação de `educacao`); saúde duplicada (`VIGILANCIA` duas vezes).
+- **Pontos**: categoria `educaca` (erro de digitação de `educacao`); o Conselho Tutelar está classificado como `saude`; o `.dbf` está em LATIN1 e não tem `.cpg` (importar com `--encoding LATIN1`, senão os acentos quebram).
+- **Saúde**: dois polígonos com o mesmo nome `VIGILANCIA` (são unidades diferentes, ver 3.1.2).
 - **Setores**: são os 5 setores urbanos + industrial da Prefeitura, não setores censitários do IBGE; a chave `S01..S05` e `SIND` precisa casar com a chave da Reurb.
 - **Faltam**: quadras e lotes (malha da Fazenda), área de abrangência do CRAS e zona de cada escola.
 
@@ -89,7 +90,26 @@ Conferência geométrica (centroides): `CUST`, `AN. CUST` e `PEQ` ficam a menos 
 
 Um polígono que não tem INEP próprio (anexo, prédio novo) vira `Equipamento` ligado à escola-mãe, não uma `Escola` nova.
 
-CEP de todas: 76861-000. Unidades de saúde (CNES) e assistência ainda a mapear.
+CEP de todas: 76861-000.
+
+**Saúde** (CNES informado pela SEMSAU em 11/11/2026). O nome completo veio do `PrediosItap/Pontos.shp`: cada ponto cai dentro do polígono correspondente (distância 0 m).
+
+| Camada | Valor no shapefile | Nome oficial | CNES |
+| --- | --- | --- | --- |
+| saude (id 1) | `Hpp` | Hospital de Pequeno Porte José Baioco | 4002768 |
+| saude (id 2) | `Ubs 1` | UBS Edson Cavalheiro | 2806509 |
+| saude (id 3) | `Ubs 4` | UBS Jacir Boni | 7327862 |
+| saude (id 4) | `ALMO SAUDE` | Almoxarifado da Saúde | *sem CNES* |
+| saude (id 5) | `VIGILANCIA` | Vigilância Sanitária | 7121237 |
+| saude (id 6) | `VIGILANCIA` | *provável* Unidade de Vigilância Epidemiológica e Endemias (ponto chamado só "Vigilancia"): **confirmar** | 7346050 |
+| saude (id 7) | `Farmacia M` | Farmácia Básica Municipal | 0392553 |
+| outros (id 1) | `APAE` | APAE Itapuã | 2899418 |
+
+Estabelecimentos municipais com CNES que ainda não têm polígono: SEMSAU (7121229), Central Municipal de Rede de Frio (8208697), Unidade Odontológica Móvel (8448876, sem endereço fixo). Os privados (laboratórios, próteses, clínicas, psicologia) ficam fora dos equipamentos públicos.
+
+Para o painel de Pessoa idosa e a área de referência do ACS valem as duas UBS. Os ACS (`MalhaACS`) ainda não dizem a qual UBS cada microárea pertence: **a informar pela SEMSAU**.
+
+**Assistência**: CRAS, CREAS e Conselho Tutelar (`assistencia.shp`) não têm código nacional neste inventário. O CRAS tem código no CadSUAS: **a informar**.
 
 ### 3.2 Geocodificação (`territorio/geocodificacao`)
 

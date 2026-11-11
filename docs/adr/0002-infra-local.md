@@ -15,9 +15,9 @@ já roda outros sistemas em Docker (GTE, SGP, Censo, SOL) ocupando as portas pad
    Use `pnpm infra:up` (espera os três ficarem *healthy*), `infra:down`, `infra:logs` e `infra:ps`.
 2. Imagens com versão fixa: `postgis/postgis:16-3.4-alpine`, `redis:7-alpine` e o MinIO
    `RELEASE.2025-09-07T16-13-09Z` **fixado por digest** (`minio/minio@sha256:14cea4…`). A MinIO parou de
-   publicar imagens no Docker Hub e a tag `RELEASE…` não está mais disponível para pull. Antes de produção
-   (P20), decidir: espelhar a imagem num registro da Prefeitura ou trocar por outro armazenamento compatível
-   com S3.
+   publicar imagens no Docker Hub e a tag `RELEASE…` não está mais disponível para pull. **Decisão da CTI
+   (11/11/2026): o MinIO permanece.** No P20, guardar uma cópia dessa imagem (`docker save`) junto com os
+   backups, para o deploy não depender do Docker Hub.
 3. As extensões (`postgis`, `pg_trgm`, `pgcrypto`, `unaccent`) são criadas no init do Docker **e** na primeira
    migration (`IF NOT EXISTS`), para que o shadow database do Prisma e bancos novos fiquem iguais. O init cria
    também o banco `sii_teste`, usado pelos testes de integração.
