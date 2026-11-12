@@ -71,6 +71,7 @@ const MENSAGEM_POR_STATUS: Record<number, string> = {
   401: 'Entre com seu login para continuar.',
   403: 'Seu perfil não tem acesso a esta informação.',
   404: 'Não encontramos o que você procurou.',
+  413: 'O arquivo passa do limite de 100 MB.',
   429: 'Muitas tentativas em pouco tempo. Aguarde um minuto e tente de novo.',
 };
 

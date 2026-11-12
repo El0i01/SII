@@ -19,7 +19,11 @@ async function chamar(caminho: string, init: RequestInit): Promise<Response> {
   return fetch(`${URL_API}${caminho}`, {
     ...init,
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
+    // Com FormData (envio de arquivo) o navegador monta o Content-Type com o boundary.
+    headers:
+      init.body instanceof FormData
+        ? (init.headers ?? {})
+        : { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
   });
 }
 

@@ -18,6 +18,17 @@ export const EnvSchema = z.object({
     .default(12),
   REFRESH_DIAS_MOBILE: z.coerce.number().int().min(1).max(90).default(7),
   LOGIN_LIMITE_POR_MINUTO: z.coerce.number().int().min(1).max(1000).default(10),
+  // MinIO (P08): arquivos de carga. Sem MINIO_USUARIO/MINIO_SENHA, usa o usuário root do compose
+  // (só em desenvolvimento; o usuário dedicado entra no P20).
+  MINIO_URL: z.url().default('http://localhost:9010'),
+  MINIO_USUARIO: z.string().min(1).optional(),
+  MINIO_SENHA: z.string().min(8).optional(),
+  MINIO_ROOT_USER: z.string().min(1).optional(),
+  MINIO_ROOT_PASSWORD: z.string().min(8).optional(),
+  MINIO_BUCKET_CARGAS: z
+    .string()
+    .regex(/^[a-z0-9][a-z0-9.-]{2,62}$/, 'nome de bucket inválido')
+    .default('sii-cargas'),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

@@ -81,9 +81,10 @@ describe('escopos', () => {
     ]);
   });
 
-  it('ADMIN_CTI, COMITE_GESTOR, SEMED_GESTOR e SAUDE_GESTOR veem o município', () => {
+  it('ADMIN_CTI, COMITE_GESTOR e os gestores de SEMED, Saúde e Assistência veem o município', () => {
     expect([...PERFIS_MUNICIPIO].sort()).toEqual([
       'ADMIN_CTI',
+      'ASSISTENCIA_GESTOR',
       'COMITE_GESTOR',
       'SAUDE_GESTOR',
       'SEMED_GESTOR',

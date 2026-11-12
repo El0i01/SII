@@ -4,8 +4,8 @@ import { NestFactory } from '@nestjs/core';
 import { WorkerModule } from './worker.module';
 
 /**
- * Processo de fundo, sem HTTP. As filas BullMQ (cargas, prazos, indicadores)
- * entram a partir do P08; por enquanto ele só sobe e fica de pé.
+ * Processo de fundo, sem HTTP: consome a fila BullMQ `cargas` (P08). Prazos e indicadores entram
+ * nos próximos prompts.
  */
 async function iniciar(): Promise<void> {
   const app = await NestFactory.createApplicationContext(WorkerModule);

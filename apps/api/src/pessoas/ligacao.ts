@@ -43,6 +43,8 @@ export interface RegistroFonte {
   };
   /** Dado fictício do seed: a pessoa criada leva a regra SEED (o seed só limpa o que criou). */
   doSeed?: boolean;
+  /** Carga (auditoria.log_carga) que trouxe o registro. */
+  cargaId?: number;
 }
 
 export interface ResultadoLigacao {
@@ -246,6 +248,7 @@ export class LigacaoPessoas {
         regra,
         confianca,
         dados: this.dadosOrigem(r),
+        cargaId: r.cargaId ?? null,
       },
     });
   }

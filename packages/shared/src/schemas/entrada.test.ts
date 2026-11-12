@@ -138,6 +138,12 @@ describe('UploadCarga (§5)', () => {
     ).toBe(true);
   });
 
+  it('CadÚnico só por CSV', () => {
+    expect(campos(UploadCarga.safeParse({ ...base, nomeArquivo: 'cecad.xlsx' }))).toEqual([
+      'nomeArquivo',
+    ]);
+  });
+
   it('fonte lida direto do banco (e-SUS) não aceita upload', () => {
     expect(campos(UploadCarga.safeParse({ ...base, fonte: 'ESUS_PEC' }))).toEqual(['fonte']);
   });

@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { PERFIS, PERFIS_COM_DADO_NOMINAL, Perfil, perfilVeDadoNominal } from './perfil';
 
 describe('Perfil', () => {
-  it('tem os 11 perfis da seção 2 da especificação', () => {
+  it('tem os 12 perfis da seção 2 da especificação (ASSISTENCIA_GESTOR desde 12/11/2026)', () => {
     expect(PERFIS).toEqual([
       'ADMIN_CTI',
       'COMITE_GESTOR',
       'SEMED_GESTOR',
       'ESCOLA',
       'SAUDE_GESTOR',
+      'ASSISTENCIA_GESTOR',
       'ACS',
       'CRAS_TECNICO',
       'VISITADOR_PCF',

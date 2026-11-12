@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { BancoModule } from './banco/banco.module';
 import { validarEnv } from './config/env';
+import { CargasModule } from './cargas/cargas.module';
 import { CriptoModule } from './cripto/cripto.service';
 import { EducacaoModule } from './educacao/educacao.module';
 import { PessoasModule } from './pessoas/pessoas.module';
@@ -30,6 +31,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     PessoasModule,
     EducacaoModule,
     TerritorioModule,
+    CargasModule,
   ],
 })
 export class AppModule {}

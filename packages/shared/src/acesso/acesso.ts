@@ -16,7 +16,7 @@ export const TipoEscopo = z.enum(TIPOS_ESCOPO);
 export type TipoEscopo = z.infer<typeof TipoEscopo>;
 
 /**
- * Perfis que veem as pessoas do município inteiro (decisão de 11/11/2026). Cada um recebe só os
+ * Perfis que veem as pessoas do município inteiro (decisões de 11/11 e 12/11/2026). Cada um recebe só os
  * campos da própria secretaria: o recorte de campos é feito nos DTOs da API, não aqui.
  */
 export const PERFIS_MUNICIPIO: readonly Perfil[] = [
@@ -24,6 +24,7 @@ export const PERFIS_MUNICIPIO: readonly Perfil[] = [
   'COMITE_GESTOR',
   'SEMED_GESTOR',
   'SAUDE_GESTOR',
+  'ASSISTENCIA_GESTOR',
 ];
 
 export function veMunicipio(perfil: Perfil): boolean {

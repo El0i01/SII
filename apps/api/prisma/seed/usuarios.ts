@@ -37,6 +37,12 @@ export const USUARIOS_SEED: {
     escopos: [],
   },
   {
+    login: 'assistencia.gestor',
+    nome: 'Ponto focal do CadÚnico, Assistência Social (fictício)',
+    perfil: 'ASSISTENCIA_GESTOR',
+    escopos: [],
+  },
+  {
     login: 'acs.area01',
     nome: 'Agente comunitário área 01 (fictício)',
     perfil: 'ACS',

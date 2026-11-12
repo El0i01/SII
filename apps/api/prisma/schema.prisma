@@ -39,6 +39,8 @@ enum Perfil {
   SEMED_GESTOR
   ESCOLA
   SAUDE_GESTOR
+  /// Ponto focal do CadÚnico na Assistência: vê o município e envia cargas (decisão de 12/11/2026).
+  ASSISTENCIA_GESTOR
   ACS
   CRAS_TECNICO
   VISITADOR_PCF
@@ -199,6 +201,10 @@ model PessoaMestra {
   filaCreche      FilaCreche[]
 
   @@index([nomeNormalizado])
+  /// Busca de candidatos da ligação (nascimento igual ou próximo) antes de comparar o nome.
+  @@index([dataNascimento])
+  /// Busca de candidatos por nome sem nascimento (pg_trgm).
+  @@index([nomeNormalizado(ops: raw("gin_trgm_ops"))], map: "pessoa_mestra_nome_trgm", type: Gin)
   @@index([setorCodigo])
   @@map("pessoa_mestra")
   @@schema("pessoas")
@@ -500,10 +506,13 @@ model VinculoFonte {
   /// Dados do registro na fonte (nome, nascimento, mãe, sexo): permitem separar uma união errada.
   /// Nunca leva documento: CPF, NIS e CNS ficam só cifrados na pessoa.
   dados    Json?
+  /// Carga que criou o vínculo (auditoria.log_carga), quando veio de uma carga.
+  cargaId  Int?         @map("carga_id")
   criadoEm DateTime     @default(now()) @map("criado_em") @db.Timestamptz(3)
   pessoa   PessoaMestra @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
 
   @@unique([fonte, idExterno])
+  @@index([cargaId])
   @@index([pessoaId])
   @@map("vinculo_fonte")
   @@schema("pessoas")
@@ -998,8 +1007,12 @@ model EventoIdentidade {
 }
 
 enum StatusCarga {
+  /// Arquivo recebido, job na fila.
+  AGUARDANDO
   EXECUTANDO
   OK
+  /// Layout não confere com o dicionário: nada foi gravado.
+  REJEITADA
   FALHOU
 
   @@schema("auditoria")
@@ -1023,19 +1036,52 @@ model AcessoDadoPessoal {
   @@schema("auditoria")
 }
 
+/// Uma execução de carga (§5). Nunca guarda dado pessoal: só contagens e mensagens fixas.
 model LogCarga {
   id            Int         @id @default(autoincrement())
   fonte         String      @db.VarChar(30)
   status        StatusCarga @default(EXECUTANDO)
+  /// Etapa atual: BAIXANDO, LAYOUT, STAGING, LIGACAO, DOMINIO, FIM.
+  etapa         String?     @db.VarChar(20)
+  /// Nome do arquivo enviado (sem caminho).
   arquivo       String?     @db.VarChar(200)
+  /// Chave do arquivo no MinIO enquanto a carga roda; vira null quando o arquivo é apagado.
+  objeto        String?     @db.VarChar(200)
   mesReferencia String?     @map("mes_referencia") @db.Char(7)
+  usuarioId     Int?        @map("usuario_id")
+  codificacao   String?     @db.VarChar(20)
+  separador     String?     @db.VarChar(5)
   inicioEm      DateTime    @default(now()) @map("inicio_em") @db.Timestamptz(3)
   fimEm         DateTime?   @map("fim_em") @db.Timestamptz(3)
+  /// Linhas de dados no arquivo (sem o cabeçalho).
+  total         Int         @default(0)
+  processados   Int         @default(0)
   lidos         Int         @default(0)
   inseridos     Int         @default(0)
   rejeitados    Int         @default(0)
+  ligados       Int         @default(0)
+  novos         Int         @default(0)
+  revisao       Int         @default(0)
+  avisos        Int         @default(0)
   erro          String?     @db.VarChar(1000)
+  erros         ErroCarga[]
 
+  @@index([fonte, inicioEm])
   @@map("log_carga")
+  @@schema("auditoria")
+}
+
+/// Problema numa linha do arquivo. A mensagem é fixa e nunca traz o valor da célula.
+model ErroCarga {
+  id        BigInt   @id @default(autoincrement())
+  cargaId   Int      @map("carga_id")
+  linha     Int
+  campo     String   @db.VarChar(40)
+  gravidade String   @db.VarChar(5)
+  mensagem  String   @db.VarChar(300)
+  carga     LogCarga @relation(fields: [cargaId], references: [id], onDelete: Cascade)
+
+  @@index([cargaId, linha])
+  @@map("erro_carga")
   @@schema("auditoria")
 }

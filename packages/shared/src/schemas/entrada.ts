@@ -98,22 +98,28 @@ export type Encaminhamento = z.infer<typeof Encaminhamento>;
 export const TAMANHO_MAXIMO_CARGA = 100 * 1024 * 1024;
 
 /** Envio de arquivo de carga pela tela de upload (§5). */
-export const UploadCarga = z.object({
-  fonte: FonteUpload,
-  mesReferencia: z
-    .string()
-    .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mês de referência inválido (AAAA-MM).'),
-  nomeArquivo: z
-    .string()
-    .trim()
-    .max(200)
-    .regex(/\.(csv|xlsx)$/i, 'Envie um arquivo .csv ou .xlsx.'),
-  tamanhoBytes: z
-    .number()
-    .int()
-    .positive('O arquivo está vazio.')
-    .max(TAMANHO_MAXIMO_CARGA, 'O arquivo passa de 100 MB.'),
-});
+export const UploadCarga = z
+  .object({
+    fonte: FonteUpload,
+    mesReferencia: z
+      .string()
+      .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mês de referência inválido (AAAA-MM).'),
+    nomeArquivo: z
+      .string()
+      .trim()
+      .max(200)
+      .regex(/\.(csv|xlsx)$/i, 'Envie um arquivo .csv ou .xlsx.'),
+    tamanhoBytes: z
+      .number()
+      .int()
+      .positive('O arquivo está vazio.')
+      .max(TAMANHO_MAXIMO_CARGA, 'O arquivo passa de 100 MB.'),
+  })
+  // O CECAD e o Portal de Gestão exportam CSV; planilha do Excel muda datas e tira zeros do NIS.
+  .refine((d) => d.fonte !== 'CADUNICO' || !/\.xlsx$/i.test(d.nomeArquivo), {
+    path: ['nomeArquivo'],
+    message: 'Para o CadÚnico, envie o arquivo .csv exportado do CECAD ou do Portal de Gestão.',
+  });
 export type UploadCarga = z.infer<typeof UploadCarga>;
 
 export type PontoGps = z.infer<typeof PontoGps>;

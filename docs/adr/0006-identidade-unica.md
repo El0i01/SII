@@ -79,4 +79,6 @@ Nunca une automaticamente abaixo de 0,85, e toda união ou separação é audita
 - **Separar não sabe de qual registro vieram matrícula, casos e documentos**, então eles ficam com a pessoa
   original. A CTI corrige o restante à mão.
 - **Rejeitar não impede o par de voltar** numa carga futura com outro registro das mesmas pessoas. Uma lista de
-  "pares já rejeitados" fica para quando as cargas reais começarem (P08).
+  "pares já rejeitados" ficou para quando as cargas reais começassem. No P08 (12/11/2026): a carga do
+  CadÚnico é idempotente pelo id do registro, então o mesmo registro não volta à fila. A lista continua
+  em aberto para registros novos das mesmas pessoas.

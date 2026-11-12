@@ -1,0 +1,70 @@
+{
+  "fonte": "CadÚnico",
+  "versao": "CECAD 2.0 e base completa do Portal de Gestão — nomes a confirmar com o dicionário oficial do MDS",
+  "linhasRenda": {
+    "extremaPobreza": 109,
+    "pobreza": 218,
+    "meioSalarioMinimo": 759
+  },
+  "campos": {
+    "codigoFamiliar": {
+      "rotulo": "Código familiar",
+      "colunas": ["d.cod_familiar_fam", "p.cod_familiar_fam", "cod_familiar", "codigo_familiar"],
+      "obrigatorio": true
+    },
+    "nome": {
+      "rotulo": "Nome da pessoa",
+      "colunas": ["p.nom_pessoa", "nome_pessoa", "nome"],
+      "obrigatorio": true
+    },
+    "nis": {
+      "rotulo": "NIS",
+      "colunas": ["p.num_nis_pessoa_atual", "num_nis", "nis"],
+      "obrigatorio": true
+    },
+    "cpf": {
+      "rotulo": "CPF",
+      "colunas": ["p.num_cpf_pessoa", "num_cpf", "cpf"]
+    },
+    "nascimento": {
+      "rotulo": "Data de nascimento",
+      "colunas": ["p.dta_nasc_pessoa", "dat_nasc_pessoa", "data_nascimento"],
+      "obrigatorio": true
+    },
+    "mae": {
+      "rotulo": "Nome da mãe",
+      "colunas": ["p.nom_completo_mae_pessoa", "nome_mae"]
+    },
+    "sexo": {
+      "rotulo": "Sexo",
+      "colunas": ["p.cod_sexo_pessoa", "sexo"]
+    },
+    "parentesco": {
+      "rotulo": "Parentesco com o responsável familiar",
+      "colunas": ["p.cod_parentesco_rf_pessoa", "parentesco"]
+    },
+    "faixaRenda": {
+      "rotulo": "Faixa da renda per capita",
+      "colunas": ["d.fx_rfpc", "faixa_renda"],
+      "obrigatorio": true
+    },
+    "rendaPerCapita": {
+      "rotulo": "Renda per capita",
+      "colunas": ["d.vlr_renda_media_fam", "renda_per_capita"],
+      "obrigatorio": true
+    },
+    "pbf": {
+      "rotulo": "Marcação do Bolsa Família",
+      "colunas": ["d.marc_pbf", "pbf"]
+    },
+    "atualizadoEm": {
+      "rotulo": "Data da última atualização",
+      "colunas": ["d.dat_atual_fam", "data_atualizacao"]
+    },
+    "qtdPessoas": {
+      "rotulo": "Quantidade de pessoas na família",
+      "colunas": ["d.qtd_pessoas_domic_fam", "qtde_pessoas", "qtd_pessoas"]
+    }
+  },
+  "algumDe": [["faixaRenda", "rendaPerCapita"]]
+}

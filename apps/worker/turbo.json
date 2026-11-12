@@ -1,0 +1,11 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": { "dependsOn": ["^build", "@sii/api#db:generate"], "outputs": ["dist/**"] },
+    "dev": { "dependsOn": ["^build", "@sii/api#db:generate"], "cache": false, "persistent": true },
+    "lint": { "dependsOn": ["^build", "@sii/api#db:generate"] },
+    "typecheck": { "dependsOn": ["^build", "@sii/api#db:generate"] },
+    "test": { "dependsOn": ["^build", "@sii/api#db:generate"] }
+  }
+}

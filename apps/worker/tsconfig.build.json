@@ -1,9 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "rootDir": "src",
+    // O worker importa o cliente Prisma, a cifra e a ligação de pessoas de apps/api/src (ADR 0007):
+    // a raiz é apps/ e a saída fica em dist/worker/src e dist/api/src.
+    "rootDir": "..",
     "types": ["node"]
   },
   "include": ["src"],
-  "exclude": ["src/**/*.spec.ts"]
+  "exclude": ["src/**/*.spec.ts", "test", "scripts"]
 }

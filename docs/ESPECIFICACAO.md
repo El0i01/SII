@@ -20,6 +20,7 @@ Fora do escopo da v1: multi-município, prontuário clínico, emissão de docume
 | `SEMED_GESTOR` | Coordenação da SEMED | Sim, alunos | Busca ativa, vagas, encaminhar casos |
 | `ESCOLA` | Secretário escolar / direção | Sim, só alunos da escola | Frequência, matrícula, encaminhar caso, ler parecer |
 | `SAUDE_GESTOR` | Coordenação da APS | Sim, sinalizadores de saúde | Listas de visita, idosos, vacinação |
+| `ASSISTENCIA_GESTOR` | Ponto focal do CadÚnico na Assistência Social | Sim, do município (campos da Assistência) | Enviar e acompanhar as cargas do CadÚnico |
 | `ACS` | Agente comunitário (mobile) | Sim, só a microárea | Registrar visita, confirmar ponto |
 | `CRAS_TECNICO` | Técnico do CRAS | Sim, território do CRAS | Receber notificação, registrar parecer, PAIF |
 | `VISITADOR_PCF` | Visitador do Criança Feliz (mobile) | Sim, só suas famílias | Registrar visita PCF |
@@ -38,6 +39,8 @@ Decisões de 11/11/2026 (ADR 0003):
   - `CRAS_TECNICO`: o CadSUAS do CRAS;
   - `VISITADOR_PCF`: as famílias acompanhadas.
 - `FAZENDA` e `DPO` não veem pessoas.
+
+Decisão de 12/11/2026 (P08): criado o perfil `ASSISTENCIA_GESTOR`, o ponto focal do CadÚnico. Ele vê o **município inteiro**, como `SEMED_GESTOR` e `SAUDE_GESTOR`, e envia as cargas junto com a `ADMIN_CTI`.
 - Sessão: o acesso vale 15 min. O refresh é deslizante, **12 h no web e 7 dias no celular**.
 - Bloqueio: 5 senhas erradas seguidas travam a conta por 15 min. Para destravar antes disso, a CTI gera uma senha provisória.
 
@@ -319,6 +322,21 @@ CPF `***.456.789-**`; NIS com o 4º ao 7º dígito, `***.4567*.**-*` (decisão d
 | Geoportal / malha cadastral | `ogr2ogr` para PostGIS (script em `infra/`) | Sob demanda | Exigir .shp, .shx, .dbf e .prj |
 
 Padrão de toda carga: arquivo ou consulta → schema `stg_<fonte>` (bruto, com `carga_id`) → validação → ligação de pessoas → tabelas de domínio. Cada carga grava `LogCarga` e alerta a CTI em caso de falha.
+
+Como ficou (P08, ADR 0007):
+
+- **Caminho do upload:**
+  - o web envia para `POST /cargas`;
+  - a API guarda o arquivo no MinIO (bucket `sii-cargas`, chave `<fonte>/<carga>.csv`, nunca o nome original), cria o `LogCarga` e põe o job na fila BullMQ `cargas`, que leva só o id;
+  - o worker processa.
+- **O arquivo original sai do MinIO quando a carga termina**, com sucesso, rejeição ou falha definitiva (decisão de 12/11/2026). Ficam só os dados cifrados e o `LogCarga`. Para recarregar, a Assistência envia de novo.
+- **Layout:**
+  - o dicionário de cada fonte fica num arquivo de configuração (`apps/worker/config/dicionarios/`);
+  - coluna obrigatória faltando → carga `REJEITADA`, com mensagem que cita o nome oficial da coluna, e nada é gravado;
+  - a carga detecta sozinha a codificação (UTF-8 ou Windows-1252) e o separador.
+- **Erros por linha** ficam em `auditoria.erro_carga`, com mensagem fixa e **sem o valor da célula**. Linha com erro não entra; com aviso, entra sem o dado (por exemplo, CPF com dígito errado).
+- **Staging:** `stg_cadunico.pessoa` guarda a linha bruta **sem CPF e sem NIS**, e só das 3 últimas cargas.
+- **Vínculo:** o vínculo do CadÚnico usa como id o HMAC do NIS. O NIS em texto nunca é gravado.
 
 ## 6. App mobile (Expo)
 
