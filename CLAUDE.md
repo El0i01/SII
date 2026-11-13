@@ -72,6 +72,7 @@ sii-itapua/
   - `mascaras/`: CPF, NIS e iniciais;
   - `territorio/`: cascata de geocodificação;
   - `enums/`: perfis e domínio;
+  - `saude/`: contrato do PEC e sinalizadores;
   - `schemas/`: Parecer, Visita, Encaminhamento e UploadCarga;
   - `acesso/`: login e usuários.
   
@@ -93,6 +94,7 @@ sii-itapua/
 - Variáveis sensíveis só em `.env` (nunca commitado). `.env.example` sempre atualizado.
 - **CPF, NIS e CNS só cifrados + hash** (`CriptoService.proteger` ou `protegerDocumento`). Nunca grave nem logue o número em texto. Para buscar, use o hash (`PessoasRepositorio.buscarPorCpf`). Para revelar, só pelo fluxo com finalidade (P12).
 - **Carga nunca loga linha nem valor**: o log do worker só recebe id da carga, contagens e o tipo do erro; erro por linha vai para `auditoria.erro_carga` com mensagem fixa (ADR 0007).
+- **Do e-SUS só saem sinalizadores**: a consulta do conector nunca seleciona CID, CIAP ou diagnóstico, e a conexão com o PEC é somente leitura (ADR 0008). Nome novo de tabela ou coluna vai no contrato (`config/esus/contrato.json`), não no código.
 - **Registro de fonte entra sempre por `LigacaoPessoas.ligar`** (CPF → CNS/NIS → nome+nascimento+mãe → revisão). Nunca crie `PessoaMestra` direto numa carga: a identidade única depende disso (ADR 0006).
 - A trilha (`casos.evento_caso`) é append-only e encadeada pelo banco: só INSERT, sem informar `seq` nem `hash`, e sem dado pessoal em `dados`.
 - **Dado nominal só por `PrismaService.comoUsuario(usuario, tx => ...)`**: é isso que liga o papel do banco e a RLS. O cliente Prisma direto (dono) fica restrito a autenticação, health e tarefas da CTI. Tabela nominal nova vai num schema com RLS e policy na mesma migration (ADR 0003).
@@ -129,8 +131,11 @@ pnpm --filter @sii/mobile start
 pnpm db:seed             # usuários fictícios (1 por perfil, senha SEED_SENHA do .env) e pessoas fictícias
 pnpm test && pnpm lint && pnpm typecheck
 pnpm --filter @sii/api test:integracao     # precisa da infra no ar
-pnpm --filter @sii/worker test:integracao  # carga do CadÚnico (5 mil linhas) contra a infra
+pnpm --filter @sii/worker test:integracao  # CadÚnico (5 mil linhas) e e-SUS (PEC de teste) contra a infra
 pnpm --filter @sii/worker cadunico:ficticio [linhas] [arquivo]   # CSV fictício para testar /cargas
+pnpm --filter @sii/worker esus:dry-run       # confere a estrutura do PEC e conta o que leria, sem gravar nada
+pnpm --filter @sii/worker esus:carregar      # põe a carga do e-SUS na fila agora (worker rodando)
+pnpm --filter @sii/worker esus:pec-ficticio [n]  # banco pec_ficticio local para testar o conector
 pnpm geo:importar <arquivo.shp> <tabela>   # shapefile → stg_geoportal.<tabela> em EPSG:4674
 pnpm geo:carregar        # geoportal inteiro: setores, equipamentos, microáreas, ruas, grade provisória (ADR 0005)
 pnpm infra:down

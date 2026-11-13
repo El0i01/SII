@@ -1,0 +1,83 @@
+{
+  "versaoTestada": "PEC 5.x — nomes A CONFIRMAR com a versão instalada em Itapuã",
+  "tabelas": {
+    "cidadao": {
+      "tabela": "tb_cidadao",
+      "colunas": {
+        "id": "co_seq_cidadao",
+        "nome": "no_cidadao",
+        "mae": "no_mae",
+        "nascimento": "dt_nascimento",
+        "sexo": "no_sexo",
+        "cpf": "nu_cpf",
+        "cns": "nu_cns",
+        "ativo": "st_ativo",
+        "atualizado": "dt_atualizado"
+      }
+    },
+    "fatCidadao": {
+      "tabela": "tb_fat_cidadao_pec",
+      "colunas": { "id": "co_seq_fat_cidadao_pec", "cidadao": "co_cidadao" }
+    },
+    "cadIndividual": {
+      "tabela": "tb_fat_cad_individual",
+      "colunas": {
+        "fatCidadao": "co_fat_cidadao_pec",
+        "tempo": "co_dim_tempo",
+        "microarea": "nu_micro_area",
+        "unidade": "co_dim_unidade_saude",
+        "profissional": "co_dim_profissional",
+        "gestante": "st_gestante",
+        "acamado": "st_acamado",
+        "domiciliado": "st_domiciliado"
+      }
+    },
+    "cadDomiciliar": {
+      "tabela": "tb_fat_cad_domiciliar",
+      "colunas": {
+        "id": "co_seq_fat_cad_domiciliar",
+        "tempo": "co_dim_tempo",
+        "microarea": "nu_micro_area",
+        "unidade": "co_dim_unidade_saude",
+        "latitude": "nu_latitude",
+        "longitude": "nu_longitude"
+      }
+    },
+    "visita": {
+      "tabela": "tb_fat_visita_domiciliar",
+      "colunas": {
+        "fatCidadao": "co_fat_cidadao_pec",
+        "tempo": "co_dim_tempo",
+        "profissional": "co_dim_profissional"
+      }
+    },
+    "atendimento": {
+      "tabela": "tb_fat_atendimento_individual",
+      "colunas": { "fatCidadao": "co_fat_cidadao_pec", "tempo": "co_dim_tempo" }
+    },
+    "vacinacao": {
+      "tabela": "tb_fat_vacinacao",
+      "colunas": {
+        "fatCidadao": "co_fat_cidadao_pec",
+        "tempo": "co_dim_tempo",
+        "imunobiologico": "co_dim_imunobiologico"
+      }
+    },
+    "unidade": {
+      "tabela": "tb_dim_unidade_saude",
+      "colunas": { "id": "co_seq_dim_unidade_saude", "cnes": "nu_cnes" }
+    },
+    "profissional": {
+      "tabela": "tb_dim_profissional",
+      "colunas": { "id": "co_seq_dim_profissional", "nome": "no_profissional" }
+    }
+  },
+  "colunasCronicas": [
+    "st_hipertensao_arterial",
+    "st_diabete",
+    "st_doenca_cardiaca",
+    "st_doenca_respiratoria",
+    "st_problema_rins"
+  ],
+  "imunobiologicosGripe": ["33"]
+}

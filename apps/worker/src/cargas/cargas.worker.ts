@@ -1,15 +1,17 @@
 import { Injectable, Logger, OnApplicationShutdown, OnModuleInit } from '@nestjs/common';
-import { FILA_CARGAS, type JobCarga } from '@sii/shared';
-import { type Job, Worker } from 'bullmq';
+import { cargaDoJob, FILA_CARGAS, type JobCarga } from '@sii/shared';
+import { type Job, Queue, Worker } from 'bullmq';
 import Redis from 'ioredis';
 import type { Client } from 'minio';
 import { clienteMinio, configMinio } from '../../../api/src/cargas/armazenamento';
 import { chaveDeHex } from '../../../api/src/cripto/cifra';
 import { criarPrisma, type PrismaClient } from '../banco';
-import { lerEnv } from '../config';
+import { type EnvWorker, lerEnv } from '../config';
+import { carregarContratoPec, carregarMicroareas, conectarPec, configPec } from '../esus/pec';
+import { criarProcessadorEsus } from '../esus/processador';
 import { criarProcessadorCadunico } from './cadunico';
 import { carregarDicionarioCadunico } from './dicionario';
-import { type DependenciasCarga, executarCarga } from './pipeline';
+import { type DependenciasCarga, executarCarga, type ProcessadorConsulta } from './pipeline';
 
 /** Worker BullMQ da fila de cargas. Exportado para o teste de integração usar o mesmo caminho. */
 export function criarConsumidor(deps: DependenciasCarga, conexao: Redis): Worker<JobCarga> {
@@ -17,12 +19,37 @@ export function criarConsumidor(deps: DependenciasCarga, conexao: Redis): Worker
     FILA_CARGAS,
     async (job: Job<JobCarga>) => {
       const tentativas = job.opts.attempts ?? 1;
-      await executarCarga(deps, job.data.cargaId, job.attemptsMade + 1 >= tentativas);
+      let cargaId = cargaDoJob(job.data);
+      if (cargaId === undefined) {
+        // Carga noturna do e-SUS: cria o LogCarga e grava o id no job (a nova tentativa usa o mesmo).
+        const c = await deps.prisma.logCarga.create({
+          data: { fonte: 'ESUS_PEC', status: 'AGUARDANDO' },
+        });
+        cargaId = c.id;
+        await job.updateData({ ...job.data, cargaId });
+      }
+      await executarCarga(deps, cargaId, job.attemptsMade + 1 >= tentativas);
     },
     { connection: conexao, concurrency: 1 },
   );
   worker.on('error', (e) => deps.logger.warn(`fila: ${e.name}`));
   return worker;
+}
+
+/** Nome do agendamento da carga noturna do e-SUS no BullMQ. */
+export const AGENDAMENTO_ESUS = 'esus-noturno';
+
+/** Agenda (ou atualiza) a carga noturna do e-SUS: 3 tentativas, fuso de Porto Velho. */
+export async function agendarEsus(fila: Queue<JobCarga>, cron: string): Promise<void> {
+  await fila.upsertJobScheduler(
+    AGENDAMENTO_ESUS,
+    { pattern: cron, tz: 'America/Porto_Velho' },
+    {
+      name: 'esus',
+      data: { fonte: 'ESUS_PEC' },
+      opts: { attempts: 3, backoff: { type: 'exponential', delay: 60_000 } },
+    },
+  );
 }
 
 /**
@@ -36,8 +63,10 @@ export class CargasWorker implements OnModuleInit, OnApplicationShutdown {
   private redis: Redis | undefined;
   private prisma: PrismaClient | undefined;
   private minio: Client | undefined;
+  private fila: Queue<JobCarga> | undefined;
+  private pec: ReturnType<typeof conectarPec> | undefined;
 
-  onModuleInit(): void {
+  async onModuleInit(): Promise<void> {
     const env = lerEnv();
     const minio = configMinio(env);
     this.prisma = criarPrisma(env.DATABASE_URL);
@@ -53,16 +82,46 @@ export class CargasWorker implements OnModuleInit, OnApplicationShutdown {
           hmac: chaveDeHex(env.CHAVE_HMAC, 'CHAVE_HMAC'),
         }),
       },
+      consultas: this.consultas(env),
     };
     // BullMQ exige maxRetriesPerRequest null na conexão do Worker.
     this.redis = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
     this.redis.on('error', (e: Error) => this.logger.warn(`redis: ${e.name}`));
     this.worker = criarConsumidor(deps, this.redis);
     this.logger.log(`ouvindo a fila ${FILA_CARGAS}`);
+    this.fila = new Queue<JobCarga>(FILA_CARGAS, { connection: this.redis.duplicate() });
+    if (this.pec) {
+      await agendarEsus(this.fila, env.ESUS_CRON);
+      this.logger.log(`carga do e-SUS agendada (${env.ESUS_CRON}, America/Porto_Velho)`);
+    } else {
+      await this.fila.removeJobScheduler(AGENDAMENTO_ESUS);
+      this.logger.log('e-SUS não configurado (ESUS_PEC_HOST): carga noturna desligada');
+    }
+  }
+
+  /** Fontes lidas direto do sistema de origem. Sem configuração, não entram. */
+  private consultas(env: EnvWorker): Record<string, ProcessadorConsulta> {
+    const cfg = configPec(env);
+    if (!cfg) return {};
+    this.pec = conectarPec(cfg);
+    return {
+      ESUS_PEC: criarProcessadorEsus({
+        pec: this.pec,
+        schema: cfg.schema,
+        contrato: carregarContratoPec(env.CONTRATO_ESUS),
+        microareas: carregarMicroareas(env.MICROAREAS_ESUS),
+        chaves: {
+          cifra: chaveDeHex(env.CHAVE_CIFRA, 'CHAVE_CIFRA'),
+          hmac: chaveDeHex(env.CHAVE_HMAC, 'CHAVE_HMAC'),
+        },
+      }),
+    };
   }
 
   async onApplicationShutdown(): Promise<void> {
     await this.worker?.close();
+    await this.fila?.close();
+    await this.pec?.end();
     this.redis?.disconnect();
     await this.prisma?.$disconnect();
   }

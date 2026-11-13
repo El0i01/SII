@@ -15,6 +15,14 @@ import type { PrismaClient } from '../banco';
 /** Rejeição por layout ou arquivo ilegível. A mensagem é fixa e vai para a tela. */
 export class RejeicaoCarga extends Error {}
 
+/**
+ * Falha que não adianta tentar de novo (ex.: a estrutura do banco do e-SUS mudou, P09). A carga
+ * fica FALHOU na hora, com esta mensagem (fixa, sem dado pessoal), e a CTI vê o alerta.
+ */
+export class FalhaDefinitiva extends Error {
+  override name = 'FalhaDefinitiva';
+}
+
 export interface Contagens {
   total: number;
   lidos: number;
@@ -24,6 +32,10 @@ export interface Contagens {
   novos: number;
   revisao: number;
   avisos: number;
+  /** Cargas lidas direto da fonte (P09). */
+  modo?: 'COMPLETA' | 'INCREMENTAL';
+  marca?: string;
+  resumo?: Record<string, number>;
 }
 
 export interface ContextoCarga {
@@ -38,6 +50,8 @@ export interface ContextoCarga {
 }
 
 export type ProcessadorFonte = (ctx: ContextoCarga, arquivo: Buffer) => Promise<Contagens>;
+/** Fonte lida direto do sistema de origem (e-SUS PEC), sem arquivo no MinIO. */
+export type ProcessadorConsulta = (ctx: ContextoCarga) => Promise<Contagens>;
 
 export interface DependenciasCarga {
   prisma: PrismaClient;
@@ -45,6 +59,7 @@ export interface DependenciasCarga {
   bucket: string;
   logger: Pick<Logger, 'log' | 'warn' | 'error'>;
   processadores: Record<string, ProcessadorFonte>;
+  consultas?: Record<string, ProcessadorConsulta>;
 }
 
 /** Até quantos problemas por carga ficam guardados (o total vai em `rejeitados` e `avisos`). */
@@ -72,7 +87,8 @@ export async function executarCarga(
       data: { ...dados, fimEm: new Date() },
     });
   };
-  if (!carga.objeto) {
+  const consulta = d.consultas?.[carga.fonte];
+  if (!consulta && !carga.objeto) {
     await fim({
       status: 'FALHOU',
       erro: 'O arquivo da carga não está mais disponível. Envie de novo.',
@@ -80,7 +96,7 @@ export async function executarCarga(
     return;
   }
   const processador = d.processadores[carga.fonte];
-  if (!processador) {
+  if (!processador && !consulta) {
     await fim({ status: 'FALHOU', erro: 'Esta fonte ainda não tem carga implementada.' });
     return;
   }
@@ -133,8 +149,12 @@ export async function executarCarga(
 
   const inicio = Date.now();
   try {
-    const arquivo = await lerObjeto(d.minio, d.bucket, carga.objeto);
-    const c = await processador(ctx, arquivo);
+    const c = consulta
+      ? await consulta(ctx)
+      : await (processador as ProcessadorFonte)(
+          ctx,
+          await lerObjeto(d.minio, d.bucket, carga.objeto as string),
+        );
     await gravarProblemas();
     await fim({ status: 'OK', etapa: 'FIM', processados: c.inseridos, ...c });
     d.logger.log(
@@ -147,6 +167,11 @@ export async function executarCarga(
     if (e instanceof RejeicaoCarga) {
       await fim({ status: 'REJEITADA', erro: e.message.slice(0, 1000) });
       d.logger.warn(`carga ${cargaId} (${carga.fonte}) rejeitada no layout`);
+      return;
+    }
+    if (e instanceof FalhaDefinitiva) {
+      await fim({ status: 'FALHOU', erro: e.message.slice(0, 1000) });
+      d.logger.error(`carga ${cargaId} (${carga.fonte}) falhou: ${e.name}, sem nova tentativa`);
       return;
     }
     const tipo = e instanceof Error ? e.name : 'Erro';

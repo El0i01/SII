@@ -139,3 +139,34 @@ describe('POST /cargas', () => {
       .expect(404);
   });
 });
+
+describe('GET /cargas/alertas (P09)', () => {
+  it('só a CTI vê; a falha do e-SUS aparece até uma carga OK da mesma fonte', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/cargas/alertas')
+      .set(await como('assistencia.gestor'))
+      .expect(403);
+
+    const erro =
+      'A estrutura do banco do e-SUS mudou (provável atualização do PEC): falta tb_cidadao.dt_atualizado.';
+    const falha = await dono.logCarga.create({
+      data: { fonte: 'ESUS_PEC', status: 'FALHOU', erro, fimEm: new Date() },
+    });
+    criadas.push(falha.id);
+    const cti = await como('cti.admin');
+    const r = await request(app.getHttpServer()).get('/api/v1/cargas/alertas').set(cti).expect(200);
+    expect(r.body).toEqual([expect.objectContaining({ id: falha.id, fonte: 'ESUS_PEC', erro })]);
+    const lista = await request(app.getHttpServer()).get('/api/v1/cargas').set(cti).expect(200);
+    expect(lista.body.map((c: { id: number }) => c.id)).toContain(falha.id);
+
+    const ok = await dono.logCarga.create({
+      data: { fonte: 'ESUS_PEC', status: 'OK', modo: 'COMPLETA', fimEm: new Date() },
+    });
+    criadas.push(ok.id);
+    const depois = await request(app.getHttpServer())
+      .get('/api/v1/cargas/alertas')
+      .set(cti)
+      .expect(200);
+    expect(depois.body.filter((a: { fonte: string }) => a.fonte === 'ESUS_PEC')).toEqual([]);
+  });
+});

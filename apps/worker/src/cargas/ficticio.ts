@@ -3,7 +3,7 @@
  * Nomes inventados; CPF e NIS com dígito verificador válido, gerados ao acaso. Nunca dado real.
  */
 
-const NOMES_F = [
+export const NOMES_F = [
   'Ana',
   'Maria',
   'Júlia',
@@ -20,7 +20,7 @@ const NOMES_F = [
   'Lorena',
   'Antônia',
 ];
-const NOMES_M = [
+export const NOMES_M = [
   'João',
   'José',
   'Pedro',
@@ -37,7 +37,7 @@ const NOMES_M = [
   'Caetano',
   'Raimundo',
 ];
-const SOBRENOMES = [
+export const SOBRENOMES = [
   'Silva',
   'Souza',
   'Oliveira',
@@ -76,7 +76,7 @@ export const CABECALHO_CECAD = [
   'p.cod_parentesco_rf_pessoa',
 ];
 
-function rng(semente: number) {
+export function rng(semente: number) {
   let s = semente >>> 0;
   return () => {
     s = (s + 0x6d2b79f5) >>> 0;
@@ -87,7 +87,7 @@ function rng(semente: number) {
   };
 }
 
-function cpfValido(r: () => number): string {
+export function cpfValido(r: () => number): string {
   const b = Array.from({ length: 9 }, () => Math.floor(r() * 10));
   const dv = (ds: number[]) => {
     const s = ds.reduce((a, d, i) => a + d * (ds.length + 1 - i), 0);

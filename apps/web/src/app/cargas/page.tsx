@@ -4,7 +4,8 @@ import { cargaTerminou, ROTULO_STATUS_CARGA } from '@sii/shared';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { type ErrosCarga, FormularioCarga } from '@/components/formulario-carga';
-import { type Carga, ProgressoCarga } from '@/components/progresso-carga';
+import { AlertasCarga, type AlertaCarga } from '@/components/alertas-carga';
+import { type Carga, nomeCarga, ProgressoCarga } from '@/components/progresso-carga';
 import { TabelaErrosCarga } from '@/components/tabela-erros-carga';
 import { api, ErroApi } from '@/lib/api';
 
@@ -25,6 +26,7 @@ export default function Cargas() {
   const router = useRouter();
   const [estado, setEstado] = useState<Estado>({ tipo: 'carregando' });
   const [selecionada, setSelecionada] = useState<number | null>(null);
+  const [alertas, setAlertas] = useState<AlertaCarga[]>([]);
 
   const tratarErro = useCallback(
     (e: unknown) => {
@@ -48,6 +50,8 @@ export default function Cargas() {
     try {
       const cargas = await api<Carga[]>('/cargas');
       setEstado({ tipo: 'pronto', cargas });
+      // Só a CTI recebe os alertas; para os outros perfis a API responde 403 e a faixa não aparece.
+      setAlertas(await api<AlertaCarga[]>('/cargas/alertas').catch(() => []));
       setSelecionada((s) => s ?? cargas[0]?.id ?? null);
     } catch (e) {
       tratarErro(e);
@@ -100,9 +104,12 @@ export default function Cargas() {
         <p className="max-w-prose text-texto-suave">
           Envie a base do CadÚnico exportada do CECAD ou do Portal de Gestão. O sistema confere as
           colunas, liga cada pessoa à ficha única e atualiza a renda e o Bolsa Família das famílias
-          do mês. Você acompanha o andamento e os problemas linha a linha.
+          do mês. Você acompanha o andamento e os problemas linha a linha. A leitura do e-SUS PEC
+          roda sozinha toda noite e também aparece no histórico.
         </p>
       </div>
+
+      {alertas.length > 0 && <AlertasCarga alertas={alertas} />}
 
       {estado.tipo === 'carregando' && (
         <div aria-busy="true" aria-label="Carregando as cargas" className="flex flex-col gap-3">
@@ -150,7 +157,7 @@ export default function Cargas() {
             <div className="flex flex-col gap-3" aria-live="polite">
               <ProgressoCarga carga={atual} />
               {cargaTerminou(atual.status) && (atual.rejeitados > 0 || atual.avisos > 0) && (
-                <TabelaErrosCarga cargaId={atual.id} />
+                <TabelaErrosCarga cargaId={atual.id} fonte={atual.fonte} />
               )}
             </div>
           )}
@@ -164,7 +171,7 @@ export default function Cargas() {
                 Nenhuma carga enviada ainda.
               </p>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="relative overflow-x-auto">
                 <table className="w-full min-w-[36rem] text-left">
                   <thead>
                     <tr className="border-b border-borda text-sm text-texto-suave">
@@ -188,9 +195,7 @@ export default function Cargas() {
                   <tbody>
                     {estado.cargas.map((c) => (
                       <tr key={c.id} className="border-b border-borda-suave">
-                        <td className="py-2 pr-3 text-texto-forte">
-                          {c.arquivo ?? `Carga ${c.id}`}
-                        </td>
+                        <td className="py-2 pr-3 text-texto-forte">{nomeCarga(c)}</td>
                         <td className="py-2 pr-3">{c.mesReferencia ?? '—'}</td>
                         <td className="py-2 pr-3">
                           {new Date(c.inicioEm).toLocaleString('pt-BR', {
@@ -206,7 +211,10 @@ export default function Cargas() {
                             className="min-h-[var(--spacing-alvo)] rounded-md px-3 font-semibold text-primaria underline"
                           >
                             Ver detalhes
-                            <span className="sr-only"> da carga {c.arquivo ?? c.id}</span>
+                            <span className="sr-only">
+                              {' '}
+                              da carga {nomeCarga(c)}, {c.id}
+                            </span>
                           </button>
                         </td>
                       </tr>

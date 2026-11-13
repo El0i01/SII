@@ -8,6 +8,7 @@ import type { Client } from 'minio';
 import { PrismaService } from '../banco/prisma.service';
 import { ErroApi, erros } from '../comum/erros';
 import { Env } from '../config/env';
+import { buscarAlertasCarga } from './alertas';
 import { chaveObjeto, clienteMinio, configMinio, garantirBucket } from './armazenamento';
 
 export interface ArquivoEnviado {
@@ -37,6 +38,7 @@ const SELECAO = {
   erro: true,
   codificacao: true,
   separador: true,
+  modo: true,
 } as const;
 
 /**
@@ -151,11 +153,16 @@ export class CargasService implements OnModuleDestroy {
 
   listar() {
     return this.prisma.logCarga.findMany({
-      where: { fonte: { in: [...FONTES_UPLOAD] } },
+      where: { fonte: { in: [...FONTES_UPLOAD, 'ESUS_PEC'] } },
       orderBy: { id: 'desc' },
       take: 20,
       select: SELECAO,
     });
+  }
+
+  /** Falhas ainda não resolvidas por uma carga OK da mesma fonte (faixa de alerta da CTI). */
+  alertas() {
+    return buscarAlertasCarga(this.prisma);
   }
 
   async obter(id: number) {

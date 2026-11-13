@@ -1041,7 +1041,7 @@ model LogCarga {
   id            Int         @id @default(autoincrement())
   fonte         String      @db.VarChar(30)
   status        StatusCarga @default(EXECUTANDO)
-  /// Etapa atual: BAIXANDO, LAYOUT, STAGING, LIGACAO, DOMINIO, FIM.
+  /// Etapa atual: BAIXANDO, LAYOUT, ESTRUTURA, LEITURA, STAGING, LIGACAO, FIM.
   etapa         String?     @db.VarChar(20)
   /// Nome do arquivo enviado (sem caminho).
   arquivo       String?     @db.VarChar(200)
@@ -1051,6 +1051,12 @@ model LogCarga {
   usuarioId     Int?        @map("usuario_id")
   codificacao   String?     @db.VarChar(20)
   separador     String?     @db.VarChar(5)
+  /// Cargas lidas direto da fonte (e-SUS, P09): COMPLETA ou INCREMENTAL.
+  modo          String?     @db.VarChar(12)
+  /// Até onde a fonte foi lida (now() do PEC no início da leitura): base da próxima incremental.
+  marca         String?     @db.VarChar(40)
+  /// Contagens por tabela da fonte (sem dado pessoal).
+  resumo        Json?
   inicioEm      DateTime    @default(now()) @map("inicio_em") @db.Timestamptz(3)
   fimEm         DateTime?   @map("fim_em") @db.Timestamptz(3)
   /// Linhas de dados no arquivo (sem o cabeçalho).

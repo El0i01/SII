@@ -199,6 +199,11 @@ Toda tela de cadastro (web e mobile) mostra o pino sugerido para o usuário conf
 ### 3.5 Saúde (`saude`), só sinalizadores
 
 Do e-SUS APS PEC (leitura somente leitura), por pessoa: `ubsReferencia`, `microarea`, `acsResponsavel`, `ultimaVisitaAcs`, `vacinacaoEmDia`, `preNatalAdequado` (gestantes), `acamadoDomiciliado`, `condicaoCronicaAcompanhada` (booleano, sem dizer qual), `necessitaAtendimentoEspecializado`.
+Regras (P09, decisão de 13/11/2026):
+- crônica acompanhada = atendimento nos últimos 180 dias;
+- vacina da gripe em dia = 60 anos ou mais com dose nos últimos 12 meses;
+- `vacinacaoEmDia`, `preNatalAdequado` e `necessitaAtendimentoEspecializado` ficam sem valor até a Saúde definir a regra (§9).
+
 Do SINASC: nascidos vivos com endereço. Do PBF na Saúde: situação do acompanhamento por vigência.
 
 ### 3.6 Assistência Social (`assistencia`)
@@ -338,6 +343,14 @@ Como ficou (P08, ADR 0007):
 - **Staging:** `stg_cadunico.pessoa` guarda a linha bruta **sem CPF e sem NIS**, e só das 3 últimas cargas.
 - **Vínculo:** o vínculo do CadÚnico usa como id o HMAC do NIS. O NIS em texto nunca é gravado.
 
+Como ficou o e-SUS PEC (P09, ADR 0008):
+
+- **Leitura direta, somente leitura:** usuário só com SELECT, sessão `read_only` e transação `READ ONLY` numa foto só. Configuração `ESUS_PEC_*` no `.env`; sem ela, a carga noturna não é agendada.
+- **Contrato de estrutura** em `apps/worker/config/esus/contrato.json`. Antes de ler, a carga confere tabelas e colunas. Se a estrutura mudou, a carga fica `FALHOU` com a coluna que sumiu, não grava nada, e a CTI vê uma faixa de alerta em /cargas até a próxima carga dar certo.
+- **Noturna às 2h** (BullMQ), incremental desde a última carga, com uma completa por semana. Gravação numa única transação.
+- **Dry-run:** `pnpm --filter @sii/worker esus:dry-run` lista as contagens por tabela sem gravar nada.
+- **Microárea:** o número do PEC vira a área do Geoportal pela tabela `config/esus/microareas.json`, mantida pela CTI.
+
 ## 6. App mobile (Expo)
 
 Usuários: `ACS`, `CRAS_TECNICO`, `VISITADOR_PCF` e agentes de busca ativa.
@@ -370,6 +383,13 @@ Usuários: `ACS`, `CRAS_TECNICO`, `VISITADOR_PCF` e agentes de busca ativa.
 
 - ~~Nomes e atributos das camadas do Geoportal~~ resolvido em 11/11/2026 (ver 3.1.1). Continuam faltando: malha de quadras e lotes da Fazenda, códigos INEP/CNES e nomes completos dos equipamentos, território do CRAS.
 - Porta, banco e versão do e-SUS PEC; credenciais somente leitura.
+- **e-SUS PEC (P09, a confirmar com a Saúde):**
+  - os nomes de tabela e coluna em `apps/worker/config/esus/contrato.json`, os valores dos campos `st_*` e o código da vacina da influenza (rodar `esus:dry-run` contra o PEC de Itapuã);
+  - a regra de **vacinação em dia** e de **pré-natal adequado** (hoje ficam sem valor) e de **necessita atendimento especializado**;
+  - a tabela de microáreas (`config/esus/microareas.json`): CNES + número da microárea → área do Geoportal.
+- **CadÚnico (P08, a confirmar com a Assistência):**
+  - os nomes das colunas em `apps/worker/config/dicionarios/cadunico.json`, montados pelo layout conhecido do CECAD, precisam ser conferidos com o dicionário oficial do MDS;
+  - as linhas de renda usadas quando o arquivo traz só a renda: R$ 109 (extrema pobreza), R$ 218 (pobreza) e R$ 759 (½ salário mínimo de 2025; conferir o de 2026).
 - Domínio e servidor de produção; política de backup da CTI.
 - Pesos do IVM e metas a aprovar pelo Comitê Gestor.
 - Sistema de gestão escolar atual da SEMED (integrar ou substituir).

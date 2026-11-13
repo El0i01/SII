@@ -23,3 +23,5 @@ export * from './cargas/layout';
 export * from './cargas/documentos';
 export * from './cargas/cadunico';
 export * from './cargas/fila';
+export * from './saude/contrato-pec';
+export * from './saude/sinalizadores';

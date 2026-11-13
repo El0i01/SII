@@ -11,7 +11,9 @@ interface Pagina {
 }
 
 /** Problemas por linha de uma carga, 50 por página. As mensagens nunca trazem o valor da célula. */
-export function TabelaErrosCarga({ cargaId }: { cargaId: number }) {
+export function TabelaErrosCarga({ cargaId, fonte }: { cargaId: number; fonte?: string }) {
+  // No e-SUS não há arquivo: o número é o do cidadão no PEC, para a Saúde achar e corrigir.
+  const doPec = fonte === 'ESUS_PEC';
   const [pagina, setPagina] = useState(1);
   const [dados, setDados] = useState<Pagina | null>(null);
   const [erro, setErro] = useState('');
@@ -42,15 +44,17 @@ export function TabelaErrosCarga({ cargaId }: { cargaId: number }) {
       </h3>
       <p className="text-sm text-texto-suave">
         Linhas com <strong>erro</strong> não entraram; corrija no sistema de origem e elas entram na
-        próxima carga. Linhas com <strong>aviso</strong> entraram sem o dado indicado. O número da
-        linha é o do arquivo (a linha 1 é o cabeçalho).
+        próxima carga. Linhas com <strong>aviso</strong> entraram sem o dado indicado.{' '}
+        {doPec
+          ? 'O número do cidadão é o código dele no PEC, para a Saúde localizar e corrigir o cadastro.'
+          : 'O número da linha é o do arquivo (a linha 1 é o cabeçalho).'}
       </p>
-      <div className="overflow-x-auto">
+      <div className="relative overflow-x-auto">
         <table className="w-full min-w-[32rem] text-left">
           <thead>
             <tr className="border-b border-borda text-sm text-texto-suave">
               <th scope="col" className="py-2 pr-3">
-                Linha
+                {doPec ? 'Cidadão no PEC' : 'Linha'}
               </th>
               <th scope="col" className="py-2 pr-3">
                 Tipo

@@ -50,6 +50,13 @@ export class CargasController {
     return this.cargas.listar();
   }
 
+  @Get('alertas')
+  @Perfis('ADMIN_CTI')
+  @ApiOperation({ summary: 'Cargas que falharam e ainda não voltaram a dar certo (só CTI)' })
+  alertas() {
+    return this.cargas.alertas();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Situação e progresso de uma carga' })
   obter(@Param('id', ParseIntPipe) id: number) {

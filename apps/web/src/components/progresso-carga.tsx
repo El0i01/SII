@@ -25,6 +25,20 @@ export interface Carga {
   revisao: number;
   avisos: number;
   erro: string | null;
+  /** Cargas lidas direto da fonte (e-SUS): COMPLETA ou INCREMENTAL. */
+  modo?: string | null;
+}
+
+/** Nome da carga na tela: o arquivo enviado ou, no e-SUS, o tipo de leitura. */
+export function nomeCarga(c: Pick<Carga, 'id' | 'fonte' | 'arquivo' | 'modo'>): string {
+  if (c.arquivo) return c.arquivo;
+  if (c.fonte === 'ESUS_PEC')
+    return c.modo === 'INCREMENTAL'
+      ? 'e-SUS PEC · leitura incremental'
+      : c.modo === 'COMPLETA'
+        ? 'e-SUS PEC · leitura completa'
+        : 'e-SUS PEC';
+  return `Carga ${c.id}`;
 }
 
 const numero = (n: number) => n.toLocaleString('pt-BR');
@@ -47,7 +61,7 @@ export function ProgressoCarga({ carga }: { carga: Carga }) {
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 id={tituloId} className="text-lg font-semibold text-texto-forte">
-          {carga.arquivo ?? `Carga ${carga.id}`}
+          {nomeCarga(carga)}
           {carga.mesReferencia && ' '}
           {carga.mesReferencia && (
             <span className="ml-2 font-normal text-texto-suave">

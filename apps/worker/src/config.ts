@@ -28,6 +28,18 @@ export const EnvWorker = z.object({
   MINIO_ROOT_PASSWORD: z.string().min(8).optional(),
   MINIO_BUCKET_CARGAS: z.string().optional(),
   DICIONARIO_CADUNICO: z.string().optional(),
+  ESUS_PEC_HOST: z.string().min(1).optional(),
+  ESUS_PEC_PORTA: z.coerce.number().int().positive().default(5433),
+  ESUS_PEC_BANCO: z.string().min(1).default('esus'),
+  ESUS_PEC_USUARIO: z.string().min(1).optional(),
+  ESUS_PEC_SENHA: z.string().min(1).optional(),
+  ESUS_PEC_SCHEMA: z
+    .string()
+    .regex(/^[a-z_][a-z0-9_]*$/, 'use um nome de schema simples')
+    .default('public'),
+  ESUS_CRON: z.string().min(9).default('0 2 * * *'),
+  CONTRATO_ESUS: z.string().optional(),
+  MICROAREAS_ESUS: z.string().optional(),
 });
 export type EnvWorker = z.infer<typeof EnvWorker>;
 
