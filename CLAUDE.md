@@ -65,7 +65,7 @@ sii-itapua/
   O que já existe em `packages/shared/src/`:
   - `calendario/`: dias úteis, dias letivos e `hojeEmPortoVelho`;
   - `educacao/`: faltas seguidas e decisão do job de infrequência (`decidirInfrequencia`);
-  - `casos/`: prazos e escalonamento;
+  - `casos/`: prazos, escalonamento (`prazoHoje`), efeito do parecer e destinos dos avisos;
   - `motivos/`: motivos de visita da criança e do idoso;
   - `indice/`: IVM;
   - `creche/`: cobertura, déficit e prioridade;
@@ -95,7 +95,8 @@ sii-itapua/
 - Variáveis sensíveis só em `.env` (nunca commitado). `.env.example` sempre atualizado.
 - **CPF, NIS e CNS só cifrados + hash** (`CriptoService.proteger` ou `protegerDocumento`). Nunca grave nem logue o número em texto. Para buscar, use o hash (`PessoasRepositorio.buscarPorCpf`). Para revelar, só pelo fluxo com finalidade (P12).
 - **Carga nunca loga linha nem valor**: o log do worker só recebe id da carga, contagens e o tipo do erro; erro por linha vai para `auditoria.erro_carga` com mensagem fixa (ADR 0007).
-- **Caso de infrequência só pelo job** (`apps/worker/src/educacao/infrequencia.ts`): trava + conferência de caso aberto na mesma transação (ADR 0009). Não crie Caso/Notificacao de infrequência em outro lugar.
+- **Caso novo só por `criarCaso`** (`apps/api/src/casos/criar-caso.ts`): trava + conferência de caso aberto do mesmo tipo na mesma transação (ADR 0009, 0010). Não crie Caso/Notificacao em outro lugar.
+- **Aviso interno nunca tem dado pessoal**: só `registrarAvisos` com o texto fixo de `textoAviso` (ADR 0010).
 - **Do e-SUS só saem sinalizadores**: a consulta do conector nunca seleciona CID, CIAP ou diagnóstico, e a conexão com o PEC é somente leitura (ADR 0008). Nome novo de tabela ou coluna vai no contrato (`config/esus/contrato.json`), não no código.
 - **Registro de fonte entra sempre por `LigacaoPessoas.ligar`** (CPF → CNS/NIS → nome+nascimento+mãe → revisão). Nunca crie `PessoaMestra` direto numa carga: a identidade única depende disso (ADR 0006).
 - A trilha (`casos.evento_caso`) é append-only e encadeada pelo banco: só INSERT, sem informar `seq` nem `hash`, e sem dado pessoal em `dados`.
@@ -139,6 +140,8 @@ pnpm --filter @sii/worker esus:dry-run       # confere a estrutura do PEC e cont
 pnpm --filter @sii/worker esus:carregar      # põe a carga do e-SUS na fila agora (worker rodando)
 pnpm --filter @sii/worker esus:pec-ficticio [n]  # banco pec_ficticio local para testar o conector
 pnpm --filter @sii/worker infrequencia:rodar [AAAA-MM-DD]  # job de infrequência agora (ou reprocessa uma data)
+pnpm --filter @sii/worker prazos:rodar [AAAA-MM-DD]        # job de prazos e escalonamento agora
+pnpm --filter @sii/web e2e   # Playwright (Chrome do sistema), API 3334 + web 3001 no banco de TESTE
 pnpm geo:importar <arquivo.shp> <tabela>   # shapefile → stg_geoportal.<tabela> em EPSG:4674
 pnpm geo:carregar        # geoportal inteiro: setores, equipamentos, microáreas, ruas, grade provisória (ADR 0005)
 pnpm infra:down

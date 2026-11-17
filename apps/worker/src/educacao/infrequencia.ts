@@ -4,13 +4,12 @@ import {
   faltasDoMotivo,
   hojeEmPortoVelho,
   motivoInfrequencia,
-  PRAZO_PARECER_DIAS_UTEIS,
   type DataISO,
   type RegistroFrequencia,
   referenciaInfrequencia,
-  somarDiasUteis,
 } from '@sii/shared';
-import type { Prisma, PrismaClient } from '../banco';
+import { criarCaso, destinosCras, feriadosDoAno } from '../../../api/src/casos/criar-caso';
+import type { PrismaClient } from '../banco';
 import type { Contagens, ProcessadorConsulta } from '../cargas/pipeline';
 
 /**
@@ -22,13 +21,12 @@ import type { Contagens, ProcessadorConsulta } from '../cargas/pipeline';
  * - ATUALIZAR: só o motivo da notificação mais recente do caso aberto;
  * - caso encerrado não conta: com 5+ faltas, abre outro (decisão de 17/11/2026).
  *
- * Idempotente: a criação roda sob um advisory lock e confere de novo, dentro da transação, se já
- * existe caso aberto. O resumo não tem dado pessoal.
+ * Idempotente: a criação (`criarCaso`, API, ADR 0010) roda sob um advisory lock e confere de novo,
+ * dentro da transação, se já existe caso aberto. O resumo não tem dado pessoal.
  */
 
 /** Quantos dias letivos o job olha para trás. A contagem no motivo para aqui (40+ faltas). */
 export const JANELA_LETIVOS = 40;
-const TRAVA = 'sii:casos:infrequencia';
 
 export interface OpcoesInfrequencia {
   /** Hoje em Porto Velho (injetável nos testes). */
@@ -154,7 +152,7 @@ export async function executarInfrequencia(
     prisma,
     candidatos.map(([p]) => p),
   );
-  const feriados = await feriadosDasEscolas(prisma, escolaIds, Number(hoje.slice(0, 4)));
+  const feriados = await feriadosDoAno(prisma, Number(hoje.slice(0, 4)), escolaIds);
 
   for (const [pessoaId, s] of candidatos) {
     const aberta = abertos.get(pessoaId);
@@ -181,160 +179,25 @@ export async function executarInfrequencia(
       resumo.semCras++;
       continue;
     }
-    const criou = await prisma.$transaction((tx) =>
+    const r = await prisma.$transaction((tx) =>
       criarCaso(tx, {
+        tipo: 'INFREQUENCIA',
         pessoaId,
-        faltas: s.faltas,
-        inep: s.inep,
-        referencia: s.referencia,
-        hoje,
-        feriados: feriados.get(s.escolaId) ?? [],
+        origem: 'Frequência escolar',
+        secretaria: 'ASSISTENCIA',
         destino,
+        hoje,
+        feriados: feriados.get(s.escolaId) ?? feriados.get('MUNICIPAL') ?? [],
+        abertura: {
+          tipo: 'ALERTA_GERADO',
+          dados: { faltasSeguidas: s.faltas, inep: s.inep, referencia: s.referencia },
+        },
+        notificacao: { motivo: motivoInfrequencia(s.faltas), origem: 'ESCOLA' },
       }),
     );
-    if (criou) resumo.criados++;
+    if (r.criado) resumo.criados++;
   }
   return resumo;
-}
-
-interface Destino {
-  cras: string | null;
-  setor: string | null;
-  localidade: string | null;
-}
-
-/**
- * CRAS do território do domicílio: o CRAS de referência da pessoa → a área TERRITORIO_CRAS que
- * contém o ponto do domicílio → a única área TERRITORIO_CRAS cadastrada (Itapuã tem um CRAS).
- */
-async function destinosCras(
-  prisma: PrismaClient,
-  pessoas: number[],
-): Promise<Map<number, Destino>> {
-  const linhas = await prisma.$queryRaw<
-    { id: number; cras: string | null; setor: string | null; localidade: string | null }[]
-  >`
-    WITH unica AS (
-      SELECT min(codigo) AS codigo FROM territorio.area_referencia
-      WHERE tipo = 'TERRITORIO_CRAS' HAVING count(*) = 1
-    )
-    SELECT p.id,
-           coalesce(
-             p.cras_codigo,
-             (SELECT a.codigo FROM territorio.area_referencia a
-               WHERE a.tipo = 'TERRITORIO_CRAS' AND d.ponto IS NOT NULL AND a.geom IS NOT NULL
-                 AND ST_Contains(a.geom, d.ponto)
-               ORDER BY a.codigo LIMIT 1),
-             (SELECT codigo FROM unica)
-           ) AS cras,
-           p.setor_codigo AS setor,
-           coalesce(q.codigo, d.localidade) AS localidade
-    FROM pessoas.pessoa_mestra p
-    LEFT JOIN territorio.domicilio d ON d.id = p.domicilio_id
-    LEFT JOIN territorio.lote l ON l.id = d.lote_id
-    LEFT JOIN territorio.quadra q ON q.id = l.quadra_id
-    WHERE p.id = ANY(${pessoas}::int[])`;
-  return new Map(
-    linhas.map((l) => [l.id, { cras: l.cras, setor: l.setor, localidade: l.localidade }]),
-  );
-}
-
-/** Feriados do calendário de cada escola no ano: entram na conta dos dias úteis do prazo. */
-async function feriadosDasEscolas(
-  prisma: PrismaClient,
-  escolaIds: number[],
-  ano: number,
-): Promise<Map<number, DataISO[]>> {
-  const params = await prisma.calendarioParametros.findMany({
-    where: { escolaId: { in: escolaIds }, ano },
-    select: { escolaId: true, parametros: true },
-  });
-  return new Map(
-    params.map((p) => {
-      const feriados = (p.parametros as { feriados?: unknown }).feriados;
-      return [
-        p.escolaId,
-        Array.isArray(feriados) ? feriados.filter((f) => typeof f === 'string') : [],
-      ];
-    }),
-  );
-}
-
-async function criarCaso(
-  tx: Prisma.TransactionClient,
-  a: {
-    pessoaId: number;
-    faltas: number;
-    inep: string;
-    referencia: DataISO;
-    hoje: DataISO;
-    feriados: DataISO[];
-    destino: Destino;
-  },
-): Promise<boolean> {
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${TRAVA}))`;
-  const jaAberto = await tx.caso.count({
-    where: { pessoaId: a.pessoaId, tipo: 'INFREQUENCIA', encerradoEm: null },
-  });
-  if (jaAberto > 0) return false;
-
-  const ano = a.hoje.slice(0, 4);
-  const [ultimo] = await tx.$queryRaw<{ n: number | null }[]>`
-    SELECT max(split_part(codigo, '-', 3)::int) AS n FROM (
-      SELECT codigo FROM casos.caso WHERE codigo ~ ${`^IF-${ano}-[0-9]+$`}
-      UNION ALL
-      SELECT codigo FROM casos.notificacao WHERE codigo ~ ${`^NT-${ano}-[0-9]+$`}
-    ) x`;
-  const numero = String((ultimo?.n ?? 0) + 1).padStart(4, '0');
-  const prazo = dia(somarDiasUteis(a.hoje, PRAZO_PARECER_DIAS_UTEIS, a.feriados));
-  const agora = new Date();
-
-  const caso = await tx.caso.create({
-    data: {
-      codigo: `IF-${ano}-${numero}`,
-      tipo: 'INFREQUENCIA',
-      pessoaId: a.pessoaId,
-      setorCodigo: a.destino.setor,
-      localidade: a.destino.localidade?.slice(0, 40) ?? null,
-      origem: 'Frequência escolar',
-      secretariaResponsavel: 'ASSISTENCIA',
-      status: 'NOVA',
-      nivel: 0,
-      alertaEm: agora,
-      prazoEm: prazo,
-    },
-    select: { id: true },
-  });
-  await tx.eventoCaso.create({
-    data: {
-      casoId: caso.id,
-      tipo: 'ALERTA_GERADO',
-      ocorridoEm: agora,
-      dados: { faltasSeguidas: a.faltas, inep: a.inep, referencia: a.referencia },
-    },
-  });
-  const notificacao = await tx.notificacao.create({
-    data: {
-      codigo: `NT-${ano}-${numero}`,
-      casoId: caso.id,
-      origem: 'ESCOLA',
-      destinoCrasCodigo: a.destino.cras as string,
-      motivo: motivoInfrequencia(a.faltas),
-      status: 'NOVA',
-      criadaEm: agora,
-      prazoEm: prazo,
-    },
-    select: { codigo: true },
-  });
-  await tx.eventoCaso.create({
-    data: {
-      casoId: caso.id,
-      tipo: 'NOTIFICACAO_ENVIADA',
-      ocorridoEm: agora,
-      dados: { notificacao: notificacao.codigo, destino: 'CRAS' },
-    },
-  });
-  return true;
 }
 
 function adicionarUmDia(d: DataISO): DataISO {

@@ -9,9 +9,9 @@ export type JobCarga = { cargaId: number } | { fonte: FonteAgendada; cargaId?: n
 
 /**
  * Execuções agendadas no worker que não vêm de arquivo: a carga noturna do e-SUS (P09) e o job
- * diário de infrequência (P10). Também ficam no LogCarga, para a CTI acompanhar em /cargas.
+ * diário de infrequência (P10) e o de prazos dos casos (P11). Também ficam no LogCarga, para a CTI acompanhar em /cargas.
  */
-export const FONTES_AGENDADAS = ['ESUS_PEC', 'INFREQUENCIA'] as const;
+export const FONTES_AGENDADAS = ['ESUS_PEC', 'INFREQUENCIA', 'PRAZOS'] as const;
 export type FonteAgendada = (typeof FONTES_AGENDADAS)[number];
 
 /** Id da carga do job, se já existir. */
@@ -28,6 +28,7 @@ export const ETAPAS_CARGA = [
   'STAGING',
   'LIGACAO',
   'FREQUENCIA',
+  'PRAZOS',
   'FIM',
 ] as const;
 export type EtapaCarga = (typeof ETAPAS_CARGA)[number];
@@ -41,6 +42,7 @@ export const ROTULO_ETAPA: Record<EtapaCarga, string> = {
   STAGING: 'Lendo as linhas',
   LIGACAO: 'Ligando as pessoas e gravando as famílias',
   FREQUENCIA: 'Conferindo as faltas seguidas e abrindo os casos',
+  PRAZOS: 'Conferindo os prazos e o escalonamento dos casos',
   FIM: 'Concluída',
 };
 

@@ -82,6 +82,7 @@ function nascimento(cx: Complementos, idade: number): Date {
 // ── Limpeza (só dados do seed) ───────────────────────────────────────────────────────────────────
 const TABELAS_DO_SEED = [
   'casos.evento_caso',
+  'casos.aviso',
   'casos.parecer',
   'casos.notificacao',
   'casos.visita',

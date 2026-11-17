@@ -76,3 +76,8 @@ export function somarDiasUteis(
 export function hojeEmPortoVelho(agora: Date = new Date()): DataISO {
   return new Date(agora.getTime() - 4 * 3_600_000).toISOString().slice(0, 10);
 }
+
+/** Dias corridos de `inicio` até `fim` (negativo se `fim` vier antes). */
+export function diasCorridosEntre(inicio: DataISO, fim: DataISO): number {
+  return Math.round((paraUtc(fim).getTime() - paraUtc(inicio).getTime()) / 86_400_000);
+}

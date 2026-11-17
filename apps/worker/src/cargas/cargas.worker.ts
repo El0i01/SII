@@ -8,6 +8,7 @@ import { chaveDeHex } from '../../../api/src/cripto/cifra';
 import { criarPrisma, type PrismaClient } from '../banco';
 import { type EnvWorker, lerEnv } from '../config';
 import { carregarContratoPec, carregarMicroareas, conectarPec, configPec } from '../esus/pec';
+import { criarProcessadorPrazos } from '../casos/prazos';
 import { criarProcessadorInfrequencia } from '../educacao/infrequencia';
 import { criarProcessadorEsus } from '../esus/processador';
 import { criarProcessadorCadunico } from './cadunico';
@@ -73,6 +74,21 @@ export async function agendarInfrequencia(fila: Queue<JobCarga>, cron: string): 
   );
 }
 
+/** Nome do agendamento do job diário de prazos (P11). */
+export const AGENDAMENTO_PRAZOS = 'prazos-diario';
+
+export async function agendarPrazos(fila: Queue<JobCarga>, cron: string): Promise<void> {
+  await fila.upsertJobScheduler(
+    AGENDAMENTO_PRAZOS,
+    { pattern: cron, tz: 'America/Porto_Velho' },
+    {
+      name: 'prazos',
+      data: { fonte: 'PRAZOS' },
+      opts: { attempts: 3, backoff: { type: 'exponential', delay: 60_000 } },
+    },
+  );
+}
+
 /**
  * Consumidor da fila `cargas` (concorrência 1: uma carga por vez, para não disputar a ligação de
  * pessoas). O job só traz o id do LogCarga.
@@ -117,7 +133,11 @@ export class CargasWorker implements OnModuleInit, OnApplicationShutdown {
           chaves,
         ),
       },
-      consultas: { ...this.consultas(env), INFREQUENCIA: criarProcessadorInfrequencia() },
+      consultas: {
+        ...this.consultas(env),
+        INFREQUENCIA: criarProcessadorInfrequencia(),
+        PRAZOS: criarProcessadorPrazos(),
+      },
     };
     // BullMQ exige maxRetriesPerRequest null na conexão do Worker.
     this.redis = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
@@ -127,6 +147,8 @@ export class CargasWorker implements OnModuleInit, OnApplicationShutdown {
     this.fila = new Queue<JobCarga>(FILA_CARGAS, { connection: this.redis.duplicate() });
     await agendarInfrequencia(this.fila, env.INFREQUENCIA_CRON);
     this.logger.log(`infrequência agendada (${env.INFREQUENCIA_CRON}, America/Porto_Velho)`);
+    await agendarPrazos(this.fila, env.PRAZOS_CRON);
+    this.logger.log(`prazos agendados (${env.PRAZOS_CRON}, America/Porto_Velho)`);
     if (this.pec) {
       await agendarEsus(this.fila, env.ESUS_CRON);
       this.logger.log(`carga do e-SUS agendada (${env.ESUS_CRON}, America/Porto_Velho)`);

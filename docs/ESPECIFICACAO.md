@@ -251,6 +251,25 @@ Como funciona a trilha (ADR 0004):
 
 Desfechos: `RETORNO_ESCOLA_COMBINADO`, `ENCAMINHADO_SEMED_TRANSPORTE`, `AUSENCIA_JUSTIFICADA_SAUDE`, `ENCAMINHADO_CREAS`, `ENCAMINHADO_CONSELHO_TUTELAR`, `FAMILIA_NAO_LOCALIZADA`.
 
+Como ficou (P11, ADR 0010):
+
+- **Caixa de entrada** (`/notificacoes`):
+  - KPIs: novas, em análise, pareceres emitidos e fora do prazo;
+  - filtro por situação e detalhe com a criança pelas iniciais, a escola, o território, o prazo e a trilha com código verificador;
+  - a RLS recorta o que cada um vê: o CRAS vê as do próprio CRAS; a escola, as dos próprios alunos; SEMED, Comitê e CTI veem o município.
+- **Parecer** (decisão de 17/11/2026: emitem o técnico do CRAS e o Comitê Gestor):
+  - o técnico pode antes marcar "em análise";
+  - validação com o schema `Parecer` (30 caracteres, desfecho, sem CID, data da nova visita);
+  - ao enviar, o caso fecha (exceto Conselho Tutelar ou nova visita), a trilha registra e a escola e a SEMED recebem um **aviso interno**.
+- **Avisos internos** (`/avisos`): só o código do caso e um texto fixo, nunca dado pessoal. Recebem a escola (pelo INEP), o CRAS, as secretarias e o Comitê. Não há e-mail por enquanto.
+- **Encaminhamento manual** (`POST /casos/encaminhamentos`):
+  - encaminham escola, SEMED, Comitê e CTI;
+  - à Assistência, vira notificação ao CRAS; aos outros destinos, aviso à secretaria;
+  - um caso aberto por pessoa e tipo.
+- **Prazos** (job diário às 6h30): atualiza o nível de escalonamento e avisa quando sobe (nível 3 → Comitê). Para rodar na hora: `pnpm --filter @sii/worker prazos:rodar [AAAA-MM-DD]`.
+- **Pauta do Comitê** (`/pauta`, lista viva): casos em nível 3, do mais atrasado ao menos, com exportação CSV sem CPF.
+
+
 ### 3.8 Ficha da criança (`fichas`)
 
 Uma ficha por criança e adolescente (0 a 17), montada a partir da `PessoaMestra`:
@@ -419,4 +438,7 @@ Usuários: `ACS`, `CRAS_TECNICO`, `VISITADOR_PCF` e agentes de busca ativa.
 - Sistema de gestão escolar atual da SEMED (integrar ou substituir).
 - **Educação (P10, a confirmar com a SEMED e a SEDUC-RO):**
   - os layouts de `apps/worker/config/dicionarios/gestao-escolar.json` e `seduc.json` são próprios do SII; trocar pelos nomes reais quando chegar o primeiro arquivo;
-  - o "aviso à escola" da infrequência hoje é só o evento na trilha; a notificação interna à escola e à SEMED entra no P11.
+  - ~~o "aviso à escola" da infrequência~~ resolvido no P11 (avisos internos).
+- **Casos (P11):**
+  - e-mail dos avisos: depende de um servidor SMTP da Prefeitura (o texto já não tem dado pessoal);
+  - pauta fechada por reunião do Comitê (ata, casos daquele dia) para prestação de contas.

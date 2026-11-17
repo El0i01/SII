@@ -221,6 +221,8 @@ model Caso {
   /// Quadra (Q055) ou a linha rural (Linha C-10).
   localidade            String?       @db.VarChar(40)
   origem                String?       @db.VarChar(40)
+  /// Motivo do encaminhamento manual (texto livre validado sem CID; P11).
+  motivo                String?       @db.VarChar(2000)
   secretariaResponsavel String        @map("secretaria_responsavel") @db.VarChar(20)
   responsavelUsuarioId  Int?          @map("responsavel_usuario_id")
   status                String        @db.VarChar(30)
@@ -234,6 +236,7 @@ model Caso {
   pessoa                PessoaMestra  @relation(fields: [pessoaId], references: [id])
   eventos               EventoCaso[]
   notificacoes          Notificacao[]
+  avisos                Aviso[]
   visitas               Visita[]
 
   @@index([pessoaId])
@@ -881,7 +884,7 @@ model Notificacao {
   casoId            Int               @map("caso_id")
   origem            String            @default("ESCOLA") @db.VarChar(20)
   destinoCrasCodigo String            @map("destino_cras_codigo") @db.VarChar(20)
-  motivo            String            @db.VarChar(200)
+  motivo            String            @db.VarChar(2000)
   status            StatusNotificacao @default(NOVA)
   criadaEm          DateTime          @default(now()) @map("criada_em") @db.Timestamptz(3)
   prazoEm           DateTime          @map("prazo_em") @db.Date
@@ -908,6 +911,37 @@ model Parecer {
   notificacao    Notificacao @relation(fields: [notificacaoId], references: [id])
 
   @@map("parecer")
+  @@schema("casos")
+}
+
+enum DestinoAviso {
+  ESCOLA
+  SECRETARIA
+  CRAS
+  COMITE
+
+  @@schema("casos")
+}
+
+/// Aviso interno (P11, ADR 0010): parecer emitido, prazo subindo de nível, caso encaminhado.
+/// **Sem dado pessoal**: só o código do caso e um texto fixo (`textoAviso`, shared). Por isso não
+/// tem RLS: a API filtra pelo destino do usuário (escola pelo INEP, secretaria, CRAS, Comitê).
+model Aviso {
+  id           Int          @id @default(autoincrement())
+  destinoTipo  DestinoAviso @map("destino_tipo")
+  /// INEP da escola, sigla da secretaria (SEMED, ASSISTENCIA…), CadSUAS do CRAS ou COMITE.
+  destinoValor String       @map("destino_valor") @db.VarChar(20)
+  casoId       Int          @map("caso_id")
+  /// PARECER_EMITIDO, NIVEL_1, NIVEL_2, NIVEL_3, ENCAMINHAMENTO.
+  tipo         String       @db.VarChar(20)
+  texto        String       @db.VarChar(300)
+  criadoEm     DateTime     @default(now()) @map("criado_em") @db.Timestamptz(3)
+  lidoEm       DateTime?    @map("lido_em") @db.Timestamptz(3)
+  caso         Caso         @relation(fields: [casoId], references: [id])
+
+  @@index([destinoTipo, destinoValor, criadoEm])
+  @@index([casoId])
+  @@map("aviso")
   @@schema("casos")
 }
 

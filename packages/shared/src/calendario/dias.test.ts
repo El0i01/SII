@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   adicionarDias,
   diaDaSemana,
+  diasCorridosEntre,
   diasUteisEntre,
   ehDataISO,
   hojeEmPortoVelho,
@@ -69,5 +70,13 @@ describe('hojeEmPortoVelho', () => {
     expect(hojeEmPortoVelho(new Date('2026-11-17T02:00:00Z'))).toBe('2026-11-16');
     expect(hojeEmPortoVelho(new Date('2026-11-17T05:00:00Z'))).toBe('2026-11-17');
     expect(hojeEmPortoVelho()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe('diasCorridosEntre', () => {
+  it('conta dias corridos, inclusive atravessando o mês', () => {
+    expect(diasCorridosEntre('2026-10-30', '2026-11-02')).toBe(3);
+    expect(diasCorridosEntre('2026-11-02', '2026-10-30')).toBe(-3);
+    expect(diasCorridosEntre('2026-11-02', '2026-11-02')).toBe(0);
   });
 });
