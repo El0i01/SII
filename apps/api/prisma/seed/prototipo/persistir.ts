@@ -2,6 +2,7 @@
  * Grava no banco os dados fictícios do protótipo (gerador.ts) ligados ao cadastro real de
  * equipamentos (mapeamento.ts). Dev e testes apenas. Ver docs/adr/0004.
  */
+import { randomUUID } from 'node:crypto';
 import {
   diasUteisEntre,
   gerarDiasLetivos,
@@ -715,6 +716,52 @@ export async function semearPrototipo(prisma: PrismaClient, chaves: Chaves): Pro
             visitador: c.visitador,
             ultimaVisitaEm: diasAtras(c.pcfUlt),
           })),
+      });
+
+      // Relatórios de visita da ficha (textos do protótipo): ACS, Criança Feliz e CRAS.
+      const visita = (
+        tipo: 'ACS' | 'CRAS' | 'CRIANCA_FELIZ',
+        pessoa: number,
+        dias: number,
+        situacao: string,
+      ) => ({
+        idLocal: randomUUID(),
+        tipo,
+        pessoaIds: [pessoa],
+        realizadaEm: diasAtras(dias),
+        situacao,
+      });
+      await tx.visita.createMany({
+        data: g.criancas.flatMap((c) => [
+          visita(
+            'ACS',
+            pid(c.id),
+            c.acs,
+            c.vac
+              ? 'Cartão de vacina conferido, sem pendências. Família orientada sobre a próxima consulta.'
+              : 'Vacina atrasada identificada no cartão. Família orientada a procurar a unidade de saúde.',
+          ),
+          ...(c.pcf
+            ? [
+                visita(
+                  'CRIANCA_FELIZ',
+                  pid(c.id),
+                  c.pcfUlt,
+                  'Atividade de estimulação com o responsável. Desenvolvimento adequado para a idade; próxima visita agendada.',
+                ),
+              ]
+            : []),
+          ...(c.cras
+            ? [
+                visita(
+                  'CRAS',
+                  pid(c.id),
+                  c.crasUlt,
+                  'Acompanhamento familiar no PAIF. Família orientada sobre a atualização do CadÚnico.',
+                ),
+              ]
+            : []),
+        ]),
       });
 
       // Casos de busca ativa e a trilha de cada um.

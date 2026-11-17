@@ -73,7 +73,8 @@ sii-itapua/
   - `territorio/`: cascata de geocodificação;
   - `enums/`: perfis e domínio;
   - `saude/`: contrato do PEC e sinalizadores;
-  - `schemas/`: Parecer, Visita, Encaminhamento, UploadCarga e LancamentosFrequencia;
+  - `schemas/`: Parecer, Visita, Encaminhamento, UploadCarga, LancamentosFrequencia, RevelarCpf e FiltroAcessos;
+  - `fichas/`: seções da ficha por perfil (`secoesDaFicha`), filtros, prioridade e linha do tempo;
   - `cargas/`: CSV, layout, documentos, conversores do CadÚnico, da gestão escolar e da SEDUC;
   - `acesso/`: login e usuários.
   
@@ -95,6 +96,7 @@ sii-itapua/
 - Variáveis sensíveis só em `.env` (nunca commitado). `.env.example` sempre atualizado.
 - **CPF, NIS e CNS só cifrados + hash** (`CriptoService.proteger` ou `protegerDocumento`). Nunca grave nem logue o número em texto. Para buscar, use o hash (`PessoasRepositorio.buscarPorCpf`). Para revelar, só pelo fluxo com finalidade (P12).
 - **Carga nunca loga linha nem valor**: o log do worker só recebe id da carga, contagens e o tipo do erro; erro por linha vai para `auditoria.erro_carga` com mensagem fixa (ADR 0007).
+- **Revelar CPF só por `POST /fichas/:id/revelar-cpf`** (`FichasService.revelarCpf`): confere pela RLS, grava `acesso_dado_pessoal` e só então decifra (ADR 0011). Para mascarar, decifre no servidor e devolva só `mascararCpf`.
 - **Caso novo só por `criarCaso`** (`apps/api/src/casos/criar-caso.ts`): trava + conferência de caso aberto do mesmo tipo na mesma transação (ADR 0009, 0010). Não crie Caso/Notificacao em outro lugar.
 - **Aviso interno nunca tem dado pessoal**: só `registrarAvisos` com o texto fixo de `textoAviso` (ADR 0010).
 - **Do e-SUS só saem sinalizadores**: a consulta do conector nunca seleciona CID, CIAP ou diagnóstico, e a conexão com o PEC é somente leitura (ADR 0008). Nome novo de tabela ou coluna vai no contrato (`config/esus/contrato.json`), não no código.

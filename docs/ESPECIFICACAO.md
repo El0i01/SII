@@ -275,6 +275,14 @@ Como ficou (P11, ADR 0010):
 Uma ficha por criança e adolescente (0 a 17), montada a partir da `PessoaMestra`:
 identificação (mascarada), endereço (setor/quadra/lote), educação (escola, turma, frequência do mês, faltas seguidas), saúde (UBS, vacinação, última visita do ACS), assistência (CadÚnico, PBF, CRAS, Criança Feliz), proteção e inclusão (Conselho Tutelar, atendimento especializado, APAE, BPC), **motivos de visita**, histórico (linha do tempo de `EventoCaso` + eventos das fontes) e relatórios de visita.
 
+Como ficou (P12, ADR 0011):
+
+- **Quem vê** (decisão de 17/11/2026): todo perfil com dado nominal vê os quatro blocos (Educação, Saúde, Assistência, Proteção e inclusão), o histórico e os relatórios de visita, como no protótipo. A RLS decide **quais** crianças cada um vê (escola: seus alunos; ACS: a microárea; CRAS: o território; PCF: suas famílias). `FAZENDA`, `AUDITOR_TCE` e `DPO` recebem 403.
+  - A matriz fica em `secoesDaFicha(perfil)` (shared): seção que o perfil não pode ver sai **ausente** do JSON, nunca `null`. Para recortar por secretaria no futuro, muda-se só a matriz.
+- **Lista** (`GET /fichas?busca=&filtro=`): uma consulta SQL só, dentro de `comoUsuario`; motivos de visita pelo shared (`motivosVisitaCrianca`); ordem pela necessidade (motivos × 10 + notificação aberta × 5); filtros do protótipo (precisam de visita, com notificação, 0 a 3 anos, educação especial); busca por código `CI-<id>`, iniciais, quadra ou escola, nunca por nome. Devolve os 40 primeiros e o total.
+- **Ficha** (`GET /fichas/:id`): iniciais, idade, CPF **mascarado**, endereço (quadra, lote, setor), motivos, notificação aberta, blocos, linha do tempo (matrícula, CadÚnico, visita do ACS, PAIF, Criança Feliz + eventos da trilha dos casos) e relatórios de visita (`casos.visita` + pareceres). Faltas seguidas pela mesma regra do job de infrequência (dias letivos antes de hoje). Com o seed, responde em cerca de 0,3 s.
+- O botão "Encaminhar à Assistência" usa `POST /casos/encaminhamentos` (P11).
+
 ### 3.9 Ciclos de vida
 
 - **Primeira infância (0 a 6)**: vacinação, pré-natal, creche 0–3, pré-escola 4–5, Criança Feliz, crianças de 0 a 3 no CadÚnico sem creche e sem PCF.
@@ -309,6 +317,12 @@ Relatório semestral ao TCE-RO em PDF e XLSX.
 `AcessoDadoPessoal`: quem, perfil, quando, registro, campo revelado, finalidade, IP.
 `LogCarga`: fonte, início, fim, registros lidos, inseridos, rejeitados, erro.
 O DPO tem painel próprio de acessos.
+
+Como ficou (P12, ADR 0011):
+
+- `POST /fichas/:id/revelar-cpf` (todo perfil nominal, decisão de 17/11/2026): finalidade obrigatória (`RevelarCpf`, shared) de uma lista (contato com a família para matrícula, encaminhamento à rede de proteção, atualização cadastral, atendimento ao titular) ou "Outra" com descrição de 10 caracteres ou mais. Sem finalidade → 422.
+- Ordem: confere pela RLS que o usuário vê a ficha → **grava `acesso_dado_pessoal`** (usuário, perfil, pessoa, registro `CI-<id>`, campo, finalidade, IP) → só então decifra. Fora do escopo → 404, sem registro.
+- Painel do DPO (`GET /auditoria/acessos`, tela `/acessos`; DPO e CTI): filtros por período e login, paginado, sem o número revelado. O P16 amplia (filtro por pessoa, exportação).
 
 ## 4. Regras de negócio (implementar em `packages/shared`, com testes)
 
@@ -442,3 +456,6 @@ Usuários: `ACS`, `CRAS_TECNICO`, `VISITADOR_PCF` e agentes de busca ativa.
 - **Casos (P11):**
   - e-mail dos avisos: depende de um servidor SMTP da Prefeitura (o texto já não tem dado pessoal);
   - pauta fechada por reunião do Comitê (ata, casos daquele dia) para prestação de contas.
+- **Ficha da criança (P12):**
+  - Conselho Tutelar na ficha vem só dos casos (evento `ENCAMINHADO_CONSELHO_TUTELAR`); falta a fonte do próprio Conselho;
+  - recorte de campos por secretaria fica desligado por decisão de 17/11/2026 (matriz pronta em `secoesDaFicha`).

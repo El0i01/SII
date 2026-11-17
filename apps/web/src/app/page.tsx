@@ -38,12 +38,14 @@ export default function Inicio() {
         </h2>
         <ul className="flex flex-wrap gap-3">
           {[
+            { href: '/fichas', rotulo: 'Ficha da criança' },
             { href: '/frequencia', rotulo: 'Lançar frequência da turma' },
             { href: '/notificacoes', rotulo: 'Notificações à Assistência' },
             { href: '/pauta', rotulo: 'Pauta do Comitê' },
             { href: '/avisos', rotulo: 'Avisos' },
             { href: '/cargas', rotulo: 'Enviar cargas de dados' },
             { href: '/identidade/revisao', rotulo: 'Revisar vínculos de pessoas' },
+            { href: '/acessos', rotulo: 'Acessos a dado pessoal (DPO)' },
           ].map((l) => (
             <li key={l.href}>
               <a

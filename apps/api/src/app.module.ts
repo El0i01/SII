@@ -6,6 +6,7 @@ import { BancoModule } from './banco/banco.module';
 import { validarEnv } from './config/env';
 import { CargasModule } from './cargas/cargas.module';
 import { CasosModule } from './casos/casos.module';
+import { FichasModule } from './fichas/fichas.module';
 import { CriptoModule } from './cripto/cripto.service';
 import { EducacaoModule } from './educacao/educacao.module';
 import { PessoasModule } from './pessoas/pessoas.module';
@@ -34,6 +35,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     TerritorioModule,
     CargasModule,
     CasosModule,
+    FichasModule,
   ],
 })
 export class AppModule {}

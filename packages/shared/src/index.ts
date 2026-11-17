@@ -31,3 +31,5 @@ export * from './cargas/escolar';
 export * from './cargas/fila';
 export * from './saude/contrato-pec';
 export * from './saude/sinalizadores';
+export * from './fichas/ficha';
+export * from './schemas/revelar';
