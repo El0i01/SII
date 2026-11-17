@@ -1,6 +1,7 @@
 # Especificação — SII · Sistema Integrado Intersecretarial
 
-Versão 0.1 · novembro de 2026 · CTI/SEMED · Itapuã do Oeste/RO
+Versão 0.2 · 17 de novembro de 2026 · CTI/SEMED · Itapuã do Oeste/RO
+O que já foi entregue, prompt a prompt: `docs/ANDAMENTO.md`.
 Base: Plano Estratégico, Plano de Desenvolvimento e protótipo navegável (`docs/prototipo/index.html`).
 
 ---
@@ -441,6 +442,8 @@ Usuários: `ACS`, `CRAS_TECNICO`, `VISITADOR_PCF` e agentes de busca ativa.
 - Hospedagem em infraestrutura do município; dados não saem do município.
 
 ## 8. Fases
+
+Situação em 17/11/2026: fases 1 e 2 concluídas (P01 a P13); fase 3 começa no P14. Detalhe em `docs/ANDAMENTO.md`.
 
 1. Fundação: monorepo, infra, auth, perfis, auditoria, território (Geoportal), geocodificação, identidade, seed fictício.
 2. Integração social: e-SUS, CadÚnico, gestão escolar, SEDUC; infrequência → notificação → parecer; ficha da criança; busca ativa com prazos.

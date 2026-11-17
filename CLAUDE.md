@@ -7,6 +7,7 @@ Leia também, antes de qualquer tarefa:
 
 - `docs/ESPECIFICACAO.md`: domínio, regras de negócio, modelo de dados, integrações, perfis e LGPD.
 - `docs/prototipo/index.html`: protótipo navegável (dados fictícios). É a referência de telas, textos e fluxos.
+- `docs/ANDAMENTO.md`: o que já foi entregue (prompt, commit, telas, rotas, jobs, decisões). Atualize ao fim de cada prompt.
 
 ## O que é o sistema
 
@@ -159,4 +160,5 @@ Portas locais fora do padrão porque a máquina já roda outros sistemas (ADR 00
 3. Escreva os testes das regras de `packages/shared` antes da implementação.
 4. Ao terminar: rode `pnpm test`, `pnpm lint` e `pnpm typecheck`, e liste o que ficou pendente.
 5. Decisão de arquitetura relevante → um ADR curto em `docs/adr/NNNN-titulo.md`.
-6. Dados reais nunca entram no repositório, nem em fixture. Seeds e testes usam o gerador fictício.
+6. Ao fechar um prompt, registre a entrega em `docs/ANDAMENTO.md`.
+7. Dados reais nunca entram no repositório, nem em fixture. Seeds e testes usam o gerador fictício.

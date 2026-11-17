@@ -5,7 +5,9 @@ Como usar:
 1. Crie a pasta `sii-itapua/`, copie `CLAUDE.md` para a raiz e `ESPECIFICACAO.md` + `prototipo/index.html` para `docs/`.
 2. Abra o Claude Code na raiz e rode **um prompt por vez**, na ordem. Cada prompt pede plano antes do código.
 3. Só passe para o próximo quando os critérios de aceite do atual estiverem cumpridos e os testes passando.
-4. Faça um commit ao fim de cada prompt.
+4. Faça um commit ao fim de cada prompt e registre a entrega em `docs/ANDAMENTO.md`.
+
+Situação em 17/11/2026: P01 a P13 concluídos. Próximo: P14.
 
 Não há reaproveitamento do GTE-SEMED: a autenticação é escrita no próprio SII (P03). Os shapefiles vêm de `~/geoportal_itapua-main(1)/geoportal_itapua-main/` (P02 e P06).
 
