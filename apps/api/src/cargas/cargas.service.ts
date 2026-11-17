@@ -1,7 +1,13 @@
 import path from 'node:path';
 import { HttpStatus, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { FILA_CARGAS, FONTES_UPLOAD, type JobCarga, UploadCarga } from '@sii/shared';
+import {
+  FILA_CARGAS,
+  FONTES_AGENDADAS,
+  FONTES_UPLOAD,
+  type JobCarga,
+  UploadCarga,
+} from '@sii/shared';
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import type { Client } from 'minio';
@@ -41,6 +47,17 @@ const SELECAO = {
   modo: true,
 } as const;
 
+/** Fontes com processador no worker (P08 e P10). */
+const FONTES_DISPONIVEIS: readonly string[] = ['CADUNICO', 'GESTAO_ESCOLAR', 'SEDUC'];
+
+export type PerfilQueEnvia = 'ADMIN_CTI' | 'ASSISTENCIA_GESTOR' | 'SEMED_GESTOR';
+/** A Assistência envia o CadÚnico; a SEMED, as cargas da Educação; a CTI, todas. */
+const FONTES_POR_PERFIL: Record<PerfilQueEnvia, readonly string[]> = {
+  ADMIN_CTI: FONTES_DISPONIVEIS,
+  ASSISTENCIA_GESTOR: ['CADUNICO'],
+  SEMED_GESTOR: ['GESTAO_ESCOLAR', 'SEDUC'],
+};
+
 /**
  * Recebe o arquivo, guarda no MinIO, cria o LogCarga e põe o job na fila (§5, P08). O processamento
  * é do worker. O job leva só o id da carga.
@@ -79,6 +96,7 @@ export class CargasService implements OnModuleDestroy {
     corpo: { fonte?: unknown; mesReferencia?: unknown },
     arquivo: ArquivoEnviado | undefined,
     usuarioId: number,
+    perfil: PerfilQueEnvia,
   ) {
     if (!arquivo) throw erros.validacao({ arquivo: ['Escolha o arquivo para enviar.'] });
     // O multer entrega o nome em latin1; o navegador manda em UTF-8.
@@ -100,11 +118,17 @@ export class CargasService implements OnModuleDestroy {
       }
       throw erros.validacao(campos);
     }
-    if (r.data.fonte !== 'CADUNICO')
+    if (!FONTES_DISPONIVEIS.includes(r.data.fonte))
       throw new ErroApi(
         HttpStatus.UNPROCESSABLE_ENTITY,
         'FONTE_AINDA_NAO_DISPONIVEL',
-        'Por enquanto só a carga do CadÚnico está disponível.',
+        'Esta fonte ainda não tem carga. Por enquanto: CadÚnico, gestão escolar e SEDUC-RO.',
+      );
+    if (!FONTES_POR_PERFIL[perfil].includes(r.data.fonte))
+      throw new ErroApi(
+        HttpStatus.FORBIDDEN,
+        'SEM_PERMISSAO',
+        'Seu perfil não envia arquivos desta fonte.',
       );
 
     const carga = await this.prisma.logCarga.create({
@@ -153,7 +177,7 @@ export class CargasService implements OnModuleDestroy {
 
   listar() {
     return this.prisma.logCarga.findMany({
-      where: { fonte: { in: [...FONTES_UPLOAD, 'ESUS_PEC'] } },
+      where: { fonte: { in: [...FONTES_UPLOAD, ...FONTES_AGENDADAS] } },
       orderBy: { id: 'desc' },
       take: 20,
       select: SELECAO,

@@ -32,6 +32,28 @@ export default function Inicio() {
         </ul>
       </section>
 
+      <nav aria-labelledby="atalhos">
+        <h2 id="atalhos" className="mb-3 text-lg font-semibold text-texto-forte">
+          Atalhos
+        </h2>
+        <ul className="flex flex-wrap gap-3">
+          {[
+            { href: '/frequencia', rotulo: 'Lançar frequência da turma' },
+            { href: '/cargas', rotulo: 'Enviar cargas de dados' },
+            { href: '/identidade/revisao', rotulo: 'Revisar vínculos de pessoas' },
+          ].map((l) => (
+            <li key={l.href}>
+              <a
+                href={l.href}
+                className="inline-flex min-h-[var(--spacing-alvo)] items-center rounded-md border border-primaria px-4 font-semibold text-primaria"
+              >
+                {l.rotulo}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
       <p className="rounded-md border-l-4 border-primaria bg-primaria-clara p-4 text-texto-forte">
         Em construção. Os painéis entram nas próximas etapas.
       </p>

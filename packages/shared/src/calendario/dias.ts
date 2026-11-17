@@ -71,3 +71,8 @@ export function somarDiasUteis(
   }
   return d;
 }
+
+/** Hoje em America/Porto_Velho (UTC−4 o ano todo, sem horário de verão). */
+export function hojeEmPortoVelho(agora: Date = new Date()): DataISO {
+  return new Date(agora.getTime() - 4 * 3_600_000).toISOString().slice(0, 10);
+}

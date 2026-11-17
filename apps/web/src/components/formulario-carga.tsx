@@ -8,14 +8,39 @@ export interface ErrosCarga {
   arquivo?: string;
 }
 
+/** Fontes com carga por arquivo (P08 e P10). */
+export type FonteFormulario = 'CADUNICO' | 'GESTAO_ESCOLAR' | 'SEDUC';
+
+export const DESCRICAO_FONTE: Record<FonteFormulario, { nome: string; detalhe: string }> = {
+  CADUNICO: {
+    nome: 'CadÚnico',
+    detalhe: 'CECAD ou base completa do Portal de Gestão',
+  },
+  GESTAO_ESCOLAR: {
+    nome: 'Gestão escolar',
+    detalhe: 'matrículas por turma e frequência diária (layout do SII)',
+  },
+  SEDUC: {
+    nome: 'SEDUC-RO',
+    detalhe: 'residentes matriculados na rede estadual (layout do SII)',
+  },
+};
+
 interface Props {
-  onEnviar: (dados: { mesReferencia: string; arquivo: File }) => Promise<ErrosCarga | null>;
+  onEnviar: (dados: {
+    fonte: FonteFormulario;
+    mesReferencia: string;
+    arquivo: File;
+  }) => Promise<ErrosCarga | null>;
+  /** Fontes que o perfil envia. Com uma só, ela aparece fixa. */
+  fontes?: FonteFormulario[];
   /** Mês sugerido (AAAA-MM): o mês anterior ao atual, que é o da base mais recente do CECAD. */
   mesSugerido: string;
 }
 
-/** Envio do CSV do CadÚnico: rótulo em todo campo, erro ligado ao campo, foco no primeiro erro. */
-export function FormularioCarga({ onEnviar, mesSugerido }: Props) {
+/** Envio do CSV de uma carga (CadÚnico, gestão escolar, SEDUC): rótulo em todo campo, erro ligado ao campo, foco no primeiro erro. */
+export function FormularioCarga({ onEnviar, mesSugerido, fontes = ['CADUNICO'] }: Props) {
+  const [fonte, setFonte] = useState<FonteFormulario>(fontes[0] ?? 'CADUNICO');
   const [erros, setErros] = useState<ErrosCarga>({});
   const [enviando, setEnviando] = useState(false);
   const refMes = useRef<HTMLInputElement>(null);
@@ -37,9 +62,12 @@ export function FormularioCarga({ onEnviar, mesSugerido }: Props) {
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mesReferencia))
       locais.mesReferencia = 'Informe o mês de referência da base.';
     if (!arquivo)
-      locais.arquivo = 'Escolha o arquivo .csv exportado do CECAD ou do Portal de Gestão.';
+      locais.arquivo =
+        fonte === 'CADUNICO'
+          ? 'Escolha o arquivo .csv exportado do CECAD ou do Portal de Gestão.'
+          : 'Escolha o arquivo .csv exportado do sistema.';
     else if (!/\.csv$/i.test(arquivo.name))
-      locais.arquivo = 'Para o CadÚnico, envie o arquivo .csv (não a planilha do Excel).';
+      locais.arquivo = `Para ${DESCRICAO_FONTE[fonte].nome}, envie o arquivo .csv (não a planilha do Excel).`;
     if (Object.keys(locais).length) {
       setErros(locais);
       focar(locais);
@@ -47,7 +75,7 @@ export function FormularioCarga({ onEnviar, mesSugerido }: Props) {
     }
     setEnviando(true);
     setErros({});
-    const r = await onEnviar({ mesReferencia, arquivo: arquivo as File });
+    const r = await onEnviar({ fonte, mesReferencia, arquivo: arquivo as File });
     setEnviando(false);
     if (r) {
       setErros(r);
@@ -69,10 +97,33 @@ export function FormularioCarga({ onEnviar, mesSugerido }: Props) {
           {erros.geral}
         </p>
       )}
-      <div className="flex flex-col gap-1">
-        <span className="font-semibold text-texto-forte">Fonte</span>
-        <span className="text-texto">CadÚnico (CECAD ou base completa do Portal de Gestão)</span>
-      </div>
+      {fontes.length === 1 ? (
+        <div className="flex flex-col gap-1">
+          <span className="font-semibold text-texto-forte">Fonte</span>
+          <span className="text-texto">
+            {DESCRICAO_FONTE[fonte].nome} ({DESCRICAO_FONTE[fonte].detalhe})
+          </span>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1">
+          <label htmlFor="fonte" className="font-semibold text-texto-forte">
+            Fonte
+          </label>
+          <select
+            id="fonte"
+            name="fonte"
+            value={fonte}
+            onChange={(e) => setFonte(e.target.value as FonteFormulario)}
+            className={campo}
+          >
+            {fontes.map((f) => (
+              <option key={f} value={f}>
+                {DESCRICAO_FONTE[f].nome} ({DESCRICAO_FONTE[f].detalhe})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="flex flex-col gap-1">
         <label htmlFor="mesReferencia" className="font-semibold text-texto-forte">
           Mês de referência

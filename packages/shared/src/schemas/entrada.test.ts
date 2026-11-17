@@ -144,6 +144,15 @@ describe('UploadCarga (§5)', () => {
     ]);
   });
 
+  it('gestão escolar e SEDUC só por CSV (P10)', () => {
+    for (const fonte of ['GESTAO_ESCOLAR', 'SEDUC']) {
+      expect(UploadCarga.safeParse({ ...base, fonte, nomeArquivo: 'freq.csv' }).success).toBe(true);
+      expect(campos(UploadCarga.safeParse({ ...base, fonte, nomeArquivo: 'freq.xlsx' }))).toEqual([
+        'nomeArquivo',
+      ]);
+    }
+  });
+
   it('fonte lida direto do banco (e-SUS) não aceita upload', () => {
     expect(campos(UploadCarga.safeParse({ ...base, fonte: 'ESUS_PEC' }))).toEqual(['fonte']);
   });

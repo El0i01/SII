@@ -29,7 +29,7 @@ export interface Carga {
   modo?: string | null;
 }
 
-/** Nome da carga na tela: o arquivo enviado ou, no e-SUS, o tipo de leitura. */
+/** Nome da carga na tela: o arquivo enviado, o tipo de leitura do e-SUS ou o job de faltas. */
 export function nomeCarga(c: Pick<Carga, 'id' | 'fonte' | 'arquivo' | 'modo'>): string {
   if (c.arquivo) return c.arquivo;
   if (c.fonte === 'ESUS_PEC')
@@ -38,6 +38,7 @@ export function nomeCarga(c: Pick<Carga, 'id' | 'fonte' | 'arquivo' | 'modo'>): 
       : c.modo === 'COMPLETA'
         ? 'e-SUS PEC · leitura completa'
         : 'e-SUS PEC';
+  if (c.fonte === 'INFREQUENCIA') return 'Conferência diária das faltas';
   return `Carga ${c.id}`;
 }
 

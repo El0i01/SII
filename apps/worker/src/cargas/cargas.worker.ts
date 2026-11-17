@@ -8,9 +8,11 @@ import { chaveDeHex } from '../../../api/src/cripto/cifra';
 import { criarPrisma, type PrismaClient } from '../banco';
 import { type EnvWorker, lerEnv } from '../config';
 import { carregarContratoPec, carregarMicroareas, conectarPec, configPec } from '../esus/pec';
+import { criarProcessadorInfrequencia } from '../educacao/infrequencia';
 import { criarProcessadorEsus } from '../esus/processador';
 import { criarProcessadorCadunico } from './cadunico';
-import { carregarDicionarioCadunico } from './dicionario';
+import { carregarDicionarioCadunico, carregarDicionarioEscolar } from './dicionario';
+import { criarProcessadorEscolar } from './escolar';
 import { type DependenciasCarga, executarCarga, type ProcessadorConsulta } from './pipeline';
 
 /** Worker BullMQ da fila de cargas. Exportado para o teste de integração usar o mesmo caminho. */
@@ -21,10 +23,10 @@ export function criarConsumidor(deps: DependenciasCarga, conexao: Redis): Worker
       const tentativas = job.opts.attempts ?? 1;
       let cargaId = cargaDoJob(job.data);
       if (cargaId === undefined) {
-        // Carga noturna do e-SUS: cria o LogCarga e grava o id no job (a nova tentativa usa o mesmo).
-        const c = await deps.prisma.logCarga.create({
-          data: { fonte: 'ESUS_PEC', status: 'AGUARDANDO' },
-        });
+        // Execução agendada (e-SUS, infrequência): cria o LogCarga e grava o id no job (a nova
+        // tentativa usa o mesmo).
+        const fonte = 'fonte' in job.data ? job.data.fonte : 'ESUS_PEC';
+        const c = await deps.prisma.logCarga.create({ data: { fonte, status: 'AGUARDANDO' } });
         cargaId = c.id;
         await job.updateData({ ...job.data, cargaId });
       }
@@ -52,6 +54,25 @@ export async function agendarEsus(fila: Queue<JobCarga>, cron: string): Promise<
   );
 }
 
+/** Nome do agendamento do job diário de infrequência (P10). */
+export const AGENDAMENTO_INFREQUENCIA = 'infrequencia-diaria';
+
+/**
+ * Agenda o job de infrequência na mesma fila das cargas (concorrência 1: não roda no meio de uma
+ * carga da gestão escolar). Fuso de Porto Velho.
+ */
+export async function agendarInfrequencia(fila: Queue<JobCarga>, cron: string): Promise<void> {
+  await fila.upsertJobScheduler(
+    AGENDAMENTO_INFREQUENCIA,
+    { pattern: cron, tz: 'America/Porto_Velho' },
+    {
+      name: 'infrequencia',
+      data: { fonte: 'INFREQUENCIA' },
+      opts: { attempts: 3, backoff: { type: 'exponential', delay: 60_000 } },
+    },
+  );
+}
+
 /**
  * Consumidor da fila `cargas` (concorrência 1: uma carga por vez, para não disputar a ligação de
  * pessoas). O job só traz o id do LogCarga.
@@ -71,18 +92,32 @@ export class CargasWorker implements OnModuleInit, OnApplicationShutdown {
     const minio = configMinio(env);
     this.prisma = criarPrisma(env.DATABASE_URL);
     this.minio = clienteMinio(minio);
+    const chaves = {
+      cifra: chaveDeHex(env.CHAVE_CIFRA, 'CHAVE_CIFRA'),
+      hmac: chaveDeHex(env.CHAVE_HMAC, 'CHAVE_HMAC'),
+    };
     const deps: DependenciasCarga = {
       prisma: this.prisma,
       minio: this.minio,
       bucket: minio.bucket,
       logger: this.logger,
       processadores: {
-        CADUNICO: criarProcessadorCadunico(carregarDicionarioCadunico(env.DICIONARIO_CADUNICO), {
-          cifra: chaveDeHex(env.CHAVE_CIFRA, 'CHAVE_CIFRA'),
-          hmac: chaveDeHex(env.CHAVE_HMAC, 'CHAVE_HMAC'),
-        }),
+        CADUNICO: criarProcessadorCadunico(
+          carregarDicionarioCadunico(env.DICIONARIO_CADUNICO),
+          chaves,
+        ),
+        GESTAO_ESCOLAR: criarProcessadorEscolar(
+          'GESTAO_ESCOLAR',
+          carregarDicionarioEscolar('GESTAO_ESCOLAR', env.DICIONARIO_GESTAO_ESCOLAR),
+          chaves,
+        ),
+        SEDUC: criarProcessadorEscolar(
+          'SEDUC',
+          carregarDicionarioEscolar('SEDUC', env.DICIONARIO_SEDUC),
+          chaves,
+        ),
       },
-      consultas: this.consultas(env),
+      consultas: { ...this.consultas(env), INFREQUENCIA: criarProcessadorInfrequencia() },
     };
     // BullMQ exige maxRetriesPerRequest null na conexão do Worker.
     this.redis = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
@@ -90,6 +125,8 @@ export class CargasWorker implements OnModuleInit, OnApplicationShutdown {
     this.worker = criarConsumidor(deps, this.redis);
     this.logger.log(`ouvindo a fila ${FILA_CARGAS}`);
     this.fila = new Queue<JobCarga>(FILA_CARGAS, { connection: this.redis.duplicate() });
+    await agendarInfrequencia(this.fila, env.INFREQUENCIA_CRON);
+    this.logger.log(`infrequência agendada (${env.INFREQUENCIA_CRON}, America/Porto_Velho)`);
     if (this.pec) {
       await agendarEsus(this.fila, env.ESUS_CRON);
       this.logger.log(`carga do e-SUS agendada (${env.ESUS_CRON}, America/Porto_Velho)`);

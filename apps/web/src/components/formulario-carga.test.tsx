@@ -36,7 +36,7 @@ describe('FormularioCarga', () => {
     await waitFor(() =>
       expect(screen.getByText('Mês de referência inválido (AAAA-MM).')).toBeInTheDocument(),
     );
-    expect(onEnviar).toHaveBeenCalledWith({ mesReferencia: '2026-10', arquivo });
+    expect(onEnviar).toHaveBeenCalledWith({ fonte: 'CADUNICO', mesReferencia: '2026-10', arquivo });
     expect(screen.getByLabelText('Mês de referência')).toHaveFocus();
   });
 
@@ -49,6 +49,24 @@ describe('FormularioCarga', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enviar arquivo' }));
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent('Não foi possível receber'),
+    );
+  });
+
+  it('com mais de uma fonte, escolhe a fonte e a envia junto (P10)', async () => {
+    const onEnviar = vi.fn().mockResolvedValue(null);
+    render(
+      <FormularioCarga
+        onEnviar={onEnviar}
+        mesSugerido="2026-10"
+        fontes={['GESTAO_ESCOLAR', 'SEDUC']}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Fonte'), { target: { value: 'SEDUC' } });
+    const arquivo = csv('seduc.csv');
+    fireEvent.change(screen.getByLabelText('Arquivo .csv'), { target: { files: [arquivo] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar arquivo' }));
+    await waitFor(() =>
+      expect(onEnviar).toHaveBeenCalledWith({ fonte: 'SEDUC', mesReferencia: '2026-10', arquivo }),
     );
   });
 });

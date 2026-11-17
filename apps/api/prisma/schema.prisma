@@ -604,6 +604,8 @@ model Matricula {
   turma       Turma?            @relation(fields: [turmaId], references: [id])
   frequencias Frequencia[]
 
+  /// Uma matrícula por aluno, escola e ano: as cargas (P10) fazem upsert por aqui.
+  @@unique([pessoaId, escolaId, ano])
   @@index([pessoaId])
   @@index([escolaId, situacao])
   @@map("matricula")
@@ -639,11 +641,14 @@ model CalendarioParametros {
 }
 
 model Frequencia {
-  id          BigInt             @id @default(autoincrement())
-  matriculaId Int                @map("matricula_id")
-  dia         DateTime           @db.Date
-  situacao    SituacaoFrequencia
-  matricula   Matricula          @relation(fields: [matriculaId], references: [id], onDelete: Cascade)
+  id           BigInt             @id @default(autoincrement())
+  matriculaId  Int                @map("matricula_id")
+  dia          DateTime           @db.Date
+  situacao     SituacaoFrequencia
+  /// Usuário que lançou ou corrigiu por último (null = carga ou seed).
+  lancadoPor   Int?               @map("lancado_por")
+  atualizadoEm DateTime           @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+  matricula    Matricula          @relation(fields: [matriculaId], references: [id], onDelete: Cascade)
 
   @@unique([matriculaId, dia])
   @@map("frequencia")

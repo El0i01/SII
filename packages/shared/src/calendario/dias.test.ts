@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { adicionarDias, diaDaSemana, diasUteisEntre, ehDataISO, somarDiasUteis } from './dias';
+import {
+  adicionarDias,
+  diaDaSemana,
+  diasUteisEntre,
+  ehDataISO,
+  hojeEmPortoVelho,
+  somarDiasUteis,
+} from './dias';
 
 describe('datas ISO', () => {
   it('reconhece AAAA-MM-DD válidas e recusa o resto', () => {
@@ -54,5 +61,13 @@ describe('dias úteis', () => {
   it('somar zero devolve o mesmo dia; negativo lança erro', () => {
     expect(somarDiasUteis('2026-11-14', 0)).toBe('2026-11-14');
     expect(() => somarDiasUteis('2026-11-14', -1)).toThrow(RangeError);
+  });
+});
+
+describe('hojeEmPortoVelho', () => {
+  it('às 2h UTC ainda é o dia anterior em Porto Velho', () => {
+    expect(hojeEmPortoVelho(new Date('2026-11-17T02:00:00Z'))).toBe('2026-11-16');
+    expect(hojeEmPortoVelho(new Date('2026-11-17T05:00:00Z'))).toBe('2026-11-17');
+    expect(hojeEmPortoVelho()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });

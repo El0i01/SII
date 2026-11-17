@@ -1,0 +1,53 @@
+{
+  "fonte": "Gestão escolar",
+  "versao": "Layout próprio do SII (P10, 17/11/2026) — a confirmar quando a SEMED definir o sistema de gestão escolar",
+  "campos": {
+    "inep": {
+      "rotulo": "Código INEP da escola",
+      "colunas": ["inep_escola", "codigo_inep", "inep", "co_entidade"],
+      "obrigatorio": true
+    },
+    "turma": {
+      "rotulo": "Turma",
+      "colunas": ["turma", "nome_turma", "no_turma"],
+      "obrigatorio": true
+    },
+    "codigoAluno": {
+      "rotulo": "Código do aluno no sistema",
+      "colunas": ["codigo_aluno", "id_aluno", "matricula_aluno", "co_pessoa_fisica"],
+      "obrigatorio": true
+    },
+    "nome": {
+      "rotulo": "Nome do aluno",
+      "colunas": ["nome_aluno", "nome", "no_pessoa_fisica"],
+      "obrigatorio": true
+    },
+    "nascimento": {
+      "rotulo": "Data de nascimento",
+      "colunas": ["data_nascimento", "nascimento", "dt_nascimento"],
+      "obrigatorio": true
+    },
+    "mae": {
+      "rotulo": "Nome da mãe",
+      "colunas": ["nome_mae", "mae", "no_mae"]
+    },
+    "cpf": {
+      "rotulo": "CPF do aluno",
+      "colunas": ["cpf_aluno", "cpf", "nu_cpf"]
+    },
+    "sexo": {
+      "rotulo": "Sexo",
+      "colunas": ["sexo", "tp_sexo"]
+    },
+    "data": {
+      "rotulo": "Data da frequência",
+      "colunas": ["data_frequencia", "data", "dia"],
+      "obrigatorio": true
+    },
+    "situacao": {
+      "rotulo": "Situação da frequência (P, F ou J)",
+      "colunas": ["situacao_frequencia", "frequencia", "situacao", "presenca"],
+      "obrigatorio": true
+    }
+  }
+}

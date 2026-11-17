@@ -2,10 +2,17 @@
 export const FILA_CARGAS = 'cargas';
 
 /**
- * O job leva só o id do LogCarga: nada do arquivo nem de pessoa passa pelo Redis. A carga noturna
- * do e-SUS (P09) nasce sem carga: o worker cria o LogCarga e grava o id no próprio job.
+ * O job leva só o id do LogCarga: nada do arquivo nem de pessoa passa pelo Redis. Uma execução
+ * agendada (e-SUS, infrequência) nasce sem carga: o worker cria o LogCarga e grava o id no job.
  */
-export type JobCarga = { cargaId: number } | { fonte: 'ESUS_PEC'; cargaId?: number };
+export type JobCarga = { cargaId: number } | { fonte: FonteAgendada; cargaId?: number };
+
+/**
+ * Execuções agendadas no worker que não vêm de arquivo: a carga noturna do e-SUS (P09) e o job
+ * diário de infrequência (P10). Também ficam no LogCarga, para a CTI acompanhar em /cargas.
+ */
+export const FONTES_AGENDADAS = ['ESUS_PEC', 'INFREQUENCIA'] as const;
+export type FonteAgendada = (typeof FONTES_AGENDADAS)[number];
 
 /** Id da carga do job, se já existir. */
 export function cargaDoJob(job: JobCarga): number | undefined {
@@ -20,6 +27,7 @@ export const ETAPAS_CARGA = [
   'LEITURA',
   'STAGING',
   'LIGACAO',
+  'FREQUENCIA',
   'FIM',
 ] as const;
 export type EtapaCarga = (typeof ETAPAS_CARGA)[number];
@@ -32,6 +40,7 @@ export const ROTULO_ETAPA: Record<EtapaCarga, string> = {
   LEITURA: 'Lendo o e-SUS',
   STAGING: 'Lendo as linhas',
   LIGACAO: 'Ligando as pessoas e gravando as famílias',
+  FREQUENCIA: 'Conferindo as faltas seguidas e abrindo os casos',
   FIM: 'Concluída',
 };
 

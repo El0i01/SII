@@ -1,0 +1,46 @@
+{
+  "fonte": "SEDUC-RO",
+  "versao": "Layout próprio do SII (P10, 17/11/2026) — a confirmar com a SEDUC-RO (matrículas de residentes na rede estadual)",
+  "campos": {
+    "inep": {
+      "rotulo": "Código INEP da escola",
+      "colunas": ["inep_escola", "codigo_inep", "inep", "co_entidade"],
+      "obrigatorio": true
+    },
+    "turma": {
+      "rotulo": "Série ou turma",
+      "colunas": ["turma", "serie", "etapa", "no_turma"]
+    },
+    "codigoAluno": {
+      "rotulo": "Código do aluno na SEDUC",
+      "colunas": ["codigo_aluno", "id_aluno", "matricula_aluno", "co_pessoa_fisica"],
+      "obrigatorio": true
+    },
+    "nome": {
+      "rotulo": "Nome do aluno",
+      "colunas": ["nome_aluno", "nome", "no_pessoa_fisica"],
+      "obrigatorio": true
+    },
+    "nascimento": {
+      "rotulo": "Data de nascimento",
+      "colunas": ["data_nascimento", "nascimento", "dt_nascimento"],
+      "obrigatorio": true
+    },
+    "mae": {
+      "rotulo": "Nome da mãe",
+      "colunas": ["nome_mae", "mae", "no_mae"]
+    },
+    "cpf": {
+      "rotulo": "CPF do aluno",
+      "colunas": ["cpf_aluno", "cpf", "nu_cpf"]
+    },
+    "sexo": {
+      "rotulo": "Sexo",
+      "colunas": ["sexo", "tp_sexo"]
+    },
+    "situacaoMatricula": {
+      "rotulo": "Situação da matrícula",
+      "colunas": ["situacao_matricula", "situacao", "status_matricula"]
+    }
+  }
+}

@@ -196,6 +196,24 @@ Toda tela de cadastro (web e mobile) mostra o pino sugerido para o usuário conf
 - Integrações: gestão escolar (enquanto não houver módulo próprio, importação CSV), Educacenso, Sistema Presença, matrículas da SEDUC-RO, GTE (transporte).
 - EJA: turmas, matrículas, frequência; público potencial vem do CadÚnico (escolaridade) e do Censo.
 
+Como ficou (P10, ADR 0009):
+
+- **Frequência no web** (`/frequencia`):
+  - a escola abre a grade aluno × dia letivo da turma e lança P, F ou J, ou apaga;
+  - o salvamento é automático, em lote (`PUT /escolas/:inep/turmas/:turma/frequencia`, schema `LancamentosFrequencia` do shared);
+  - a API recusa por item o dia não letivo, o dia futuro e o aluno fora da turma, e grava o resto;
+  - lançam a escola (só a própria), a SEMED e a CTI; o Comitê só consulta;
+  - fica registrado quem lançou ou corrigiu por último.
+- **Offline** (decisão de 17/11/2026): sem internet, a grade aberta e as alterações ficam no navegador, por usuário, por até 24 h, e são enviadas quando a conexão volta. Ao entrar, o navegador apaga o que for de outro usuário.
+- **Cargas** (padrão do §5):
+  - **gestão escolar**: aluno × dia, com matrícula na turma e frequência;
+  - **SEDUC-RO**: matrículas de residentes na rede estadual, com a situação;
+  - o layout é próprio do SII, **a confirmar** (dicionários em `apps/worker/config/dicionarios/`);
+  - enviam a SEMED e a CTI;
+  - a matrícula é única por aluno, escola e ano;
+  - a matrícula ativa atualiza a escola da pessoa (escopo do perfil ESCOLA);
+  - frequência em dia não letivo é ignorada com aviso.
+
 ### 3.5 Saúde (`saude`), só sinalizadores
 
 Do e-SUS APS PEC (leitura somente leitura), por pessoa: `ubsReferencia`, `microarea`, `acsResponsavel`, `ultimaVisitaAcs`, `vacinacaoEmDia`, `preNatalAdequado` (gestantes), `acamadoDomiciliado`, `condicaoCronicaAcompanhada` (booleano, sem dizer qual), `necessitaAtendimentoEspecializado`.
@@ -292,6 +310,12 @@ O DPO tem painel próprio de acessos.
   - vencido há mais de 7 dias úteis → nível 3 (pauta do Comitê).
 - Dias úteis: de segunda a sexta, sem os feriados.
 - Parecer emitido → notifica a escola e a SEMED; o caso fecha, exceto quando o desfecho é `ENCAMINHADO_CONSELHO_TUTELAR` ou há nova visita programada.
+- **Caso encerrado e o aluno ainda faltando** (decisão de 17/11/2026): o caso encerrado não conta como aberto. Com 5 ou mais faltas seguidas, o job abre outro caso na execução seguinte.
+- **Job diário** (P10, ADR 0009):
+  - roda de segunda a sábado às 6h (Porto Velho) e conta até o último dia letivo **antes** de hoje;
+  - o destino é o CRAS de referência da pessoa; senão, o território do CRAS que contém o domicílio; senão, o único CRAS do município;
+  - cada execução aparece em /cargas como "Conferência diária das faltas", só com contagens;
+  - para rodar na hora ou reprocessar uma data: `pnpm --filter @sii/worker infrequencia:rodar [AAAA-MM-DD]`.
 
 ### 4.2 Busca ativa escolar
 
@@ -393,3 +417,6 @@ Usuários: `ACS`, `CRAS_TECNICO`, `VISITADOR_PCF` e agentes de busca ativa.
 - Domínio e servidor de produção; política de backup da CTI.
 - Pesos do IVM e metas a aprovar pelo Comitê Gestor.
 - Sistema de gestão escolar atual da SEMED (integrar ou substituir).
+- **Educação (P10, a confirmar com a SEMED e a SEDUC-RO):**
+  - os layouts de `apps/worker/config/dicionarios/gestao-escolar.json` e `seduc.json` são próprios do SII; trocar pelos nomes reais quando chegar o primeiro arquivo;
+  - o "aviso à escola" da infrequência hoje é só o evento na trilha; a notificação interna à escola e à SEMED entra no P11.

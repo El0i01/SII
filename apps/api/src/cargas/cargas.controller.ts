@@ -15,21 +15,22 @@ import { ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { TAMANHO_MAXIMO_CARGA } from '@sii/shared';
 import { Perfis } from '../auth/decorators';
 import { UsuarioAtual, type UsuarioAutenticado } from '../comum/usuario-autenticado';
-import { type ArquivoEnviado, CargasService } from './cargas.service';
+import { type ArquivoEnviado, CargasService, type PerfilQueEnvia } from './cargas.service';
 
 /**
- * Cargas por upload (§5, P08). Enviam a CTI e o ponto focal da Assistência (decisão de 12/11/2026).
+ * Cargas por upload (§5, P08, P10). A CTI envia todas; o ponto focal da Assistência, o CadÚnico
+ * (decisão de 12/11/2026); a SEMED, gestão escolar e SEDUC-RO (P10).
  * As respostas só trazem contagens e mensagens fixas: nenhum dado de pessoa.
  */
 @ApiTags('cargas')
-@Perfis('ADMIN_CTI', 'ASSISTENCIA_GESTOR')
+@Perfis('ADMIN_CTI', 'ASSISTENCIA_GESTOR', 'SEMED_GESTOR')
 @Controller('cargas')
 export class CargasController {
   constructor(private readonly cargas: CargasService) {}
 
   @Post()
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Enviar arquivo de carga (CSV do CadÚnico)' })
+  @ApiOperation({ summary: 'Enviar arquivo de carga (CadÚnico, gestão escolar, SEDUC-RO)' })
   @UseInterceptors(
     // Sem `dest`, o multer guarda em memória: o arquivo nunca toca o disco da API.
     FileInterceptor('arquivo', {
@@ -41,7 +42,7 @@ export class CargasController {
     @UploadedFile() arquivo: ArquivoEnviado | undefined,
     @UsuarioAtual() u: UsuarioAutenticado,
   ) {
-    return this.cargas.enviar(corpo, arquivo, u.id);
+    return this.cargas.enviar(corpo, arquivo, u.id, u.perfil as PerfilQueEnvia);
   }
 
   @Get()

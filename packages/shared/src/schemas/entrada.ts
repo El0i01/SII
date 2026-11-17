@@ -119,7 +119,15 @@ export const UploadCarga = z
   .refine((d) => d.fonte !== 'CADUNICO' || !/\.xlsx$/i.test(d.nomeArquivo), {
     path: ['nomeArquivo'],
     message: 'Para o CadÚnico, envie o arquivo .csv exportado do CECAD ou do Portal de Gestão.',
-  });
+  })
+  // As cargas da Educação (P10) também leem CSV.
+  .refine(
+    (d) => !['GESTAO_ESCOLAR', 'SEDUC'].includes(d.fonte) || !/\.xlsx$/i.test(d.nomeArquivo),
+    {
+      path: ['nomeArquivo'],
+      message: 'Envie o arquivo .csv exportado do sistema (não a planilha do Excel).',
+    },
+  );
 export type UploadCarga = z.infer<typeof UploadCarga>;
 
 export type PontoGps = z.infer<typeof PontoGps>;

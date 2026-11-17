@@ -3,7 +3,11 @@
 import { cargaTerminou, ROTULO_STATUS_CARGA } from '@sii/shared';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { type ErrosCarga, FormularioCarga } from '@/components/formulario-carga';
+import {
+  type ErrosCarga,
+  FormularioCarga,
+  type FonteFormulario,
+} from '@/components/formulario-carga';
 import { AlertasCarga, type AlertaCarga } from '@/components/alertas-carga';
 import { type Carga, nomeCarga, ProgressoCarga } from '@/components/progresso-carga';
 import { TabelaErrosCarga } from '@/components/tabela-erros-carga';
@@ -14,6 +18,13 @@ type Estado =
   | { tipo: 'erro'; mensagem: string }
   | { tipo: 'sem-permissao' }
   | { tipo: 'pronto'; cargas: Carga[] };
+
+/** Quem envia o quê (igual à API): a Assistência o CadÚnico, a SEMED as cargas da Educação. */
+const FONTES_POR_PERFIL: Record<string, FonteFormulario[]> = {
+  ADMIN_CTI: ['CADUNICO', 'GESTAO_ESCOLAR', 'SEDUC'],
+  ASSISTENCIA_GESTOR: ['CADUNICO'],
+  SEMED_GESTOR: ['GESTAO_ESCOLAR', 'SEDUC'],
+};
 
 function mesAnterior(): string {
   const d = new Date();
@@ -27,6 +38,7 @@ export default function Cargas() {
   const [estado, setEstado] = useState<Estado>({ tipo: 'carregando' });
   const [selecionada, setSelecionada] = useState<number | null>(null);
   const [alertas, setAlertas] = useState<AlertaCarga[]>([]);
+  const [fontes, setFontes] = useState<FonteFormulario[]>(['CADUNICO']);
 
   const tratarErro = useCallback(
     (e: unknown) => {
@@ -48,7 +60,11 @@ export default function Cargas() {
 
   const carregar = useCallback(async () => {
     try {
-      const cargas = await api<Carga[]>('/cargas');
+      const [cargas, eu] = await Promise.all([
+        api<Carga[]>('/cargas'),
+        api<{ perfil: string }>('/auth/eu').catch(() => null),
+      ]);
+      setFontes(FONTES_POR_PERFIL[eu?.perfil ?? ''] ?? ['CADUNICO']);
       setEstado({ tipo: 'pronto', cargas });
       // Só a CTI recebe os alertas; para os outros perfis a API responde 403 e a faixa não aparece.
       setAlertas(await api<AlertaCarga[]>('/cargas/alertas').catch(() => []));
@@ -71,9 +87,13 @@ export default function Cargas() {
     return () => clearInterval(t);
   }, [emAndamento, carregar]);
 
-  async function enviar(d: { mesReferencia: string; arquivo: File }): Promise<ErrosCarga | null> {
+  async function enviar(d: {
+    fonte: FonteFormulario;
+    mesReferencia: string;
+    arquivo: File;
+  }): Promise<ErrosCarga | null> {
     const corpo = new FormData();
-    corpo.set('fonte', 'CADUNICO');
+    corpo.set('fonte', d.fonte);
     corpo.set('mesReferencia', d.mesReferencia);
     corpo.set('arquivo', d.arquivo);
     try {
@@ -102,10 +122,10 @@ export default function Cargas() {
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold text-texto-forte">Cargas de dados</h1>
         <p className="max-w-prose text-texto-suave">
-          Envie a base do CadÚnico exportada do CECAD ou do Portal de Gestão. O sistema confere as
-          colunas, liga cada pessoa à ficha única e atualiza a renda e o Bolsa Família das famílias
-          do mês. Você acompanha o andamento e os problemas linha a linha. A leitura do e-SUS PEC
-          roda sozinha toda noite e também aparece no histórico.
+          Envie a base do CadÚnico (Assistência) ou os arquivos da gestão escolar e da SEDUC-RO
+          (SEMED). O sistema confere as colunas, liga cada pessoa à ficha única e atualiza o que
+          cada fonte traz. Você acompanha o andamento e os problemas linha a linha. A leitura do
+          e-SUS PEC e a conferência diária das faltas rodam sozinhas e também aparecem no histórico.
         </p>
       </div>
 
@@ -139,8 +159,8 @@ export default function Cargas() {
 
       {estado.tipo === 'sem-permissao' && (
         <div className="rounded-md border-l-4 border-alerta-destaque bg-alerta-claro p-4 text-texto-forte">
-          Só o ponto focal do CadÚnico na Assistência Social e a equipe da CTI enviam cargas. Se
-          você acha que deveria ter acesso, fale com a CTI.
+          Enviam cargas o ponto focal do CadÚnico na Assistência Social, a coordenação da SEMED e a
+          equipe da CTI. Se você acha que deveria ter acesso, fale com a CTI.
         </div>
       )}
 
@@ -150,7 +170,7 @@ export default function Cargas() {
             <h2 id="enviar" className="text-lg font-semibold text-texto-forte">
               Enviar arquivo
             </h2>
-            <FormularioCarga onEnviar={enviar} mesSugerido={mesAnterior()} />
+            <FormularioCarga onEnviar={enviar} mesSugerido={mesAnterior()} fontes={fontes} />
           </section>
 
           {atual && (

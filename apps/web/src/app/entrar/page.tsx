@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { FormularioEntrar } from '@/components/formulario-entrar';
 import { api, ErroApi } from '@/lib/api';
+import { limparFrequenciaGuardada } from '@/lib/fila-frequencia';
 
 function Entrar() {
   const router = useRouter();
@@ -14,6 +15,13 @@ function Entrar() {
   async function onEntrar(login: string, senha: string) {
     try {
       await api('/auth/login', { method: 'POST', body: JSON.stringify({ login, senha }) });
+      // Frequência guardada offline por outro usuário neste navegador sai agora (ADR 0009).
+      const eu = await api<{ id: number }>('/auth/eu').catch(() => null);
+      try {
+        limparFrequenciaGuardada(window.localStorage, eu?.id);
+      } catch {
+        // localStorage bloqueado: nada guardado
+      }
       router.push(destino);
       return null;
     } catch (e) {

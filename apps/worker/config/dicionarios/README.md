@@ -14,3 +14,12 @@ obrigatória. A conferência ignora maiúsculas, acentos, aspas e o prefixo de t
     Família e meio salário mínimo).
 
 Outro arquivo pode ser usado com `DICIONARIO_CADUNICO=/caminho/arquivo.json` no `.env`.
+
+- `gestao-escolar.json` e `seduc.json`: cargas da Educação (P10).
+  - **Layout próprio do SII, a confirmar** quando a SEMED definir o sistema de gestão escolar e
+    quando a SEDUC-RO mandar o arquivo de residentes matriculados na rede estadual (§9).
+  - Gestão escolar: uma linha por aluno × dia (`data_frequencia` + `situacao_frequencia` P, F ou J).
+    Linha com a data vazia vale só como matrícula na turma. Frequência em dia que não é letivo no
+    calendário da escola é ignorada (aviso).
+  - SEDUC: uma linha por matrícula; `situacao_matricula` vazia é ATIVA.
+  - Outro arquivo: `DICIONARIO_GESTAO_ESCOLAR` e `DICIONARIO_SEDUC` no `.env`.

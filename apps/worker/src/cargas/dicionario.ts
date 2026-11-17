@@ -32,3 +32,24 @@ export function carregarDicionarioCadunico(caminho?: string): DicionarioCadunico
     );
   return r.data;
 }
+
+export const CAMINHOS_ESCOLARES = {
+  GESTAO_ESCOLAR: 'apps/worker/config/dicionarios/gestao-escolar.json',
+  SEDUC: 'apps/worker/config/dicionarios/seduc.json',
+} as const;
+
+/** Lê e valida o dicionário de uma carga da Educação (P10). Inválido: o worker não sobe. */
+export function carregarDicionarioEscolar(
+  fonte: keyof typeof CAMINHOS_ESCOLARES,
+  caminho?: string,
+): Dicionario {
+  const arquivo = caminho ?? path.join(raizDoRepo(), CAMINHOS_ESCOLARES[fonte]);
+  const r = Dicionario.safeParse(JSON.parse(fs.readFileSync(arquivo, 'utf8')));
+  if (!r.success)
+    throw new Error(
+      `Dicionário ${fonte} inválido (${path.basename(arquivo)}): ${r.error.issues
+        .map((i) => `${i.path.join('.')}: ${i.message}`)
+        .join('; ')}`,
+    );
+  return r.data;
+}

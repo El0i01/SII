@@ -63,8 +63,8 @@ sii-itapua/
 - Um módulo NestJS por domínio: `territorio`, `pessoas`, `educacao`, `saude`, `assistencia`, `casos`, `notificacoes`, `fichas`, `indicadores`, `auditoria`, `integracoes`, `auth`, `usuarios`.
 - Toda regra de negócio que precise rodar em mais de um lugar vai para `packages/shared`, como função pura testada. Nunca duplicar regra entre API, web e mobile.
   O que já existe em `packages/shared/src/`:
-  - `calendario/`: dias úteis;
-  - `educacao/`: faltas seguidas;
+  - `calendario/`: dias úteis, dias letivos e `hojeEmPortoVelho`;
+  - `educacao/`: faltas seguidas e decisão do job de infrequência (`decidirInfrequencia`);
   - `casos/`: prazos e escalonamento;
   - `motivos/`: motivos de visita da criança e do idoso;
   - `indice/`: IVM;
@@ -73,7 +73,8 @@ sii-itapua/
   - `territorio/`: cascata de geocodificação;
   - `enums/`: perfis e domínio;
   - `saude/`: contrato do PEC e sinalizadores;
-  - `schemas/`: Parecer, Visita, Encaminhamento e UploadCarga;
+  - `schemas/`: Parecer, Visita, Encaminhamento, UploadCarga e LancamentosFrequencia;
+  - `cargas/`: CSV, layout, documentos, conversores do CadÚnico, da gestão escolar e da SEDUC;
   - `acesso/`: login e usuários.
   
   Procure aqui antes de escrever uma regra nova. O shared exige 100% de cobertura de linhas.
@@ -94,6 +95,7 @@ sii-itapua/
 - Variáveis sensíveis só em `.env` (nunca commitado). `.env.example` sempre atualizado.
 - **CPF, NIS e CNS só cifrados + hash** (`CriptoService.proteger` ou `protegerDocumento`). Nunca grave nem logue o número em texto. Para buscar, use o hash (`PessoasRepositorio.buscarPorCpf`). Para revelar, só pelo fluxo com finalidade (P12).
 - **Carga nunca loga linha nem valor**: o log do worker só recebe id da carga, contagens e o tipo do erro; erro por linha vai para `auditoria.erro_carga` com mensagem fixa (ADR 0007).
+- **Caso de infrequência só pelo job** (`apps/worker/src/educacao/infrequencia.ts`): trava + conferência de caso aberto na mesma transação (ADR 0009). Não crie Caso/Notificacao de infrequência em outro lugar.
 - **Do e-SUS só saem sinalizadores**: a consulta do conector nunca seleciona CID, CIAP ou diagnóstico, e a conexão com o PEC é somente leitura (ADR 0008). Nome novo de tabela ou coluna vai no contrato (`config/esus/contrato.json`), não no código.
 - **Registro de fonte entra sempre por `LigacaoPessoas.ligar`** (CPF → CNS/NIS → nome+nascimento+mãe → revisão). Nunca crie `PessoaMestra` direto numa carga: a identidade única depende disso (ADR 0006).
 - A trilha (`casos.evento_caso`) é append-only e encadeada pelo banco: só INSERT, sem informar `seq` nem `hash`, e sem dado pessoal em `dados`.
@@ -131,11 +133,12 @@ pnpm --filter @sii/mobile start
 pnpm db:seed             # usuários fictícios (1 por perfil, senha SEED_SENHA do .env) e pessoas fictícias
 pnpm test && pnpm lint && pnpm typecheck
 pnpm --filter @sii/api test:integracao     # precisa da infra no ar
-pnpm --filter @sii/worker test:integracao  # CadÚnico (5 mil linhas) e e-SUS (PEC de teste) contra a infra
+pnpm --filter @sii/worker test:integracao  # CadÚnico, e-SUS, cargas escolares e infrequência contra a infra
 pnpm --filter @sii/worker cadunico:ficticio [linhas] [arquivo]   # CSV fictício para testar /cargas
 pnpm --filter @sii/worker esus:dry-run       # confere a estrutura do PEC e conta o que leria, sem gravar nada
 pnpm --filter @sii/worker esus:carregar      # põe a carga do e-SUS na fila agora (worker rodando)
 pnpm --filter @sii/worker esus:pec-ficticio [n]  # banco pec_ficticio local para testar o conector
+pnpm --filter @sii/worker infrequencia:rodar [AAAA-MM-DD]  # job de infrequência agora (ou reprocessa uma data)
 pnpm geo:importar <arquivo.shp> <tabela>   # shapefile → stg_geoportal.<tabela> em EPSG:4674
 pnpm geo:carregar        # geoportal inteiro: setores, equipamentos, microáreas, ruas, grade provisória (ADR 0005)
 pnpm infra:down
