@@ -115,6 +115,8 @@ export interface NovoCaso {
   abertura: { tipo: 'ALERTA_GERADO' | 'ENCAMINHADO'; dados: Prisma.InputJsonValue };
   /** Notificação ao CRAS (destino Assistência). */
   notificacao?: { motivo: string; origem: string };
+  /** Status inicial do caso (busca ativa começa IDENTIFICADO). Padrão: NOVA na infrequência, ENCAMINHADO nos demais. */
+  statusInicial?: string;
   autorId?: number | null;
 }
 
@@ -148,7 +150,7 @@ export async function criarCaso(
   const prazo = dia(somarDiasUteis(a.hoje, PRAZO_PARECER_DIAS_UTEIS, a.feriados));
   const agora = new Date();
   // Infrequência segue a situação da notificação; os demais tipos começam encaminhados.
-  const status = a.tipo === 'INFREQUENCIA' ? 'NOVA' : 'ENCAMINHADO';
+  const status = a.statusInicial ?? (a.tipo === 'INFREQUENCIA' ? 'NOVA' : 'ENCAMINHADO');
 
   const caso = await tx.caso.create({
     data: {

@@ -39,6 +39,7 @@ export default function Inicio() {
         <ul className="flex flex-wrap gap-3">
           {[
             { href: '/fichas', rotulo: 'Ficha da criança' },
+            { href: '/busca-ativa', rotulo: 'Busca ativa escolar' },
             { href: '/frequencia', rotulo: 'Lançar frequência da turma' },
             { href: '/notificacoes', rotulo: 'Notificações à Assistência' },
             { href: '/pauta', rotulo: 'Pauta do Comitê' },

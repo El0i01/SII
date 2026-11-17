@@ -65,7 +65,7 @@ sii-itapua/
   O que já existe em `packages/shared/src/`:
   - `calendario/`: dias úteis, dias letivos e `hojeEmPortoVelho`;
   - `educacao/`: faltas seguidas e decisão do job de infrequência (`decidirInfrequencia`);
-  - `casos/`: prazos, escalonamento (`prazoHoje`), efeito do parecer e destinos dos avisos;
+  - `casos/`: prazos, escalonamento (`prazoHoje`), efeito do parecer, destinos dos avisos e busca ativa (gatilho, etapas, quem pode, painel, CSV);
   - `motivos/`: motivos de visita da criança e do idoso;
   - `indice/`: IVM;
   - `creche/`: cobertura, déficit e prioridade;
@@ -136,12 +136,13 @@ pnpm --filter @sii/mobile start
 pnpm db:seed             # usuários fictícios (1 por perfil, senha SEED_SENHA do .env) e pessoas fictícias
 pnpm test && pnpm lint && pnpm typecheck
 pnpm --filter @sii/api test:integracao     # precisa da infra no ar
-pnpm --filter @sii/worker test:integracao  # CadÚnico, e-SUS, cargas escolares e infrequência contra a infra
+pnpm --filter @sii/worker test:integracao  # CadÚnico, e-SUS, cargas escolares, infrequência, busca ativa e prazos
 pnpm --filter @sii/worker cadunico:ficticio [linhas] [arquivo]   # CSV fictício para testar /cargas
 pnpm --filter @sii/worker esus:dry-run       # confere a estrutura do PEC e conta o que leria, sem gravar nada
 pnpm --filter @sii/worker esus:carregar      # põe a carga do e-SUS na fila agora (worker rodando)
 pnpm --filter @sii/worker esus:pec-ficticio [n]  # banco pec_ficticio local para testar o conector
 pnpm --filter @sii/worker infrequencia:rodar [AAAA-MM-DD]  # job de infrequência agora (ou reprocessa uma data)
+pnpm --filter @sii/worker busca-ativa:rodar [AAAA-MM-DD]   # job de busca ativa escolar agora
 pnpm --filter @sii/worker prazos:rodar [AAAA-MM-DD]        # job de prazos e escalonamento agora
 pnpm --filter @sii/web e2e   # Playwright (Chrome do sistema), API 3334 + web 3001 no banco de TESTE
 pnpm geo:importar <arquivo.shp> <tabela>   # shapefile → stg_geoportal.<tabela> em EPSG:4674

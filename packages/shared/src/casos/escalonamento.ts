@@ -31,7 +31,14 @@ export function subiuDeNivel(antes: number, depois: NivelEscalonamento): boolean
   return depois > antes;
 }
 
-export type TipoAviso = 'PARECER_EMITIDO' | 'NIVEL_1' | 'NIVEL_2' | 'NIVEL_3' | 'ENCAMINHAMENTO';
+export type TipoAviso =
+  | 'PARECER_EMITIDO'
+  | 'NIVEL_1'
+  | 'NIVEL_2'
+  | 'NIVEL_3'
+  | 'ENCAMINHAMENTO'
+  | 'IDENTIFICADO'
+  | 'VISITA';
 
 /**
  * Texto fixo dos avisos internos. Leva só o código do caso: aviso nunca tem dado pessoal (pode ir
@@ -49,5 +56,9 @@ export function textoAviso(tipo: TipoAviso, codigoCaso: string, detalhe?: string
       return `O caso ${codigoCaso} está vencido há mais de 7 dias e entrou na pauta do Comitê.`;
     case 'ENCAMINHAMENTO':
       return `Novo caso encaminhado: ${codigoCaso}.`;
+    case 'IDENTIFICADO':
+      return `Criança ou adolescente fora da escola identificado: caso ${codigoCaso}.`;
+    case 'VISITA':
+      return `Visita registrada no caso ${codigoCaso}${detalhe ? `: ${detalhe}` : ''}.`;
   }
 }

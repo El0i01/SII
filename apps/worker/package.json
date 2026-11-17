@@ -16,7 +16,8 @@
     "esus:carregar": "tsx scripts/esus-carregar.ts",
     "esus:pec-ficticio": "tsx scripts/esus-pec-ficticio.ts",
     "infrequencia:rodar": "tsx scripts/infrequencia-rodar.ts",
-    "prazos:rodar": "tsx scripts/prazos-rodar.ts"
+    "prazos:rodar": "tsx scripts/prazos-rodar.ts",
+    "busca-ativa:rodar": "tsx scripts/busca-ativa-rodar.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.22",

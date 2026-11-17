@@ -33,3 +33,4 @@ export * from './saude/contrato-pec';
 export * from './saude/sinalizadores';
 export * from './fichas/ficha';
 export * from './schemas/revelar';
+export * from './casos/busca-ativa';

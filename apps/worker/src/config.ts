@@ -44,6 +44,8 @@ export const EnvWorker = z.object({
   /** Job diário de infrequência (P10): de segunda a sábado às 6h de Porto Velho. */
   INFREQUENCIA_CRON: z.string().min(9).default('0 6 * * 1-6'),
   /** Job diário de prazos e escalonamento (P11): todo dia às 6h30, depois da infrequência. */
+  /** Job de busca ativa (P13): depois da infrequência, antes dos prazos. */
+  BUSCA_ATIVA_CRON: z.string().min(9).default('15 6 * * *'),
   PRAZOS_CRON: z.string().min(9).default('30 6 * * *'),
   MICROAREAS_ESUS: z.string().optional(),
 });

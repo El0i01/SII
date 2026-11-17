@@ -39,6 +39,7 @@ export function nomeCarga(c: Pick<Carga, 'id' | 'fonte' | 'arquivo' | 'modo'>): 
         ? 'e-SUS PEC · leitura completa'
         : 'e-SUS PEC';
   if (c.fonte === 'INFREQUENCIA') return 'Conferência diária das faltas';
+  if (c.fonte === 'BUSCA_ATIVA') return 'Busca ativa diária (crianças fora da escola)';
   if (c.fonte === 'PRAZOS') return 'Conferência diária dos prazos';
   return `Carga ${c.id}`;
 }

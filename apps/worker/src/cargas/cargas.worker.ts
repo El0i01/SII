@@ -8,6 +8,7 @@ import { chaveDeHex } from '../../../api/src/cripto/cifra';
 import { criarPrisma, type PrismaClient } from '../banco';
 import { type EnvWorker, lerEnv } from '../config';
 import { carregarContratoPec, carregarMicroareas, conectarPec, configPec } from '../esus/pec';
+import { criarProcessadorBuscaAtiva } from '../educacao/busca-ativa';
 import { criarProcessadorPrazos } from '../casos/prazos';
 import { criarProcessadorInfrequencia } from '../educacao/infrequencia';
 import { criarProcessadorEsus } from '../esus/processador';
@@ -69,6 +70,21 @@ export async function agendarInfrequencia(fila: Queue<JobCarga>, cron: string): 
     {
       name: 'infrequencia',
       data: { fonte: 'INFREQUENCIA' },
+      opts: { attempts: 3, backoff: { type: 'exponential', delay: 60_000 } },
+    },
+  );
+}
+
+/** Nome do agendamento do job diário de busca ativa (P13). */
+export const AGENDAMENTO_BUSCA_ATIVA = 'busca-ativa-diaria';
+
+export async function agendarBuscaAtiva(fila: Queue<JobCarga>, cron: string): Promise<void> {
+  await fila.upsertJobScheduler(
+    AGENDAMENTO_BUSCA_ATIVA,
+    { pattern: cron, tz: 'America/Porto_Velho' },
+    {
+      name: 'busca-ativa',
+      data: { fonte: 'BUSCA_ATIVA' },
       opts: { attempts: 3, backoff: { type: 'exponential', delay: 60_000 } },
     },
   );
@@ -136,6 +152,7 @@ export class CargasWorker implements OnModuleInit, OnApplicationShutdown {
       consultas: {
         ...this.consultas(env),
         INFREQUENCIA: criarProcessadorInfrequencia(),
+        BUSCA_ATIVA: criarProcessadorBuscaAtiva(),
         PRAZOS: criarProcessadorPrazos(),
       },
     };
@@ -147,6 +164,8 @@ export class CargasWorker implements OnModuleInit, OnApplicationShutdown {
     this.fila = new Queue<JobCarga>(FILA_CARGAS, { connection: this.redis.duplicate() });
     await agendarInfrequencia(this.fila, env.INFREQUENCIA_CRON);
     this.logger.log(`infrequência agendada (${env.INFREQUENCIA_CRON}, America/Porto_Velho)`);
+    await agendarBuscaAtiva(this.fila, env.BUSCA_ATIVA_CRON);
+    this.logger.log(`busca ativa agendada (${env.BUSCA_ATIVA_CRON}, America/Porto_Velho)`);
     await agendarPrazos(this.fila, env.PRAZOS_CRON);
     this.logger.log(`prazos agendados (${env.PRAZOS_CRON}, America/Porto_Velho)`);
     if (this.pec) {

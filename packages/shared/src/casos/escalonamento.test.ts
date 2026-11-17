@@ -52,7 +52,11 @@ describe('subiuDeNivel e textoAviso', () => {
       'O CRAS emitiu o parecer do caso IF-2026-0123: Retorno à escola combinado.',
     );
     expect(textoAviso('PARECER_EMITIDO', 'IF-2026-0123')).toContain('IF-2026-0123.');
-    for (const t of ['NIVEL_1', 'NIVEL_2', 'NIVEL_3', 'ENCAMINHAMENTO'] as const)
+    for (const t of ['NIVEL_1', 'NIVEL_2', 'NIVEL_3', 'ENCAMINHAMENTO', 'IDENTIFICADO'] as const)
       expect(textoAviso(t, 'BA-2026-0301')).toContain('BA-2026-0301');
+    expect(textoAviso('VISITA', 'BA-2026-0301', 'família não localizada')).toBe(
+      'Visita registrada no caso BA-2026-0301: família não localizada.',
+    );
+    expect(textoAviso('VISITA', 'BA-2026-0301')).toBe('Visita registrada no caso BA-2026-0301.');
   });
 });

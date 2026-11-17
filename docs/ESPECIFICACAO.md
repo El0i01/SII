@@ -356,6 +356,17 @@ Como ficou (P12, ADR 0011):
 - Prazos contados do alerta: identificado → encaminhado em **5 dias**; encaminhado → visita em **20 dias**; visita → matrícula em **30 dias**; não localizado → comunicar o Conselho Tutelar em **30 dias**.
 - Escalonamento: faltando 3 dias ou menos → nível 1 (aviso ao responsável); vencido → nível 2; vencido há mais de 7 dias → nível 3 (pauta do Comitê).
 
+Como ficou (P13, ADR 0012):
+
+- **Job diário** (`apps/worker/src/educacao/busca-ativa.ts`, fonte `BUSCA_ATIVA` na fila `cargas`, `BUSCA_ATIVA_CRON` 6h15, `busca-ativa:rodar [data]`):
+  - abre o caso (`criarCaso`, etapa `IDENTIFICADO`, secretaria SEMED, aviso à SEMED) para quem tem 4 a 17 anos, domicílio no município, nenhuma matrícula ativa e nenhum caso aberto (`deveAbrirBuscaAtiva`, shared);
+  - origem do alerta pelos vínculos da pessoa: CadÚnico, depois e-SUS, depois Censo Municipal;
+  - fecha como `MATRICULADO` o caso aberto de quem ganhou matrícula ativa (evento `DESFECHO`);
+  - **não reabre por 180 dias** o caso de quem foi comunicado ao Conselho Tutelar (senão voltaria no dia seguinte).
+- **Etapas** (decisão de 17/11/2026, `proximaEtapa` e `quemPode` no shared): a SEMED (e o Comitê e a CTI) encaminha à secretaria responsável (SEMED, Assistência ou Saúde); a visita é registrada pela secretaria do caso (SEMED; CRAS ou ponto focal da Assistência; coordenação da Saúde ou ACS), com relato sem CID, e leva a `VISITA_REALIZADA` ou `NAO_LOCALIZADO`; a SEMED registra a matrícula (cria a matrícula e fecha o caso) ou comunica o Conselho Tutelar (fecha o caso). Etapa errada → 409; perfil errado → 403. Tudo na trilha.
+- **Painel** (`/busca-ativa`): KPIs, funil e origem com as fórmulas do protótipo; com o seed recém-criado, os números batem com o protótipo (o teste confere). "Encaminhados em até 30 dias" é calculado (no protótipo era fixo em 88%). O auditor vê só os números, com contagens menores que 5 suprimidas. Exportação CSV com iniciais, sem CPF nem nome.
+- Rodar o job no seed abre os casos das crianças "Fora da escola" das fichas, como aconteceria em produção (decisão de 17/11/2026).
+
 ### 4.3 Motivos de visita (criança)
 
 Fora da escola (4 a 17) · 5 ou mais faltas seguidas · vacinação atrasada · sem visita do ACS há mais de 90 dias · Criança Feliz sem visita há mais de 14 dias · necessidade de AEE sem atendimento · 0 a 3 no CadÚnico sem creche e sem Criança Feliz.
@@ -459,3 +470,6 @@ Usuários: `ACS`, `CRAS_TECNICO`, `VISITADOR_PCF` e agentes de busca ativa.
 - **Ficha da criança (P12):**
   - Conselho Tutelar na ficha vem só dos casos (evento `ENCAMINHADO_CONSELHO_TUTELAR`); falta a fonte do próprio Conselho;
   - recorte de campos por secretaria fica desligado por decisão de 17/11/2026 (matriz pronta em `secoesDaFicha`).
+- **Busca ativa (P13):**
+  - quarentena de 180 dias depois do Conselho Tutelar: confirmar o prazo com a SEMED e o Conselho;
+  - "residente" hoje é ter domicílio cadastrado; quem mudou de município precisa de baixa na fonte.
