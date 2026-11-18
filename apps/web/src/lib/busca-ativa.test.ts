@@ -1,10 +1,4 @@
-import {
-  atendeBuscaCaso,
-  atendeSituacao,
-  csvDosCasos,
-  type ItemBuscaAtiva,
-  ordenar,
-} from './busca-ativa';
+import { atendeBuscaCaso, atendeSituacao, csvDosCasos, type ItemBuscaAtiva } from './busca-ativa';
 
 const item = (i: Partial<ItemBuscaAtiva>): ItemBuscaAtiva => ({
   codigo: 'BA-2026-0301',
@@ -12,6 +6,7 @@ const item = (i: Partial<ItemBuscaAtiva>): ItemBuscaAtiva => ({
   iniciais: 'A. B. C.',
   cpf: '***.456.789-**',
   idade: 9,
+  setorCodigo: 'S03',
   setor: 'Setor 3',
   localidade: 'Q052',
   origem: 'CadÚnico',
@@ -54,21 +49,5 @@ describe('busca ativa no web', () => {
     expect(atendeBuscaCaso(item({}), 'assistência')).toBe(true);
     expect(atendeBuscaCaso(item({ escola: 'EMEF Castanheira' }), 'castanheira')).toBe(true);
     expect(atendeBuscaCaso(item({}), 'BA-2026-9')).toBe(false);
-  });
-
-  it('ordena por coluna, com o prazo concluído no fim', () => {
-    const a = item({
-      codigo: 'A',
-      dias: 3,
-      prazo: { restante: null, nivel: 0, rotulo: 'Concluído', tom: 'neutro' },
-    });
-    const b = item({
-      codigo: 'B',
-      dias: 9,
-      prazo: { restante: -2, nivel: 2, rotulo: 'x', tom: 'critico' },
-    });
-    expect(ordenar([a, b], 'dias', -1).map((i) => i.codigo)).toEqual(['B', 'A']);
-    expect(ordenar([a, b], 'prazo', 1).map((i) => i.codigo)).toEqual(['B', 'A']);
-    expect(ordenar([b, a], 'responsavel', 1).map((i) => i.codigo)).toEqual(['B', 'A']);
   });
 });

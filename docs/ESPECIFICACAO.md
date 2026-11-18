@@ -1,6 +1,6 @@
 # Especificação — SII · Sistema Integrado Intersecretarial
 
-Versão 0.2 · 17 de novembro de 2026 · CTI/SEMED · Itapuã do Oeste/RO
+Versão 0.3 · 18 de novembro de 2026 · CTI/SEMED · Itapuã do Oeste/RO
 O que já foi entregue, prompt a prompt: `docs/ANDAMENTO.md`.
 Base: Plano Estratégico, Plano de Desenvolvimento e protótipo navegável (`docs/prototipo/index.html`).
 
@@ -441,9 +441,18 @@ Usuários: `ACS`, `CRAS_TECNICO`, `VISITADOR_PCF` e agentes de busca ativa.
 - Observabilidade: logs estruturados sem dado pessoal, métricas de fila e de carga, health checks.
 - Hospedagem em infraestrutura do município; dados não saem do município.
 
+Como ficou o web (P14, ADR 0013):
+
+- **Layout institucional** do protótipo: faixa do órgão, marca SII, usuário e "Sair", seletores de **Território** e **Período** no cabeçalho (gravados na URL e levados pelos links do menu) e menu lateral agrupado (Acompanhamento, Ciclos de vida, Território, Gestão). No celular, o menu abre numa gaveta.
+- **Menu só com telas prontas**, filtrado pelo perfil com as mesmas listas de perfis das rotas da API (decisão de 17/11/2026). Quem não tem a Visão geral (DPO, Fazenda) entra direto na sua primeira tela.
+- **Componentes base** (`apps/web/src/components/ui/`): Botão, Card, Kpi, Pill (um mapa de tons para situação e prazo), Estado (carregando, vazio, erro, sem permissão, sucesso), Barras, GraficoLinha (com tabela alternativa), CabecalhoPagina e Tabela (TanStack Table: busca, ordenação com `aria-sort`, paginação, exportação CSV). Todas as telas foram migradas para eles.
+- **Visão geral** (`/`, `GET /painel/visao-geral?territorio=&periodo=`): pessoas, famílias e domicílios; casos abertos (e com mais de 30 dias); rematrículas no ano; vacinação em dia de 0 a 6 anos; domicílios com ponto preciso; casos abertos e resolvidos por mês (12 meses); "Precisa de atenção"; casos por responsável e por território; pauta do Comitê. Perfis nominais contam pela RLS; o auditor vê os números com contagens menores que 5 suprimidas.
+- Fichas, busca ativa e pauta respeitam o território do cabeçalho.
+- **Acessibilidade verificada no Playwright**: axe (WCAG 2.1 AA) sem violação crítica nem séria em todas as telas do menu e na tela de entrar; navegação por teclado (atalho para o conteúdo, menu, filtros); em 360 px nenhuma tela rola para o lado.
+
 ## 8. Fases
 
-Situação em 17/11/2026: fases 1 e 2 concluídas (P01 a P13); fase 3 começa no P14. Detalhe em `docs/ANDAMENTO.md`.
+Situação em 18/11/2026: fases 1 e 2 concluídas (P01 a P13); fase 3 em andamento (P14 feito; próximo P15). Detalhe em `docs/ANDAMENTO.md`.
 
 1. Fundação: monorepo, infra, auth, perfis, auditoria, território (Geoportal), geocodificação, identidade, seed fictício.
 2. Integração social: e-SUS, CadÚnico, gestão escolar, SEDUC; infrequência → notificação → parecer; ficha da criança; busca ativa com prazos.

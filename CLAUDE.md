@@ -117,6 +117,9 @@ Seguir o Padrão Digital de Governo e o protótipo:
 - Toda tela tem os estados: carregando (skeleton), vazio (dizendo o que fazer), erro (com ação de recuperar), sucesso e sem permissão.
 - Dashboards: KPI no topo, filtros persistentes (território, período), tabelas com busca, ordenação, paginação e exportação CSV/XLSX (exportação nunca leva CPF).
 - Mobile-first; nada de emoji como ícone; um único conjunto de ícones (lucide).
+- **Use os componentes base** de `apps/web/src/components/ui/` (Botao, Card, Kpi, Pill, Estado, Barras, GraficoLinha, CabecalhoPagina, Tabela) em toda tela nova; não reescreva KPI, cartão, pill, tabela ou estado à mão (ADR 0013).
+- **Tela nova entra no menu** em `apps/web/src/lib/menu.ts`, com os mesmos perfis do `@Perfis` da rota da API, e no teste `e2e/acessibilidade.spec.ts` (axe, teclado, 360 px).
+- Território e período do cabeçalho: leia com `useFiltrosGlobais()` e grave os parâmetros da tela com `gravarParametrosDaTela()` (`lib/filtros-url.ts`), para não apagar os filtros globais da URL.
 
 ## Mobile (app de campo)
 

@@ -1,9 +1,13 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { gerarCsv } from '@sii/shared';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CabecalhoPagina } from '@/components/ui/cabecalho-pagina';
+import { Carregando, Erro, SemPermissao, Vazio } from '@/components/ui/estado';
+import { type Coluna, Tabela } from '@/components/ui/tabela';
 import { api, ErroApi } from '@/lib/api';
 import { ROTULO_TIPO_CASO } from '@/lib/casos';
+import { useFiltrosGlobais } from '@/lib/filtros-url';
 
 interface ItemPauta {
   codigo: string;
@@ -23,13 +27,30 @@ type Estado =
   | { tipo: 'pronto'; itens: ItemPauta[] };
 
 const etapa = (s: string) => s.charAt(0) + s.slice(1).toLowerCase().replace(/_/g, ' ');
+const territorio = (i: ItemPauta) => [i.localidade, i.setor].filter(Boolean).join(' · ') || '—';
 
-/** Marca de UTF-8: o Excel abre os acentos certo. */
-const BOM = String.fromCharCode(0xfeff);
+const COLUNAS: Coluna<ItemPauta>[] = [
+  {
+    accessorKey: 'codigo',
+    header: 'Caso',
+    cell: (c) => <b className="text-texto-forte">{c.getValue<string>()}</b>,
+  },
+  { id: 'tipo', header: 'Tipo', accessorFn: (i) => ROTULO_TIPO_CASO[i.tipo] ?? i.tipo },
+  { id: 'territorio', header: 'Território', accessorFn: territorio },
+  { id: 'etapa', header: 'Etapa parada', accessorFn: (i) => etapa(i.etapa) },
+  { accessorKey: 'responsavel', header: 'Responsável' },
+  { accessorKey: 'diasDesdeAlerta', header: 'Dias desde o alerta', numerica: true },
+  {
+    accessorKey: 'diasDeAtraso',
+    header: 'Dias de atraso',
+    numerica: true,
+    cell: (c) => <b className="text-erro">{c.getValue<number | null>() ?? '—'}</b>,
+  },
+];
 
 /** CSV da pauta: só código, território e prazos (nunca CPF nem nome). */
 function csv(itens: ItemPauta[]): string {
-  const linhas = [
+  return gerarCsv([
     [
       'Caso',
       'Tipo',
@@ -42,151 +63,78 @@ function csv(itens: ItemPauta[]): string {
     ...itens.map((i) => [
       i.codigo,
       ROTULO_TIPO_CASO[i.tipo] ?? i.tipo,
-      [i.localidade, i.setor].filter(Boolean).join(' · '),
+      territorio(i),
       etapa(i.etapa),
       i.responsavel,
       String(i.diasDesdeAlerta),
       i.diasDeAtraso === null ? '' : String(i.diasDeAtraso),
     ]),
-  ];
-  return linhas.map((l) => l.map((c) => `"${c.replace(/"/g, '""')}"`).join(';')).join('\r\n');
+  ]);
 }
 
 /** Pauta do Comitê Gestor (P11): casos vencidos há mais de 7 dias, mantidos pelo job de prazos. */
 export default function Pauta() {
-  const router = useRouter();
   const [estado, setEstado] = useState<Estado>({ tipo: 'carregando' });
+  const [filtros] = useFiltrosGlobais();
 
   const carregar = useCallback(async () => {
     try {
       setEstado({ tipo: 'pronto', itens: await api<ItemPauta[]>('/casos/pauta') });
     } catch (e) {
-      if (e instanceof ErroApi && e.status === 401) router.push('/entrar?proximo=/pauta');
-      else if (e instanceof ErroApi && e.status === 403) setEstado({ tipo: 'sem-permissao' });
-      else
+      if (e instanceof ErroApi && e.status === 403) setEstado({ tipo: 'sem-permissao' });
+      else if (!(e instanceof ErroApi && e.status === 401))
         setEstado({ tipo: 'erro', mensagem: e instanceof Error ? e.message : 'Erro ao carregar.' });
     }
-  }, [router]);
+  }, []);
   useEffect(() => {
     void carregar();
   }, [carregar]);
 
-  function exportar(itens: ItemPauta[]) {
-    const blob = new Blob([BOM + csv(itens)], { type: 'text/csv;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'pauta-comite.csv';
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
+  const itens = useMemo(
+    () =>
+      estado.tipo === 'pronto'
+        ? estado.itens.filter((i) => !filtros?.territorio || i.setor === filtros.territorio)
+        : [],
+    [estado, filtros],
+  );
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-texto-forte">Pauta do Comitê Gestor</h1>
-        <p className="max-w-prose text-texto-suave">
-          Casos com prazo vencido há mais de 7 dias entram aqui sozinhos e vão para a próxima
-          reunião mensal. A lista é atualizada todo dia pela conferência dos prazos.
-        </p>
-      </div>
-      {estado.tipo === 'carregando' && (
-        <div
-          aria-busy="true"
-          aria-label="Carregando a pauta"
-          className="h-64 animate-pulse rounded-md bg-borda-suave"
-        />
-      )}
+      <CabecalhoPagina
+        titulo="Pauta do Comitê Gestor"
+        descricao="Casos com prazo vencido há mais de 7 dias entram aqui sozinhos e vão para a próxima reunião mensal. A lista é atualizada todo dia pela conferência dos prazos."
+      />
+      {estado.tipo === 'carregando' && <Carregando rotulo="Carregando a pauta" altura="h-64" />}
       {estado.tipo === 'erro' && (
-        <div
-          role="alert"
-          className="flex flex-col items-start gap-3 rounded-md border-l-4 border-erro bg-erro-claro p-4"
-        >
-          <p className="text-texto-forte">{estado.mensagem}</p>
-          <button
-            type="button"
-            onClick={() => {
-              setEstado({ tipo: 'carregando' });
-              void carregar();
-            }}
-            className="min-h-[var(--spacing-alvo)] rounded-md bg-primaria px-4 font-semibold text-fundo"
-          >
-            Tentar de novo
-          </button>
-        </div>
+        <Erro mensagem={estado.mensagem} onTentar={() => void carregar()} />
       )}
       {estado.tipo === 'sem-permissao' && (
-        <div className="rounded-md border-l-4 border-alerta-destaque bg-alerta-claro p-4 text-texto-forte">
-          A pauta é do Comitê Gestor, da coordenação da SEMED e da CTI.
-        </div>
+        <SemPermissao>A pauta é do Comitê Gestor, da coordenação da SEMED e da CTI.</SemPermissao>
       )}
       {estado.tipo === 'pronto' && estado.itens.length === 0 && (
-        <div className="rounded-md border-l-4 border-sucesso bg-sucesso-claro p-4 text-texto-forte">
-          <p className="font-semibold">Nenhum caso escalonado</p>
-          <p>Todos os casos estão dentro do prazo ou com a coordenação da secretaria.</p>
-        </div>
+        <Vazio titulo="Nenhum caso escalonado">
+          Todos os casos estão dentro do prazo ou com a coordenação da secretaria.
+        </Vazio>
       )}
       {estado.tipo === 'pronto' && estado.itens.length > 0 && (
-        <>
-          <div>
-            <button
-              type="button"
-              onClick={() => exportar(estado.itens)}
-              className="min-h-[var(--spacing-alvo)] rounded-md border border-primaria px-4 font-semibold text-primaria"
-            >
-              Exportar CSV
-            </button>
-          </div>
-          <div className="relative overflow-x-auto">
-            <table className="w-full min-w-[44rem] text-left">
-              <caption className="pb-2 text-left text-sm text-texto-suave">
-                {estado.itens.length} {estado.itens.length === 1 ? 'caso' : 'casos'} na pauta, do
-                mais atrasado ao menos. Sem nome nem CPF.
-              </caption>
-              <thead>
-                <tr className="border-b border-borda text-sm text-texto-suave">
-                  <th scope="col" className="py-2 pr-3">
-                    Caso
-                  </th>
-                  <th scope="col" className="py-2 pr-3">
-                    Tipo
-                  </th>
-                  <th scope="col" className="py-2 pr-3">
-                    Território
-                  </th>
-                  <th scope="col" className="py-2 pr-3">
-                    Etapa parada
-                  </th>
-                  <th scope="col" className="py-2 pr-3">
-                    Responsável
-                  </th>
-                  <th scope="col" className="py-2 pr-3 text-right">
-                    Dias desde o alerta
-                  </th>
-                  <th scope="col" className="py-2 text-right">
-                    Dias de atraso
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {estado.itens.map((i) => (
-                  <tr key={i.codigo} className="border-b border-borda-suave">
-                    <td className="py-2 pr-3 font-semibold text-texto-forte">{i.codigo}</td>
-                    <td className="py-2 pr-3">{ROTULO_TIPO_CASO[i.tipo] ?? i.tipo}</td>
-                    <td className="py-2 pr-3">
-                      {[i.localidade, i.setor].filter(Boolean).join(' · ') || '—'}
-                    </td>
-                    <td className="py-2 pr-3">{etapa(i.etapa)}</td>
-                    <td className="py-2 pr-3">{i.responsavel}</td>
-                    <td className="py-2 pr-3 text-right">{i.diasDesdeAlerta}</td>
-                    <td className="py-2 text-right font-semibold text-erro">
-                      {i.diasDeAtraso ?? '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+        <Tabela
+          dados={itens}
+          colunas={COLUNAS}
+          legenda={`${itens.length} ${itens.length === 1 ? 'caso' : 'casos'} na pauta, do mais atrasado ao menos. Sem nome nem CPF.`}
+          legendaVisivel
+          porPagina={20}
+          idLinha={(i) => i.codigo}
+          busca={{
+            rotulo: 'Buscar por caso, território ou responsável',
+            atende: (i, q) =>
+              `${i.codigo} ${territorio(i)} ${i.responsavel}`.toLowerCase().includes(q),
+          }}
+          exportar={{ arquivo: 'pauta-comite.csv', gerar: csv }}
+          vazio={{
+            titulo: 'Nenhum caso neste território',
+            texto: 'Escolha "Todo o município" no cabeçalho.',
+          }}
+        />
       )}
     </div>
   );

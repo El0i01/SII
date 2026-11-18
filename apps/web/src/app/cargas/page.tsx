@@ -11,6 +11,8 @@ import {
 import { AlertasCarga, type AlertaCarga } from '@/components/alertas-carga';
 import { type Carga, nomeCarga, ProgressoCarga } from '@/components/progresso-carga';
 import { TabelaErrosCarga } from '@/components/tabela-erros-carga';
+import { CabecalhoPagina } from '@/components/ui/cabecalho-pagina';
+import { Carregando, Erro, SemPermissao } from '@/components/ui/estado';
 import { api, ErroApi } from '@/lib/api';
 
 type Estado =
@@ -119,49 +121,30 @@ export default function Cargas() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-texto-forte">Cargas de dados</h1>
-        <p className="max-w-prose text-texto-suave">
-          Envie a base do CadÚnico (Assistência) ou os arquivos da gestão escolar e da SEDUC-RO
-          (SEMED). O sistema confere as colunas, liga cada pessoa à ficha única e atualiza o que
-          cada fonte traz. Você acompanha o andamento e os problemas linha a linha. A leitura do
-          e-SUS PEC e a conferência diária das faltas rodam sozinhas e também aparecem no histórico.
-        </p>
-      </div>
+      <CabecalhoPagina
+        titulo="Cargas de dados"
+        descricao="Envie a base do CadÚnico (Assistência) ou os arquivos da gestão escolar e da SEDUC-RO (SEMED). O sistema confere as colunas, liga cada pessoa à ficha única e atualiza o que cada fonte traz. Você acompanha o andamento e os problemas linha a linha. A leitura do e-SUS PEC e a conferência diária das faltas rodam sozinhas e também aparecem no histórico."
+      />
 
       {alertas.length > 0 && <AlertasCarga alertas={alertas} />}
 
-      {estado.tipo === 'carregando' && (
-        <div aria-busy="true" aria-label="Carregando as cargas" className="flex flex-col gap-3">
-          <div className="h-56 animate-pulse rounded-md bg-borda-suave" />
-          <div className="h-32 animate-pulse rounded-md bg-borda-suave" />
-        </div>
-      )}
+      {estado.tipo === 'carregando' && <Carregando rotulo="Carregando as cargas" altura="h-72" />}
 
       {estado.tipo === 'erro' && (
-        <div
-          role="alert"
-          className="flex flex-col items-start gap-3 rounded-md border-l-4 border-erro bg-erro-claro p-4"
-        >
-          <p className="text-texto-forte">{estado.mensagem}</p>
-          <button
-            type="button"
-            onClick={() => {
-              setEstado({ tipo: 'carregando' });
-              void carregar();
-            }}
-            className="min-h-[var(--spacing-alvo)] rounded-md bg-primaria px-4 font-semibold text-fundo"
-          >
-            Tentar de novo
-          </button>
-        </div>
+        <Erro
+          mensagem={estado.mensagem}
+          onTentar={() => {
+            setEstado({ tipo: 'carregando' });
+            void carregar();
+          }}
+        />
       )}
 
       {estado.tipo === 'sem-permissao' && (
-        <div className="rounded-md border-l-4 border-alerta-destaque bg-alerta-claro p-4 text-texto-forte">
+        <SemPermissao>
           Enviam cargas o ponto focal do CadÚnico na Assistência Social, a coordenação da SEMED e a
           equipe da CTI. Se você acha que deveria ter acesso, fale com a CTI.
-        </div>
+        </SemPermissao>
       )}
 
       {estado.tipo === 'pronto' && (

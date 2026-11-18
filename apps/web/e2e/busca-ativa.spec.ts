@@ -33,7 +33,10 @@ test('painel da busca ativa → escalonados → encaminhar → CSV sem CPF', asy
   // 1. Escalonados ao Comitê: o total da lista é o do KPI.
   const escalonados = (await kpi(semed, 'Escalonados ao Comitê').textContent()) as string;
   await casos.getByLabel('Situação').selectOption({ label: 'Escalonados ao Comitê' });
-  await expect(casos.getByText(new RegExp(` de ${escalonados}$`))).toBeVisible();
+  // Com até 10 casos a tabela não pagina e mostra só o total.
+  await expect(
+    casos.getByText(new RegExp(`( de ${escalonados}|^${escalonados} registros?)$`)),
+  ).toBeVisible();
   await expect(casos.getByRole('cell', { name: 'Vencido · coordenação' })).toHaveCount(0);
 
   // 2. Encaminha um caso identificado à Assistência.

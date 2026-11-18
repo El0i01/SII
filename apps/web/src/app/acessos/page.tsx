@@ -1,11 +1,15 @@
 'use client';
 
-import { FiltroAcessos } from '@sii/shared';
-import { useRouter } from 'next/navigation';
+import { FiltroAcessos, type Perfil, ROTULO_PERFIL } from '@sii/shared';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { Botao } from '@/components/ui/button';
+import { CabecalhoPagina } from '@/components/ui/cabecalho-pagina';
+import { Carregando, Erro, SemPermissao, Vazio } from '@/components/ui/estado';
+import { type Coluna, Tabela } from '@/components/ui/tabela';
 import { api, ErroApi } from '@/lib/api';
 import type { PainelAcessos } from '@/lib/fichas';
 
+type Acesso = PainelAcessos['acessos'][number];
 type Estado =
   | { tipo: 'carregando' }
   | { tipo: 'erro'; mensagem: string }
@@ -19,12 +23,49 @@ const quandoBr = (iso: string) =>
     timeStyle: 'short',
   });
 
+const COLUNAS: Coluna<Acesso>[] = [
+  {
+    id: 'quando',
+    header: 'Quando',
+    accessorKey: 'quando',
+    cell: (c) => <span className="whitespace-nowrap">{quandoBr(c.getValue<string>())}</span>,
+  },
+  {
+    id: 'quem',
+    header: 'Quem',
+    accessorFn: (a) => a.usuario.nome ?? '',
+    cell: (c) => (
+      <>
+        {c.row.original.usuario.nome ?? '—'}
+        <span className="block text-sm text-texto-suave">{c.row.original.usuario.login}</span>
+      </>
+    ),
+  },
+  {
+    id: 'perfil',
+    header: 'Perfil',
+    accessorFn: (a) => ROTULO_PERFIL[a.perfil as Perfil] ?? a.perfil,
+  },
+  { id: 'registro', header: 'Registro', accessorFn: (a) => a.registro ?? '—' },
+  { accessorKey: 'campo', header: 'Campo' },
+  { accessorKey: 'finalidade', header: 'Finalidade', enableSorting: false },
+  {
+    id: 'ip',
+    header: 'IP',
+    accessorFn: (a) => a.ip ?? '—',
+    enableSorting: false,
+    cell: (c) => <span className="font-mono text-sm">{c.getValue<string>()}</span>,
+  },
+];
+
+const CAMPO =
+  'min-h-[var(--spacing-alvo)] rounded-md border border-borda bg-fundo px-3 text-texto-forte';
+
 /**
  * Painel do encarregado de dados (§3.12, P12): quem revelou dado pessoal, quando e para quê.
  * Versão mínima; o P16 amplia (filtro por pessoa, exportação). Nunca mostra o dado revelado.
  */
 export default function Acessos() {
-  const router = useRouter();
   const [estado, setEstado] = useState<Estado>({ tipo: 'carregando' });
   const [filtro, setFiltro] = useState<Record<string, string>>({});
   const [pagina, setPagina] = useState(1);
@@ -36,15 +77,14 @@ export default function Acessos() {
     try {
       setEstado({ tipo: 'pronto', painel: await api<PainelAcessos>(`/auditoria/acessos?${p}`) });
     } catch (e) {
-      if (e instanceof ErroApi && e.status === 401) router.push('/entrar?proximo=/acessos');
-      else if (e instanceof ErroApi && e.status === 403) setEstado({ tipo: 'sem-permissao' });
-      else
+      if (e instanceof ErroApi && e.status === 403) setEstado({ tipo: 'sem-permissao' });
+      else if (!(e instanceof ErroApi && e.status === 401))
         setEstado({
           tipo: 'erro',
           mensagem: e instanceof Error ? e.message : 'Não foi possível carregar.',
         });
     }
-  }, [filtro, pagina, router]);
+  }, [filtro, pagina]);
   useEffect(() => {
     void carregar();
   }, [carregar]);
@@ -60,6 +100,7 @@ export default function Acessos() {
     const r = FiltroAcessos.safeParse(novo);
     if (!r.success) {
       setErroFiltro(r.error.issues[0]?.message ?? 'Confira o filtro.');
+      document.getElementById('ate')?.focus();
       return;
     }
     setErroFiltro(null);
@@ -67,25 +108,19 @@ export default function Acessos() {
     setFiltro(novo);
   }
 
-  const campo =
-    'min-h-[var(--spacing-alvo)] rounded-md border border-borda bg-fundo px-3 text-texto-forte';
-
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-texto-forte">Acessos a dado pessoal</h1>
-        <p className="max-w-prose text-texto-suave">
-          Cada CPF revelado fica registrado com quem revelou, o perfil, a data, a ficha e a
-          finalidade informada. O número revelado nunca aparece aqui.
-        </p>
-      </div>
+      <CabecalhoPagina
+        titulo="Acessos a dado pessoal"
+        descricao="Cada CPF revelado fica registrado com quem revelou, o perfil, a data, a ficha e a finalidade informada. O número revelado nunca aparece aqui."
+      />
 
       <form onSubmit={aplicar} noValidate className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1">
           <label htmlFor="de" className="font-semibold text-texto-forte">
             De
           </label>
-          <input id="de" name="de" type="date" className={campo} />
+          <input id="de" name="de" type="date" className={CAMPO} />
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor="ate" className="font-semibold text-texto-forte">
@@ -95,7 +130,7 @@ export default function Acessos() {
             id="ate"
             name="ate"
             type="date"
-            className={campo}
+            className={CAMPO}
             aria-invalid={!!erroFiltro}
             aria-describedby={erroFiltro ? 'filtro-erro' : undefined}
           />
@@ -104,14 +139,9 @@ export default function Acessos() {
           <label htmlFor="usuario" className="font-semibold text-texto-forte">
             Login do usuário
           </label>
-          <input id="usuario" name="usuario" className={campo} />
+          <input id="usuario" name="usuario" className={CAMPO} />
         </div>
-        <button
-          type="submit"
-          className="min-h-[var(--spacing-alvo)] rounded-md bg-primaria px-4 font-semibold text-fundo"
-        >
-          Filtrar
-        </button>
+        <Botao type="submit">Filtrar</Botao>
         {erroFiltro && (
           <p id="filtro-erro" className="w-full text-sm text-erro">
             {erroFiltro}
@@ -119,96 +149,43 @@ export default function Acessos() {
         )}
       </form>
 
-      {estado.tipo === 'carregando' && (
-        <div
-          aria-busy="true"
-          aria-label="Carregando os acessos"
-          className="h-64 animate-pulse rounded-md bg-borda-suave"
-        />
-      )}
+      {estado.tipo === 'carregando' && <Carregando rotulo="Carregando os acessos" altura="h-64" />}
       {estado.tipo === 'erro' && (
-        <div
-          role="alert"
-          className="flex flex-col items-start gap-3 rounded-md border-l-4 border-erro bg-erro-claro p-4"
-        >
-          <p className="text-texto-forte">{estado.mensagem}</p>
-          <button
-            type="button"
-            onClick={() => void carregar()}
-            className="min-h-[var(--spacing-alvo)] rounded-md bg-primaria px-4 font-semibold text-fundo"
-          >
-            Tentar de novo
-          </button>
-        </div>
+        <Erro mensagem={estado.mensagem} onTentar={() => void carregar()} />
       )}
       {estado.tipo === 'sem-permissao' && (
-        <div className="rounded-md border-l-4 border-alerta-destaque bg-alerta-claro p-4 text-texto-forte">
-          Este painel é do encarregado de dados (DPO) e da CTI.
-        </div>
+        <SemPermissao>Este painel é do encarregado de dados (DPO) e da CTI.</SemPermissao>
       )}
       {estado.tipo === 'pronto' && estado.painel.acessos.length === 0 && (
-        <p className="rounded-md border border-borda-suave bg-superficie p-4 text-texto">
-          Nenhum acesso registrado neste filtro. Mude o período ou limpe o login.
-        </p>
+        <Vazio titulo="Nenhum acesso registrado neste filtro">
+          Mude o período ou limpe o login.
+        </Vazio>
       )}
       {estado.tipo === 'pronto' && estado.painel.acessos.length > 0 && (
         <>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left">
-              <caption className="sr-only">Acessos a dado pessoal</caption>
-              <thead>
-                <tr className="border-b border-borda">
-                  {['Quando', 'Quem', 'Perfil', 'Registro', 'Campo', 'Finalidade', 'IP'].map(
-                    (c) => (
-                      <th key={c} scope="col" className="p-2 text-sm text-texto-suave">
-                        {c}
-                      </th>
-                    ),
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {estado.painel.acessos.map((a) => (
-                  <tr key={a.id} className="border-b border-borda-suave">
-                    <td className="p-2 whitespace-nowrap">{quandoBr(a.quando)}</td>
-                    <td className="p-2">
-                      {a.usuario.nome ?? '—'}
-                      <span className="block text-sm text-texto-suave">{a.usuario.login}</span>
-                    </td>
-                    <td className="p-2">{a.perfil}</td>
-                    <td className="p-2 whitespace-nowrap">{a.registro ?? '—'}</td>
-                    <td className="p-2">{a.campo}</td>
-                    <td className="p-2">{a.finalidade}</td>
-                    <td className="p-2 font-mono text-sm">{a.ip ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <Tabela
+            dados={estado.painel.acessos}
+            colunas={COLUNAS}
+            legenda="Acessos a dado pessoal"
+            porPagina={estado.painel.porPagina}
+            idLinha={(a) => String(a.id)}
+          />
+          <nav aria-label="Páginas dos acessos" className="flex flex-wrap items-center gap-3">
             <p className="text-sm text-texto-suave">
               {estado.painel.total} acesso{estado.painel.total === 1 ? '' : 's'} · página{' '}
               {estado.painel.pagina}
             </p>
             {pagina > 1 && (
-              <button
-                type="button"
-                onClick={() => setPagina(pagina - 1)}
-                className="min-h-[var(--spacing-alvo)] rounded-md border border-primaria px-4 font-semibold text-primaria"
-              >
+              <Botao variante="contorno" onClick={() => setPagina(pagina - 1)}>
                 Página anterior
-              </button>
+              </Botao>
             )}
             {pagina * estado.painel.porPagina < estado.painel.total && (
-              <button
-                type="button"
-                onClick={() => setPagina(pagina + 1)}
-                className="min-h-[var(--spacing-alvo)] rounded-md border border-primaria px-4 font-semibold text-primaria"
-              >
+              <Botao variante="contorno" onClick={() => setPagina(pagina + 1)}>
                 Próxima página
-              </button>
+              </Botao>
             )}
-          </div>
+          </nav>
         </>
       )}
     </div>

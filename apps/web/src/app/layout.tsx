@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Raleway } from 'next/font/google';
-import { Cabecalho } from '@/components/cabecalho';
+import { Estrutura } from '@/components/layout/estrutura';
+import { ProvedorSessao } from '@/components/layout/sessao';
 import './globals.css';
 
 const raleway = Raleway({ subsets: ['latin'], variable: '--font-raleway', display: 'swap' });
@@ -21,10 +22,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="pt-BR" className={raleway.variable}>
       <body className="min-h-dvh antialiased">
-        <Cabecalho homologacao={homologacao} />
-        <main id="conteudo" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-8 outline-none">
-          {children}
-        </main>
+        <ProvedorSessao>
+          <Estrutura homologacao={homologacao}>{children}</Estrutura>
+        </ProvedorSessao>
       </body>
     </html>
   );

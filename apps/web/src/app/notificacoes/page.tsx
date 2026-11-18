@@ -4,11 +4,13 @@ import type { Parecer, StatusNotificacao } from '@sii/shared';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { type ErrosParecer, FormularioParecer } from '@/components/formulario-parecer';
+import { CabecalhoPagina } from '@/components/ui/cabecalho-pagina';
+import { Carregando, Erro, SemPermissao, Vazio } from '@/components/ui/estado';
+import { GradeKpis, Kpi } from '@/components/ui/kpi';
+import { Pill, type Tom, tomDoPrazo } from '@/components/ui/pill';
 import { api, ErroApi } from '@/lib/api';
 import {
   type CaixaNotificacoes,
-  COR_PRAZO,
-  COR_STATUS_NOTIFICACAO,
   dataBr,
   type NotificacaoDetalhe,
   ROTULO_EVENTO,
@@ -23,22 +25,14 @@ type Estado =
 
 const SITUACOES: (StatusNotificacao | '')[] = ['', 'NOVA', 'EM_ANALISE', 'PARECER_EMITIDO'];
 
-function Etiqueta({ status }: { status: StatusNotificacao }) {
-  return (
-    <span className={`rounded px-2 py-0.5 text-sm font-semibold ${COR_STATUS_NOTIFICACAO[status]}`}>
-      {ROTULO_STATUS_NOTIFICACAO[status]}
-    </span>
-  );
-}
+const TOM_NOTIFICACAO: Record<StatusNotificacao, Tom> = {
+  NOVA: 'alerta',
+  EM_ANALISE: 'info',
+  PARECER_EMITIDO: 'bom',
+};
 
-function Kpi({ rotulo, valor, detalhe }: { rotulo: string; valor: number; detalhe: string }) {
-  return (
-    <div className="rounded-md border border-borda-suave bg-superficie p-4">
-      <p className="text-sm text-texto-suave">{rotulo}</p>
-      <p className="text-3xl font-semibold text-texto-forte">{valor}</p>
-      <p className="text-sm text-texto-suave">{detalhe}</p>
-    </div>
-  );
+function Etiqueta({ status }: { status: StatusNotificacao }) {
+  return <Pill tom={TOM_NOTIFICACAO[status]}>{ROTULO_STATUS_NOTIFICACAO[status]}</Pill>;
 }
 
 /**
@@ -142,56 +136,39 @@ export default function Notificacoes() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-texto-forte">
-          Notificações à Assistência Social
-        </h1>
-        <p className="max-w-prose text-texto-suave">
-          Quando um aluno completa 5 dias letivos seguidos sem frequência, o sistema notifica o CRAS
-          do território. A Assistência registra um parecer, que volta para a escola e fica na trilha
-          do caso. Prazo do parecer: 5 dias úteis.
-        </p>
-      </div>
+      <CabecalhoPagina
+        titulo="Notificações à Assistência Social"
+        descricao="Quando um aluno completa 5 dias letivos seguidos sem frequência, o sistema notifica o CRAS do território. A Assistência registra um parecer, que volta para a escola e fica na trilha do caso. Prazo do parecer: 5 dias úteis."
+      />
 
       {estado.tipo === 'carregando' && (
-        <div
-          aria-busy="true"
-          aria-label="Carregando as notificações"
-          className="flex flex-col gap-3"
-        >
-          <div className="h-24 animate-pulse rounded-md bg-borda-suave" />
-          <div className="h-80 animate-pulse rounded-md bg-borda-suave" />
-        </div>
+        <Carregando rotulo="Carregando as notificações" altura="h-96" />
       )}
       {estado.tipo === 'erro' && (
-        <div
-          role="alert"
-          className="flex flex-col items-start gap-3 rounded-md border-l-4 border-erro bg-erro-claro p-4"
-        >
-          <p className="text-texto-forte">{estado.mensagem}</p>
-          <button
-            type="button"
-            onClick={() => {
-              setEstado({ tipo: 'carregando' });
-              void carregar();
-            }}
-            className="min-h-[var(--spacing-alvo)] rounded-md bg-primaria px-4 font-semibold text-fundo"
-          >
-            Tentar de novo
-          </button>
-        </div>
+        <Erro
+          mensagem={estado.mensagem}
+          onTentar={() => {
+            setEstado({ tipo: 'carregando' });
+            void carregar();
+          }}
+        />
       )}
       {estado.tipo === 'sem-permissao' && (
-        <div className="rounded-md border-l-4 border-alerta-destaque bg-alerta-claro p-4 text-texto-forte">
+        <SemPermissao>
           As notificações são acompanhadas pelo CRAS, pela escola do aluno, pela SEMED e pelo Comitê
           Gestor. Se você precisa de acesso, fale com a CTI.
-        </div>
+        </SemPermissao>
       )}
 
       {estado.tipo === 'pronto' && (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Kpi rotulo="Novas" valor={estado.caixa.contagens.novas} detalhe="aguardando o CRAS" />
+          <GradeKpis>
+            <Kpi
+              tom="alerta"
+              rotulo="Novas"
+              valor={estado.caixa.contagens.novas}
+              detalhe="aguardando o CRAS"
+            />
             <Kpi
               rotulo="Em análise"
               valor={estado.caixa.contagens.emAnalise}
@@ -206,8 +183,9 @@ export default function Notificacoes() {
               rotulo="Fora do prazo"
               valor={estado.caixa.contagens.foraDoPrazo}
               detalhe="mais de 5 dias úteis sem parecer"
+              tom="critico"
             />
-          </div>
+          </GradeKpis>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[22rem_1fr]">
             <section aria-labelledby="caixa" className="flex flex-col gap-3">
@@ -232,9 +210,7 @@ export default function Notificacoes() {
                 </select>
               </div>
               {estado.caixa.notificacoes.length === 0 ? (
-                <p className="rounded-md border border-borda-suave bg-superficie p-4 text-texto">
-                  Nenhuma notificação nesta situação. Escolha outra no filtro.
-                </p>
+                <Vazio titulo="Nenhuma notificação nesta situação">Escolha outra no filtro.</Vazio>
               ) : (
                 <ul className="flex max-h-[32rem] flex-col gap-2 overflow-y-auto">
                   {estado.caixa.notificacoes.map((n) => (
@@ -304,11 +280,7 @@ function Detalhe({
         </div>
         <div className="flex flex-wrap gap-2">
           <Etiqueta status={d.status} />
-          {d.prazo && (
-            <span className={`rounded px-2 py-0.5 text-sm font-semibold ${COR_PRAZO[d.prazo.tom]}`}>
-              {d.prazo.rotulo}
-            </span>
-          )}
+          {d.prazo && <Pill tom={tomDoPrazo(d.prazo.tom)}>{d.prazo.rotulo}</Pill>}
         </div>
       </header>
       <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">

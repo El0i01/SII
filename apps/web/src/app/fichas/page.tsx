@@ -8,9 +8,15 @@ import {
   type RevelarCpf,
   type TipoCaso,
 } from '@sii/shared';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { type ErrosRevelar, FormularioRevelarCpf } from '@/components/revelar-cpf';
+import { CabecalhoPagina } from '@/components/ui/cabecalho-pagina';
+import { Carregando, Erro, SemPermissao, Sucesso } from '@/components/ui/estado';
+import { GradeKpis, Kpi } from '@/components/ui/kpi';
+import { Pill } from '@/components/ui/pill';
+import { gravarParametrosDaTela, useFiltrosGlobais } from '@/lib/filtros-url';
 import { api, ErroApi } from '@/lib/api';
 import { dataBr, ROTULO_TIPO_CASO } from '@/lib/casos';
 import { anos, enderecoFicha, type Ficha, type ListaFichas } from '@/lib/fichas';
@@ -21,38 +27,12 @@ type Estado =
   | { tipo: 'sem-permissao' }
   | { tipo: 'pronto'; lista: ListaFichas };
 
-const PILL = 'rounded px-2 py-0.5 text-sm font-semibold whitespace-nowrap';
 const BOTAO =
   'inline-flex min-h-[var(--spacing-alvo)] items-center rounded-md border border-primaria px-4 font-semibold text-primaria';
 
-function Pill({
-  tom,
-  children,
-}: {
-  tom: 'bom' | 'alerta' | 'critico' | 'neutro';
-  children: ReactNode;
-}) {
-  const cor = {
-    bom: 'bg-sucesso-claro text-texto-forte',
-    alerta: 'bg-alerta-claro text-texto-forte',
-    critico: 'bg-erro-claro text-erro',
-    neutro: 'bg-superficie text-texto',
-  }[tom];
-  return <span className={`${PILL} ${cor}`}>{children}</span>;
-}
 const SimNao = ({ v }: { v: boolean }) => (
   <Pill tom={v ? 'bom' : 'neutro'}>{v ? 'Sim' : 'Não'}</Pill>
 );
-
-function Kpi({ rotulo, valor, detalhe }: { rotulo: string; valor: number; detalhe: string }) {
-  return (
-    <div className="rounded-md border border-borda-suave bg-superficie p-4">
-      <p className="text-sm text-texto-suave">{rotulo}</p>
-      <p className="text-3xl font-semibold text-texto-forte">{valor.toLocaleString('pt-BR')}</p>
-      <p className="text-sm text-texto-suave">{detalhe}</p>
-    </div>
-  );
-}
 
 function lerUrl(): { busca: string; filtro: FiltroFicha; ficha: number | null } {
   const p = new URLSearchParams(window.location.search);
@@ -72,6 +52,7 @@ function lerUrl(): { busca: string; filtro: FiltroFicha; ficha: number | null } 
  */
 export default function Fichas() {
   const router = useRouter();
+  const [filtrosGlobais] = useFiltrosGlobais();
   const [estado, setEstado] = useState<Estado>({ tipo: 'carregando' });
   const [busca, setBusca] = useState('');
   const [buscaAplicada, setBuscaAplicada] = useState('');
@@ -96,17 +77,19 @@ export default function Fichas() {
   // Filtros persistentes na URL (dá para voltar e compartilhar o link sem dado pessoal).
   useEffect(() => {
     if (!pronto) return;
-    const p = new URLSearchParams();
-    if (buscaAplicada) p.set('busca', buscaAplicada);
-    if (filtro !== 'todas') p.set('filtro', filtro);
-    if (selecionada) p.set('ficha', String(selecionada));
-    const q = p.toString();
-    window.history.replaceState(null, '', q ? `/fichas?${q}` : '/fichas');
+    gravarParametrosDaTela({
+      busca: buscaAplicada || null,
+      filtro: filtro === 'todas' ? null : filtro,
+      ficha: selecionada ? String(selecionada) : null,
+    });
   }, [pronto, buscaAplicada, filtro, selecionada]);
 
+  const territorio = filtrosGlobais?.territorio ?? null;
   const carregar = useCallback(async () => {
+    if (!filtrosGlobais) return;
     const p = new URLSearchParams({ filtro });
     if (buscaAplicada) p.set('busca', buscaAplicada);
+    if (territorio) p.set('territorio', territorio);
     try {
       const lista = await api<ListaFichas>(`/fichas?${p.toString()}`);
       setEstado({ tipo: 'pronto', lista });
@@ -120,59 +103,41 @@ export default function Fichas() {
           mensagem: e instanceof Error ? e.message : 'Não foi possível carregar.',
         });
     }
-  }, [filtro, buscaAplicada, router]);
+  }, [filtro, buscaAplicada, router, filtrosGlobais, territorio]);
   useEffect(() => {
     if (pronto) void carregar();
   }, [pronto, carregar]);
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-texto-forte">Ficha da criança</h1>
-        <p className="max-w-prose text-texto-suave">
-          Uma ficha por criança e adolescente, com o histórico nas três secretarias: escola e
-          frequência, vacinação e visitas do ACS, CRAS, Criança Feliz e encaminhamentos.
-        </p>
-        <p className="text-sm text-texto-suave">
-          Fontes: gestão escolar, e-SUS PEC, CadÚnico, CRAS, Criança Feliz
-        </p>
-      </div>
+      <CabecalhoPagina
+        titulo="Ficha da criança"
+        descricao="Uma ficha por criança e adolescente, com o histórico nas três secretarias: escola e frequência, vacinação e visitas do ACS, CRAS, Criança Feliz e encaminhamentos."
+        fontes="Fontes: gestão escolar, e-SUS PEC, CadÚnico, CRAS, Criança Feliz"
+      />
 
-      {estado.tipo === 'carregando' && (
-        <div aria-busy="true" aria-label="Carregando as fichas" className="flex flex-col gap-3">
-          <div className="h-24 animate-pulse rounded-md bg-borda-suave" />
-          <div className="h-96 animate-pulse rounded-md bg-borda-suave" />
-        </div>
-      )}
+      {estado.tipo === 'carregando' && <Carregando rotulo="Carregando as fichas" altura="h-96" />}
       {estado.tipo === 'erro' && (
-        <div
-          role="alert"
-          className="flex flex-col items-start gap-3 rounded-md border-l-4 border-erro bg-erro-claro p-4"
-        >
-          <p className="text-texto-forte">{estado.mensagem}</p>
-          <button
-            type="button"
-            onClick={() => {
-              setEstado({ tipo: 'carregando' });
-              void carregar();
-            }}
-            className="min-h-[var(--spacing-alvo)] rounded-md bg-primaria px-4 font-semibold text-fundo"
-          >
-            Tentar de novo
-          </button>
-        </div>
+        <Erro
+          mensagem={estado.mensagem}
+          onTentar={() => {
+            setEstado({ tipo: 'carregando' });
+            void carregar();
+          }}
+        />
       )}
       {estado.tipo === 'sem-permissao' && (
-        <div className="rounded-md border-l-4 border-alerta-destaque bg-alerta-claro p-4 text-texto-forte">
+        <SemPermissao>
           Seu perfil não vê dados nominais. Os indicadores agregados ficam no painel de controle
           externo. Se você precisa de acesso, fale com a CTI.
-        </div>
+        </SemPermissao>
       )}
 
       {estado.tipo === 'pronto' && (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <GradeKpis>
             <Kpi
+              tom="info"
               rotulo="Fichas no território"
               valor={estado.lista.kpis.fichas}
               detalhe="0 a 17 anos"
@@ -192,7 +157,7 @@ export default function Fichas() {
               valor={estado.lista.kpis.criancaFeliz}
               detalhe="0 a 3 anos"
             />
-          </div>
+          </GradeKpis>
 
           <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(16rem,21rem)_1fr]">
             <section aria-labelledby="lista" className="flex flex-col gap-3">
@@ -387,9 +352,9 @@ function PainelFicha({ id }: { id: number }) {
               </button>
             )}
             {f.notificacaoAberta ? (
-              <a href={`/notificacoes?codigo=${f.notificacaoAberta}`} className={BOTAO}>
+              <Link href={`/notificacoes?codigo=${f.notificacaoAberta}`} className={BOTAO}>
                 Ver notificação {f.notificacaoAberta}
-              </a>
+              </Link>
             ) : (
               f.podeEncaminhar &&
               !encaminhando && (
@@ -425,11 +390,7 @@ function PainelFicha({ id }: { id: number }) {
             }}
           />
         )}
-        {mensagem && (
-          <p role="status" className="rounded-md border-l-4 border-sucesso bg-sucesso-claro p-3">
-            {mensagem}
-          </p>
-        )}
+        {mensagem && <Sucesso>{mensagem}</Sucesso>}
 
         {f.motivos.length > 0 ? (
           <div className="rounded-md border-l-4 border-alerta-destaque bg-alerta-claro p-3">

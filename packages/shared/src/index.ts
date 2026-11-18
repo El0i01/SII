@@ -34,3 +34,4 @@ export * from './saude/sinalizadores';
 export * from './fichas/ficha';
 export * from './schemas/revelar';
 export * from './casos/busca-ativa';
+export * from './painel/visao-geral';

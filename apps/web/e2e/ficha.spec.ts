@@ -67,7 +67,7 @@ test('ficha → revelar CPF com finalidade → acesso no painel do DPO', async (
   const linha = dpo.getByRole('row').filter({ hasText: ficha.codigo }).first();
   await expect(linha).toBeVisible();
   await expect(linha).toContainText('Contato com a família para matrícula');
-  await expect(linha).toContainText('SEMED_GESTOR');
+  await expect(linha).toContainText('SEMED · Coordenação');
   await expect(dpo.getByText(/\d{3}\.\d{3}\.\d{3}-\d{2}/)).toHaveCount(0);
 
   // 5. O DPO não abre fichas.

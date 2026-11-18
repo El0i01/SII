@@ -2,7 +2,7 @@
 
 Registro do que já foi entregue, prompt a prompt (`docs/PROMPTS.md`). O detalhe de cada regra fica na especificação (seções "Como ficou") e o porquê de cada escolha, nos ADRs (`docs/adr/`).
 
-Situação em 17/11/2026: **fases 1 e 2 concluídas (P01 a P13)**. Próximo: P14 (layout e painéis do web).
+Situação em 18/11/2026: **fases 1 e 2 concluídas (P01 a P13)** e P14 feito. Próximo: P15 (mapa).
 
 ## Resumo por prompt
 
@@ -21,8 +21,38 @@ Situação em 17/11/2026: **fases 1 e 2 concluídas (P01 a P13)**. Próximo: P14
 | P11 | 17/11 | `fa062d5` | Notificações ao CRAS, parecer, avisos, prazos e pauta do Comitê | 0010 |
 | P12 | 17/11 | `5eb7e0c` | Ficha da criança, revelar CPF com finalidade, painel do DPO | 0011 |
 | P13 | 17/11 | `e854774` | Busca ativa escolar: job, etapas e painel | 0012 |
+| P14 | 18/11 | (este commit) | Layout institucional, componentes base, Visão geral, acessibilidade | 0013 |
 
 ---
+
+## 18/11/2026 — P14
+
+O web ganhou a cara do protótipo e uma base comum para todas as telas.
+
+- **Layout:**
+  - cabeçalho do órgão com usuário e "Sair";
+  - **Território** e **Período** no cabeçalho, gravados na URL;
+  - menu lateral agrupado e filtrado pelo perfil, só com telas prontas; no celular, gaveta.
+- **Visão geral** (`/`):
+  - KPIs: pessoas, casos abertos, rematrículas, vacinação de 0 a 6 anos, ponto preciso;
+  - casos abertos × resolvidos por mês, com tabela alternativa;
+  - "Precisa de atenção", casos por responsável e por território, e a pauta do Comitê;
+  - o auditor vê os números com "< 5".
+- **Componentes base** em `apps/web/src/components/ui/`: Botao, Card, Kpi, Pill, Estado, Barras, GraficoLinha, CabecalhoPagina e Tabela (TanStack Table). Todas as telas foram migradas.
+- **Território do cabeçalho** também filtra fichas, busca ativa e pauta.
+- **Rotas novas:** `GET /painel/visao-geral`, `GET /territorio/setores`; `GET /fichas` e `GET /busca-ativa/painel` aceitam `territorio`.
+- **Dependências novas:** `@tanstack/react-table` 8, `lucide-react`, `class-variance-authority`, `@radix-ui/react-slot`, `@radix-ui/react-dialog`, `@axe-core/playwright`.
+- **Decisões do usuário:** menu só com telas prontas; migrar todas as telas agora.
+
+Testes ao fim do dia:
+
+| Suíte | Resultado |
+| --- | --- |
+| `packages/shared` | 274 testes, 100% das linhas |
+| Web (Vitest) | 53 testes |
+| API, integração | 141 testes em 12 suítes |
+| Worker, integração | 30 testes em 6 suítes |
+| E2E (Playwright) | 6 testes: os 3 fluxos e mais axe sem violação crítica nem séria em 12 telas, teclado, 360 px sem rolagem lateral |
 
 ## 17/11/2026 — P10 a P13
 

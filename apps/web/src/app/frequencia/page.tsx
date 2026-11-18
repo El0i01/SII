@@ -4,6 +4,8 @@ import { hojeEmPortoVelho, MAXIMO_LANCAMENTOS } from '@sii/shared';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GradeFrequencia, LegendaFrequencia } from '@/components/grade-frequencia';
+import { CabecalhoPagina } from '@/components/ui/cabecalho-pagina';
+import { Carregando, Erro, SemPermissao } from '@/components/ui/estado';
 import { api, ErroApi } from '@/lib/api';
 import {
   type Alteracao,
@@ -260,46 +262,28 @@ export default function Frequencia() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-texto-forte">Frequência da turma</h1>
-        <p className="max-w-prose text-texto-suave">
-          Lance a chamada de cada dia letivo. O que você marca é salvo sozinho; sem internet, fica
-          guardado neste computador e é enviado quando a conexão voltar. Cinco faltas seguidas em
-          dias letivos geram uma notificação ao CRAS no dia seguinte.
-        </p>
-      </div>
+      <CabecalhoPagina
+        titulo="Frequência da turma"
+        descricao="Lance a chamada de cada dia letivo. O que você marca é salvo sozinho; sem internet, fica guardado neste computador e é enviado quando a conexão voltar. Cinco faltas seguidas em dias letivos geram uma notificação ao CRAS no dia seguinte."
+      />
 
-      {estado.tipo === 'carregando' && (
-        <div aria-busy="true" aria-label="Carregando" className="flex flex-col gap-3">
-          <div className="h-12 w-80 animate-pulse rounded-md bg-borda-suave" />
-          <div className="h-72 animate-pulse rounded-md bg-borda-suave" />
-        </div>
-      )}
+      {estado.tipo === 'carregando' && <Carregando rotulo="Carregando" altura="h-72" />}
 
       {estado.tipo === 'erro' && (
-        <div
-          role="alert"
-          className="flex flex-col items-start gap-3 rounded-md border-l-4 border-erro bg-erro-claro p-4"
-        >
-          <p className="text-texto-forte">{estado.mensagem}</p>
-          <button
-            type="button"
-            onClick={() => {
-              setEstado({ tipo: 'carregando' });
-              void iniciar();
-            }}
-            className="min-h-[var(--spacing-alvo)] rounded-md bg-primaria px-4 font-semibold text-fundo"
-          >
-            Tentar de novo
-          </button>
-        </div>
+        <Erro
+          mensagem={estado.mensagem}
+          onTentar={() => {
+            setEstado({ tipo: 'carregando' });
+            void iniciar();
+          }}
+        />
       )}
 
       {estado.tipo === 'sem-permissao' && (
-        <div className="rounded-md border-l-4 border-alerta-destaque bg-alerta-claro p-4 text-texto-forte">
+        <SemPermissao>
           A frequência é lançada pela secretaria da escola, com acompanhamento da SEMED. Se você
           precisa de acesso, fale com a CTI.
-        </div>
+        </SemPermissao>
       )}
 
       {estado.tipo === 'pronto' && (

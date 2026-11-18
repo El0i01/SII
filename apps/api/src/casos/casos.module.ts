@@ -11,5 +11,6 @@ import { NotificacoesService } from './notificacoes.service';
 @Module({
   controllers: [NotificacoesController, CasosController, BuscaAtivaController],
   providers: [NotificacoesService, CasosService, AvisosService, BuscaAtivaService],
+  exports: [CasosService],
 })
 export class CasosModule {}

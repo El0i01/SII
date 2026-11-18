@@ -104,7 +104,8 @@ export class BuscaAtivaService {
     private readonly cripto: CriptoService,
   ) {}
 
-  async painel(u: UsuarioAutenticado) {
+  async painel(u: UsuarioAutenticado, territorio?: string) {
+    const onde = { tipo: TIPO, ...(territorio ? { setorCodigo: territorio } : {}) };
     const hoje = hojeEmPortoVelho();
     const selecao = {
       status: true,
@@ -120,7 +121,7 @@ export class BuscaAtivaService {
     } satisfies Prisma.CasoSelect;
     if (u.perfil === 'AUDITOR_TCE') {
       // Só agregados: o cliente dono conta, a resposta não tem nenhuma linha nominal.
-      const casos = await this.prisma.caso.findMany({ where: { tipo: TIPO }, select: selecao });
+      const casos = await this.prisma.caso.findMany({ where: onde, select: selecao });
       const r = resumoBuscaAtiva(casos.map(paraPainel), hoje);
       return {
         suprimido: true,
@@ -137,7 +138,7 @@ export class BuscaAtivaService {
       };
     }
     const casos = await this.prisma.comoUsuario(u, (tx) =>
-      tx.caso.findMany({ where: { tipo: TIPO }, select: selecao }),
+      tx.caso.findMany({ where: onde, select: selecao }),
     );
     return { suprimido: false, ...resumoBuscaAtiva(casos.map(paraPainel), hoje) };
   }
@@ -173,6 +174,7 @@ export class BuscaAtivaService {
           iniciais: iniciais(c.pessoa.nome),
           cpf: c.pessoa.cpfCifrado ? mascararCpf(this.cripto.revelar(c.pessoa.cpfCifrado)) : null,
           idade: c.pessoa.dataNascimento ? idadeEm(iso(c.pessoa.dataNascimento), hoje) : null,
+          setorCodigo: c.setorCodigo,
           setor: c.setorCodigo ? (nomeSetor.get(c.setorCodigo) ?? c.setorCodigo) : null,
           localidade: c.localidade,
           origem: c.origem,

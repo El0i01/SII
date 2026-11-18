@@ -39,3 +39,19 @@ export const PERFIS_COM_DADO_NOMINAL: readonly Perfil[] = [
 export function perfilVeDadoNominal(perfil: Perfil): boolean {
   return PERFIS_COM_DADO_NOMINAL.includes(perfil);
 }
+
+/** Nome do perfil para a tela (cabeçalho, painel do DPO). */
+export const ROTULO_PERFIL: Record<Perfil, string> = {
+  ADMIN_CTI: 'Equipe técnica (CTI)',
+  COMITE_GESTOR: 'Comitê Gestor',
+  SEMED_GESTOR: 'SEMED · Coordenação',
+  ESCOLA: 'Escola',
+  SAUDE_GESTOR: 'Saúde · Coordenação da APS',
+  ASSISTENCIA_GESTOR: 'Assistência Social · CadÚnico',
+  ACS: 'Agente comunitário de saúde',
+  CRAS_TECNICO: 'CRAS · Técnico',
+  VISITADOR_PCF: 'Criança Feliz · Visitador',
+  FAZENDA: 'Fazenda · Cadastro imobiliário',
+  AUDITOR_TCE: 'Controle externo (TCE-RO)',
+  DPO: 'Encarregado de dados (DPO)',
+};

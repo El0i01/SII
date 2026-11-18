@@ -52,19 +52,6 @@ export const ROTULO_STATUS_NOTIFICACAO: Record<StatusNotificacao, string> = {
   PARECER_EMITIDO: 'Parecer emitido',
 };
 
-export const COR_STATUS_NOTIFICACAO: Record<StatusNotificacao, string> = {
-  NOVA: 'bg-alerta-claro text-texto-forte',
-  EM_ANALISE: 'bg-primaria-clara text-primaria-escura',
-  PARECER_EMITIDO: 'bg-sucesso-claro text-texto-forte',
-};
-
-export const COR_PRAZO: Record<PrazoApi['tom'], string> = {
-  neutro: 'bg-superficie text-texto',
-  ok: 'bg-sucesso-claro text-texto-forte',
-  alerta: 'bg-alerta-claro text-texto-forte',
-  critico: 'bg-erro-claro text-erro',
-};
-
 export const ROTULO_EVENTO: Record<string, string> = {
   ALERTA_GERADO: 'Alerta gerado pela frequência',
   ENCAMINHADO: 'Caso encaminhado',

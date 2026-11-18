@@ -42,6 +42,11 @@ export const ROTULO_FILTRO_FICHA: Record<FiltroFicha, string> = {
 
 export const ConsultaFichas = z.object({
   busca: z.string().trim().max(60).optional(),
+  /** Código do setor (filtro de território do cabeçalho). */
+  territorio: z
+    .string()
+    .regex(/^[A-Z0-9]{2,10}$/)
+    .optional(),
   filtro: FiltroFicha.default('todas'),
 });
 export type ConsultaFichas = z.infer<typeof ConsultaFichas>;

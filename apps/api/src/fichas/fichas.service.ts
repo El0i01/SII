@@ -102,7 +102,9 @@ export class FichasService {
     const linhas = await this.prisma.comoUsuario(u, (tx) =>
       tx.$queryRaw<LinhaFicha[]>(consultaFichas(hoje)),
     );
-    const todas = linhas.map((l) => avaliar(l, hoje));
+    const todas = linhas
+      .filter((l) => !c.territorio || l.setor_codigo === c.territorio)
+      .map((l) => avaliar(l, hoje));
     const filtradas = todas
       .filter((a) => atendeFiltro(a.resumo, c.filtro) && atendeBusca(a.resumo, c.busca))
       .sort(

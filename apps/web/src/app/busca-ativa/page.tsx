@@ -1,111 +1,49 @@
 'use client';
 
 import {
-  BOM_UTF8,
   ORIGENS_ALERTA,
   type RevelarCpf,
   ROTULO_SECRETARIA_BUSCA_ATIVA,
   ROTULO_STATUS_BUSCA_ATIVA,
   SECRETARIAS_BUSCA_ATIVA,
   STATUS_BUSCA_ATIVA,
+  type StatusBuscaAtiva,
   VisitaBuscaAtiva,
 } from '@sii/shared';
-import { useRouter } from 'next/navigation';
-import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { type ErrosRevelar, FormularioRevelarCpf } from '@/components/revelar-cpf';
+import { Barras } from '@/components/ui/barras';
+import { Botao } from '@/components/ui/button';
+import { CabecalhoPagina } from '@/components/ui/cabecalho-pagina';
+import { Card } from '@/components/ui/card';
+import { Carregando, Erro as ErroTela, SemPermissao, Sucesso } from '@/components/ui/estado';
+import { GradeKpis, Kpi } from '@/components/ui/kpi';
+import { Pill, type Tom, tomDoPrazo } from '@/components/ui/pill';
+import { type Coluna, Tabela } from '@/components/ui/tabela';
 import { api, ErroApi } from '@/lib/api';
 import {
   atendeBuscaCaso,
   atendeSituacao,
-  type ColunaOrdem,
   csvDosCasos,
   type DetalheBuscaAtiva,
   type FiltroSituacao,
   type ItemBuscaAtiva,
-  ordenar,
   type PainelBuscaAtiva,
 } from '@/lib/busca-ativa';
-import { COR_PRAZO, dataBr, ROTULO_EVENTO } from '@/lib/casos';
+import { dataBr, ROTULO_EVENTO } from '@/lib/casos';
+import { gravarParametrosDaTela, useFiltrosGlobais } from '@/lib/filtros-url';
 
-const POR_PAGINA = 10;
-const BOTAO =
-  'inline-flex min-h-[var(--spacing-alvo)] items-center rounded-md border border-primaria px-4 font-semibold text-primaria disabled:opacity-60';
-const BOTAO_PRIMARIO =
-  'min-h-[var(--spacing-alvo)] rounded-md bg-primaria px-4 font-semibold text-fundo hover:bg-primaria-escura disabled:opacity-70';
 const CAMPO =
   'min-h-[var(--spacing-alvo)] rounded-md border border-borda bg-fundo px-3 text-texto-forte';
 
-const COR_STATUS: Record<string, string> = {
-  IDENTIFICADO: 'bg-superficie text-texto-forte',
-  ENCAMINHADO: 'bg-primaria-clara text-primaria-escura',
-  VISITA_REALIZADA: 'bg-alerta-claro text-texto-forte',
-  MATRICULADO: 'bg-sucesso-claro text-texto-forte',
-  NAO_LOCALIZADO: 'bg-erro-claro text-erro',
+const TOM_STATUS: Record<StatusBuscaAtiva, Tom> = {
+  IDENTIFICADO: 'neutro',
+  ENCAMINHADO: 'info',
+  VISITA_REALIZADA: 'alerta',
+  MATRICULADO: 'bom',
+  NAO_LOCALIZADO: 'critico',
 };
-const Pill = ({ cor, children }: { cor: string; children: ReactNode }) => (
-  <span className={`rounded px-2 py-0.5 text-sm font-semibold whitespace-nowrap ${cor}`}>
-    {children}
-  </span>
-);
-const numero = (n: number | null) => (n === null ? '< 5' : n.toLocaleString('pt-BR'));
-
-function Kpi({ rotulo, valor, detalhe }: { rotulo: string; valor: string; detalhe: string }) {
-  return (
-    <div className="rounded-md border border-borda-suave bg-superficie p-4">
-      <p className="text-sm text-texto-suave">{rotulo}</p>
-      <p className="text-3xl font-semibold text-texto-forte">{valor}</p>
-      <p className="text-sm text-texto-suave">{detalhe}</p>
-    </div>
-  );
-}
-
-/** Barras horizontais com o número escrito: legível sem cor e por leitor de tela. */
-function Barras({
-  titulo,
-  itens,
-}: {
-  titulo: string;
-  itens: { rotulo: string; valor: number | null }[];
-}) {
-  const max = Math.max(1, ...itens.map((i) => i.valor ?? 0));
-  return (
-    <ul aria-label={titulo} className="flex flex-col gap-2">
-      {itens.map((i) => (
-        <li key={i.rotulo} className="grid grid-cols-[8.5rem_1fr_3rem] items-center gap-2">
-          <span className="text-sm text-texto">{i.rotulo}</span>
-          <span className="h-4 rounded bg-borda-suave" aria-hidden="true">
-            <span
-              className="block h-4 rounded bg-primaria"
-              style={{ width: `${((i.valor ?? 0) * 100) / max}%` }}
-            />
-          </span>
-          <span className="text-right font-semibold text-texto-forte">{numero(i.valor)}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function Card({
-  titulo,
-  subtitulo,
-  children,
-}: {
-  titulo: string;
-  subtitulo?: string;
-  children: ReactNode;
-}) {
-  const id = titulo.replace(/\W+/g, '-').toLowerCase();
-  return (
-    <section aria-labelledby={id} className="rounded-md border border-borda-suave bg-fundo p-4">
-      <h2 id={id} className="text-lg font-semibold text-texto-forte">
-        {titulo}
-      </h2>
-      {subtitulo && <p className="mb-3 text-sm text-texto-suave">{subtitulo}</p>}
-      {children}
-    </section>
-  );
-}
 
 type EstadoLista =
   | { tipo: 'carregando' }
@@ -113,42 +51,90 @@ type EstadoLista =
   | { tipo: 'sem-permissao' }
   | { tipo: 'pronto'; itens: ItemBuscaAtiva[] };
 
-const COLUNAS: [ColunaOrdem | 'cpf', string][] = [
-  ['codigo', 'Caso'],
-  ['iniciais', 'Criança'],
-  ['cpf', 'CPF'],
-  ['idade', 'Idade'],
-  ['localidade', 'Quadra/Linha'],
-  ['origem', 'Origem'],
-  ['responsavel', 'Responsável'],
-  ['status', 'Situação'],
-  ['dias', 'Dias'],
-  ['prazo', 'Prazo'],
-];
+function colunas(
+  abrir: (codigo: string) => void,
+  revelados: Record<string, string>,
+): Coluna<ItemBuscaAtiva>[] {
+  return [
+    {
+      accessorKey: 'codigo',
+      header: 'Caso',
+      cell: (c) => (
+        <Botao
+          variante="link"
+          onClick={() => abrir(c.row.original.codigo)}
+          aria-label={`Abrir o caso ${c.row.original.codigo}`}
+          className="whitespace-nowrap"
+        >
+          {c.row.original.codigo}
+        </Botao>
+      ),
+    },
+    {
+      accessorKey: 'iniciais',
+      header: 'Criança',
+      cell: (c) => <span className="whitespace-nowrap">{c.getValue<string>()}</span>,
+    },
+    {
+      id: 'cpf',
+      header: 'CPF',
+      enableSorting: false,
+      cell: (c) => (
+        <span className="font-mono text-sm whitespace-nowrap">
+          {revelados[c.row.original.codigo] ?? c.row.original.cpf ?? '—'}
+        </span>
+      ),
+    },
+    { accessorKey: 'idade', header: 'Idade', numerica: true },
+    {
+      id: 'localidade',
+      header: 'Quadra/Linha',
+      accessorFn: (i) => i.localidade ?? '',
+      cell: (c) => (
+        <>
+          {c.row.original.localidade ?? '—'}
+          {c.row.original.setor && (
+            <span className="block text-sm text-texto-suave">{c.row.original.setor}</span>
+          )}
+        </>
+      ),
+    },
+    { id: 'origem', header: 'Origem', accessorFn: (i) => i.origem ?? '—' },
+    { accessorKey: 'rotuloResponsavel', header: 'Responsável' },
+    {
+      id: 'status',
+      header: 'Situação',
+      accessorFn: (i) => ROTULO_STATUS_BUSCA_ATIVA[i.status],
+      cell: (c) => <Pill tom={TOM_STATUS[c.row.original.status]}>{c.getValue<string>()}</Pill>,
+    },
+    { accessorKey: 'dias', header: 'Dias', numerica: true },
+    {
+      id: 'prazo',
+      header: 'Prazo',
+      accessorFn: (i) => i.prazo.restante ?? 99,
+      cell: (c) => (
+        <Pill tom={tomDoPrazo(c.row.original.prazo.tom)}>{c.row.original.prazo.rotulo}</Pill>
+      ),
+    },
+  ];
+}
 
 /**
  * Busca ativa escolar (§4.2, P13), como no protótipo: KPIs, funil, origem do alerta, prazos e a lista
  * de casos (CPF mascarado, exportação sem CPF nem nome). O auditor vê só os números.
  */
 export default function BuscaAtiva() {
-  const router = useRouter();
+  const [filtros] = useFiltrosGlobais();
   const [painel, setPainel] = useState<PainelBuscaAtiva | null>(null);
   const [erroPainel, setErroPainel] = useState<string | null>(null);
   const [lista, setLista] = useState<EstadoLista>({ tipo: 'carregando' });
-  const [busca, setBusca] = useState('');
   const [situacao, setSituacao] = useState<FiltroSituacao>('todos');
-  const [ordem, setOrdem] = useState<{ coluna: ColunaOrdem; direcao: 1 | -1 }>({
-    coluna: 'dias',
-    direcao: -1,
-  });
-  const [pagina, setPagina] = useState(0);
   const [aberto, setAberto] = useState<string | null>(null);
   const [revelados, setRevelados] = useState<Record<string, string>>({});
   const [pronto, setPronto] = useState(false);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    setBusca(p.get('busca') ?? '');
     const s = p.get('situacao') as FiltroSituacao | null;
     if (s && (s === 'escalonados' || (STATUS_BUSCA_ATIVA as readonly string[]).includes(s)))
       setSituacao(s);
@@ -156,21 +142,22 @@ export default function BuscaAtiva() {
     setPronto(true);
   }, []);
   useEffect(() => {
-    if (!pronto) return;
-    const p = new URLSearchParams();
-    if (busca.trim()) p.set('busca', busca.trim());
-    if (situacao !== 'todos') p.set('situacao', situacao);
-    if (aberto) p.set('caso', aberto);
-    const q = p.toString();
-    window.history.replaceState(null, '', q ? `/busca-ativa?${q}` : '/busca-ativa');
-  }, [pronto, busca, situacao, aberto]);
+    if (pronto)
+      gravarParametrosDaTela({ situacao: situacao === 'todos' ? null : situacao, caso: aberto });
+  }, [pronto, situacao, aberto]);
 
+  const territorio = filtros?.territorio ?? null;
   const carregar = useCallback(async () => {
+    if (!filtros) return;
     try {
-      setPainel(await api<PainelBuscaAtiva>('/busca-ativa/painel'));
+      setPainel(
+        await api<PainelBuscaAtiva>(
+          `/busca-ativa/painel${territorio ? `?territorio=${territorio}` : ''}`,
+        ),
+      );
+      setErroPainel(null);
     } catch (e) {
-      if (e instanceof ErroApi && e.status === 401)
-        return router.push('/entrar?proximo=/busca-ativa');
+      if (e instanceof ErroApi && e.status === 401) return;
       setErroPainel(
         e instanceof ErroApi && e.status === 403
           ? 'Seu perfil não acompanha a busca ativa.'
@@ -192,87 +179,71 @@ export default function BuscaAtiva() {
           mensagem: e instanceof Error ? e.message : 'Não foi possível carregar.',
         });
     }
-  }, [router]);
+  }, [filtros, territorio]);
   useEffect(() => {
     void carregar();
   }, [carregar]);
 
-  const filtrados = useMemo(() => {
-    if (lista.tipo !== 'pronto') return [];
-    return ordenar(
-      lista.itens.filter((i) => atendeSituacao(i, situacao) && atendeBuscaCaso(i, busca)),
-      ordem.coluna,
-      ordem.direcao,
-    );
-  }, [lista, situacao, busca, ordem]);
-  const paginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA));
-  const paginaAtual = Math.min(pagina, paginas - 1);
-  const fatia = filtrados.slice(paginaAtual * POR_PAGINA, paginaAtual * POR_PAGINA + POR_PAGINA);
-
-  function baixarCsv() {
-    const blob = new Blob([BOM_UTF8 + csvDosCasos(filtrados)], { type: 'text/csv;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `busca-ativa-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
+  const filtrados = useMemo(
+    () =>
+      lista.tipo === 'pronto'
+        ? lista.itens.filter(
+            (i) => atendeSituacao(i, situacao) && (!territorio || i.setorCodigo === territorio),
+          )
+        : [],
+    [lista, situacao, territorio],
+  );
+  const cols = useMemo(() => colunas(setAberto, revelados), [revelados]);
 
   const p = painel;
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-texto-forte">Busca ativa escolar</h1>
-        <p className="max-w-prose text-texto-suave">
-          Crianças e adolescentes de 4 a 17 anos que aparecem no CadÚnico, no e-SUS ou no Censo
-          Municipal sem matrícula na rede municipal nem na estadual.
-        </p>
-        <p className="text-sm text-texto-suave">
-          Fontes: CadÚnico, e-SUS PEC, gestão escolar, SEDUC-RO
-        </p>
-      </div>
+      <CabecalhoPagina
+        titulo="Busca ativa escolar"
+        descricao="Crianças e adolescentes de 4 a 17 anos que aparecem no CadÚnico, no e-SUS ou no Censo Municipal sem matrícula na rede municipal nem na estadual."
+        fontes="Fontes: CadÚnico, e-SUS PEC, gestão escolar, SEDUC-RO"
+      />
 
-      {erroPainel && (
-        <p role="alert" className="rounded-md border-l-4 border-erro bg-erro-claro p-3">
-          {erroPainel}
-        </p>
-      )}
-      {!p && !erroPainel && (
-        <div
-          aria-busy="true"
-          aria-label="Carregando o painel"
-          className="h-24 animate-pulse rounded-md bg-borda-suave"
-        />
-      )}
+      {erroPainel && <ErroTela mensagem={erroPainel} />}
+      {!p && !erroPainel && <Carregando rotulo="Carregando o painel" altura="h-24" />}
       {p && (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-            <Kpi rotulo="Identificados" valor={numero(p.identificados)} detalhe="desde jan/2026" />
+          <GradeKpis>
+            <Kpi
+              rotulo="Identificados"
+              valor={p.identificados}
+              detalhe="desde jan/2026"
+              tom="info"
+            />
             <Kpi
               rotulo="Encaminhados em até 30 dias"
               valor={p.encaminhadosEm30 === null ? '—' : `${p.encaminhadosEm30}%`}
               detalhe="meta: 100%"
+              tom="alerta"
             />
             <Kpi
               rotulo="Matriculados"
-              valor={numero(p.matriculados)}
+              valor={p.matriculados}
               detalhe={
                 p.identificados && p.matriculados !== null
                   ? `${Math.round((p.matriculados * 100) / p.identificados)}% dos identificados`
                   : 'dos identificados'
               }
+              tom="bom"
             />
             <Kpi
               rotulo="Não localizados"
-              valor={numero(p.naoLocalizados)}
+              valor={p.naoLocalizados}
               detalhe="seguem para o Conselho Tutelar"
+              tom="critico"
             />
             <Kpi
               rotulo="Escalonados ao Comitê"
-              valor={numero(p.escalonados)}
+              valor={p.escalonados}
               detalhe="vencidos há mais de 7 dias"
+              tom="critico"
             />
-          </div>
+          </GradeKpis>
           {p.suprimido && (
             <p className="text-sm text-texto-suave">
               Contagens menores que 5 aparecem como &quot;&lt; 5&quot; para proteger as crianças.
@@ -310,56 +281,61 @@ export default function BuscaAtiva() {
         subtitulo="Cada etapa tem um prazo contado a partir do alerta. Quando o prazo estoura, o caso sobe de nível sozinho."
       >
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <table className="w-full border-collapse text-left">
-            <thead>
-              <tr className="border-b border-borda">
-                <th scope="col" className="p-2 text-sm text-texto-suave">
-                  Etapa atual
-                </th>
-                <th scope="col" className="p-2 text-sm text-texto-suave">
-                  Próximo passo
-                </th>
-                <th scope="col" className="p-2 text-right text-sm text-texto-suave">
-                  Prazo desde o alerta
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                ['Identificado', 'Encaminhar à secretaria responsável', '5 dias'],
-                ['Encaminhado', 'Fazer a visita domiciliar', '20 dias'],
-                ['Visita realizada', 'Efetivar a matrícula', '30 dias'],
-                ['Não localizado', 'Comunicar o Conselho Tutelar', '30 dias'],
-              ].map(([a, b, c]) => (
-                <tr key={a} className="border-b border-borda-suave">
-                  <td className="p-2">{a}</td>
-                  <td className="p-2">{b}</td>
-                  <td className="p-2 text-right">{c}</td>
+          <div className="overflow-x-auto" tabIndex={0} aria-label="Prazos por etapa">
+            <table className="w-full border-collapse text-left">
+              <caption className="sr-only">Prazos por etapa</caption>
+              <thead>
+                <tr className="border-b border-borda">
+                  <th scope="col" className="p-2 text-sm text-texto-suave">
+                    Etapa atual
+                  </th>
+                  <th scope="col" className="p-2 text-sm text-texto-suave">
+                    Próximo passo
+                  </th>
+                  <th scope="col" className="p-2 text-right text-sm text-texto-suave">
+                    Prazo desde o alerta
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {[
+                  ['Identificado', 'Encaminhar à secretaria responsável', '5 dias'],
+                  ['Encaminhado', 'Fazer a visita domiciliar', '20 dias'],
+                  ['Visita realizada', 'Efetivar a matrícula', '30 dias'],
+                  ['Não localizado', 'Comunicar o Conselho Tutelar', '30 dias'],
+                ].map(([a, b, c]) => (
+                  <tr key={a} className="border-b border-borda-suave">
+                    <td className="p-2">{a}</td>
+                    <td className="p-2">{b}</td>
+                    <td className="p-2 text-right">{c}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <ul className="flex flex-col gap-2">
-            {[
+            {(
               [
-                'Faltam 3 dias ou menos',
-                'Aviso ao responsável pelo caso e ao ponto focal',
-                'Nível 1',
-                COR_PRAZO.alerta,
-              ],
-              [
-                'Prazo vencido',
-                'Caso vai para a coordenação da secretaria',
-                'Nível 2',
-                COR_PRAZO.critico,
-              ],
-              [
-                'Vencido há mais de 7 dias',
-                'Entra na pauta da próxima reunião do Comitê Gestor',
-                'Nível 3',
-                COR_PRAZO.critico,
-              ],
-            ].map(([t, d, n, cor]) => (
+                [
+                  'Faltam 3 dias ou menos',
+                  'Aviso ao responsável pelo caso e ao ponto focal',
+                  'Nível 1',
+                  'alerta',
+                ],
+                [
+                  'Prazo vencido',
+                  'Caso vai para a coordenação da secretaria',
+                  'Nível 2',
+                  'critico',
+                ],
+                [
+                  'Vencido há mais de 7 dias',
+                  'Entra na pauta da próxima reunião do Comitê Gestor',
+                  'Nível 3',
+                  'critico',
+                ],
+              ] as const
+            ).map(([t, d, n, tom]) => (
               <li
                 key={t}
                 className="flex items-center justify-between gap-3 rounded-md border border-borda-suave p-3"
@@ -368,7 +344,7 @@ export default function BuscaAtiva() {
                   <b className="text-texto-forte">{t}</b>
                   <span className="block text-sm text-texto-suave">{d}</span>
                 </span>
-                <Pill cor={cor as string}>{n}</Pill>
+                <Pill tom={tom}>{n}</Pill>
               </li>
             ))}
           </ul>
@@ -379,48 +355,31 @@ export default function BuscaAtiva() {
         titulo="Casos"
         subtitulo="Lista de ação para as equipes, ordenada pelos casos mais antigos."
       >
-        {lista.tipo === 'carregando' && (
-          <div
-            aria-busy="true"
-            aria-label="Carregando os casos"
-            className="h-64 animate-pulse rounded-md bg-borda-suave"
-          />
-        )}
+        {lista.tipo === 'carregando' && <Carregando rotulo="Carregando os casos" altura="h-64" />}
         {lista.tipo === 'erro' && (
-          <div
-            role="alert"
-            className="flex flex-col items-start gap-3 rounded-md border-l-4 border-erro bg-erro-claro p-4"
-          >
-            <p>{lista.mensagem}</p>
-            <button type="button" onClick={() => void carregar()} className={BOTAO_PRIMARIO}>
-              Tentar de novo
-            </button>
-          </div>
+          <ErroTela mensagem={lista.mensagem} onTentar={() => void carregar()} />
         )}
         {lista.tipo === 'sem-permissao' && (
-          <p className="rounded-md border-l-4 border-alerta-destaque bg-alerta-claro p-4 text-texto-forte">
+          <SemPermissao>
             Seu perfil vê só os números agregados da busca ativa. A lista nominal é das equipes.
-          </p>
+          </SemPermissao>
         )}
         {lista.tipo === 'pronto' && (
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="flex grow flex-col gap-1">
-                <label htmlFor="busca" className="font-semibold text-texto-forte">
-                  Buscar por caso, quadra, escola ou responsável
-                </label>
-                <input
-                  id="busca"
-                  type="search"
-                  value={busca}
-                  onChange={(e) => {
-                    setBusca(e.target.value);
-                    setPagina(0);
-                  }}
-                  placeholder="Ex.: BA-2026-0329 ou Q052"
-                  className={CAMPO}
-                />
-              </div>
+          <Tabela
+            dados={filtrados}
+            colunas={cols}
+            legenda="CPF mascarado por padrão. Revelar o CPF registra o acesso (quem, quando e finalidade)."
+            legendaVisivel
+            densa
+            ordemInicial={[{ id: 'dias', desc: true }]}
+            idLinha={(i) => i.codigo}
+            destacar={(i) => i.codigo === aberto}
+            busca={{
+              rotulo: 'Buscar por caso, quadra, escola ou responsável',
+              placeholder: 'Ex.: BA-2026-0329 ou Q052',
+              atende: (i, q) => atendeBuscaCaso(i, q),
+            }}
+            filtros={
               <div className="flex flex-col gap-1">
                 <label htmlFor="situacao" className="font-semibold text-texto-forte">
                   Situação
@@ -428,10 +387,7 @@ export default function BuscaAtiva() {
                 <select
                   id="situacao"
                   value={situacao}
-                  onChange={(e) => {
-                    setSituacao(e.target.value as FiltroSituacao);
-                    setPagina(0);
-                  }}
+                  onChange={(e) => setSituacao(e.target.value as FiltroSituacao)}
                   className={CAMPO}
                 >
                   <option value="todos">Todas</option>
@@ -443,145 +399,22 @@ export default function BuscaAtiva() {
                   ))}
                 </select>
               </div>
-              <button
-                type="button"
-                onClick={baixarCsv}
-                disabled={filtrados.length === 0}
-                className={BOTAO}
-              >
-                Baixar CSV
-              </button>
-            </div>
-
-            {filtrados.length === 0 ? (
-              <div className="flex flex-col items-start gap-3 rounded-md border border-borda-suave bg-superficie p-4">
-                <p>
-                  Nenhum caso corresponde à busca e aos filtros. Limpe a busca ou escolha outra
-                  situação.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBusca('');
-                    setSituacao('todos');
-                  }}
-                  className={BOTAO}
-                >
+            }
+            exportar={{
+              arquivo: `busca-ativa-${new Date().toISOString().slice(0, 10)}.csv`,
+              gerar: csvDosCasos,
+            }}
+            vazio={{
+              titulo: 'Nenhum caso encontrado',
+              texto:
+                'Nenhum caso corresponde à busca e aos filtros. Limpe a busca, escolha outra situação ou outro território.',
+              acao: (
+                <Botao variante="contorno" onClick={() => setSituacao('todos')}>
                   Limpar filtros
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-left">
-                    <caption className="mb-2 text-left text-sm text-texto-suave">
-                      CPF mascarado por padrão. Revelar o CPF registra o acesso (quem, quando e
-                      finalidade).
-                    </caption>
-                    <thead>
-                      <tr className="border-b border-borda">
-                        {COLUNAS.map(([k, rotulo]) => {
-                          const ativa = ordem.coluna === k;
-                          return (
-                            <th
-                              key={k}
-                              scope="col"
-                              aria-sort={
-                                ativa ? (ordem.direcao > 0 ? 'ascending' : 'descending') : 'none'
-                              }
-                              className="p-2 text-sm whitespace-nowrap text-texto-suave"
-                            >
-                              {k === 'cpf' ? (
-                                rotulo
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setOrdem((o) => ({
-                                      coluna: k,
-                                      direcao: o.coluna === k ? (o.direcao === 1 ? -1 : 1) : 1,
-                                    }))
-                                  }
-                                  className="min-h-[var(--spacing-alvo)] font-semibold"
-                                >
-                                  {rotulo}
-                                  {ativa ? (ordem.direcao > 0 ? ' ↑' : ' ↓') : ''}
-                                </button>
-                              )}
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {fatia.map((i) => (
-                        <tr
-                          key={i.codigo}
-                          className={`border-b border-borda-suave ${aberto === i.codigo ? 'bg-primaria-clara' : ''}`}
-                        >
-                          <td className="p-2 whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => setAberto(i.codigo)}
-                              aria-label={`Abrir o caso ${i.codigo}`}
-                              className="min-h-[var(--spacing-alvo)] font-semibold text-primaria underline"
-                            >
-                              {i.codigo}
-                            </button>
-                          </td>
-                          <td className="p-2 whitespace-nowrap">{i.iniciais}</td>
-                          <td className="p-2 font-mono text-sm whitespace-nowrap">
-                            {revelados[i.codigo] ?? i.cpf ?? '—'}
-                          </td>
-                          <td className="p-2 text-right">{i.idade ?? '—'}</td>
-                          <td className="p-2">
-                            {i.localidade ?? '—'}
-                            {i.setor && (
-                              <span className="block text-sm text-texto-suave">{i.setor}</span>
-                            )}
-                          </td>
-                          <td className="p-2">{i.origem ?? '—'}</td>
-                          <td className="p-2">{i.rotuloResponsavel}</td>
-                          <td className="p-2">
-                            <Pill cor={COR_STATUS[i.status] as string}>
-                              {ROTULO_STATUS_BUSCA_ATIVA[i.status]}
-                            </Pill>
-                          </td>
-                          <td className="p-2 text-right">{i.dias}</td>
-                          <td className="p-2">
-                            <Pill cor={COR_PRAZO[i.prazo.tom]}>{i.prazo.rotulo}</Pill>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-sm text-texto-suave">
-                    {paginaAtual * POR_PAGINA + 1}–
-                    {Math.min(filtrados.length, paginaAtual * POR_PAGINA + POR_PAGINA)} de{' '}
-                    {filtrados.length}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={paginaAtual === 0}
-                    onClick={() => setPagina(paginaAtual - 1)}
-                    className={BOTAO}
-                  >
-                    Anterior
-                  </button>
-                  <button
-                    type="button"
-                    disabled={paginaAtual >= paginas - 1}
-                    onClick={() => setPagina(paginaAtual + 1)}
-                    className={BOTAO}
-                  >
-                    Próxima
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+                </Botao>
+              ),
+            }}
+          />
         )}
       </Card>
 
@@ -597,6 +430,11 @@ export default function BuscaAtiva() {
     </div>
   );
 }
+
+const BOTAO =
+  'inline-flex min-h-[var(--spacing-alvo)] items-center rounded-md border border-primaria px-4 font-semibold text-primaria disabled:opacity-60';
+const BOTAO_PRIMARIO =
+  'min-h-[var(--spacing-alvo)] rounded-md bg-primaria px-4 font-semibold text-fundo hover:bg-primaria-escura disabled:opacity-70';
 
 function PainelCaso({
   codigo,
@@ -697,10 +535,10 @@ function PainelCaso({
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Pill cor={COR_PRAZO[d.prazo.tom]}>{d.prazo.rotulo}</Pill>
-              <a href={`/fichas?ficha=${d.pessoaId}`} className={BOTAO}>
+              <Pill tom={tomDoPrazo(d.prazo.tom)}>{d.prazo.rotulo}</Pill>
+              <Link href={`/fichas?ficha=${d.pessoaId}`} className={BOTAO}>
                 Abrir ficha
-              </a>
+              </Link>
               {!revelando && (
                 <button type="button" onClick={() => setRevelando(true)} className={BOTAO}>
                   Revelar CPF
@@ -711,11 +549,7 @@ function PainelCaso({
               </button>
             </div>
           </header>
-          {mensagem && (
-            <p role="status" className="rounded-md border-l-4 border-sucesso bg-sucesso-claro p-3">
-              {mensagem}
-            </p>
-          )}
+          {mensagem && <Sucesso>{mensagem}</Sucesso>}
           {revelando && (
             <FormularioRevelarCpf onRevelar={revelar} onCancelar={() => setRevelando(false)} />
           )}

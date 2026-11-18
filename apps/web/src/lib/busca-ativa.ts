@@ -33,6 +33,7 @@ export interface ItemBuscaAtiva {
   iniciais: string;
   cpf: string | null;
   idade: number | null;
+  setorCodigo: string | null;
   setor: string | null;
   localidade: string | null;
   origem: string | null;
@@ -86,31 +87,6 @@ export function atendeBuscaCaso(i: ItemBuscaAtiva, busca: string): boolean {
     .join(' ')
     .toLowerCase()
     .includes(q);
-}
-
-export type ColunaOrdem =
-  | 'codigo'
-  | 'iniciais'
-  | 'idade'
-  | 'localidade'
-  | 'origem'
-  | 'responsavel'
-  | 'status'
-  | 'dias'
-  | 'prazo';
-
-export function ordenar(itens: ItemBuscaAtiva[], coluna: ColunaOrdem, direcao: 1 | -1) {
-  const valor = (i: ItemBuscaAtiva): string | number =>
-    coluna === 'prazo'
-      ? (i.prazo.restante ?? 99)
-      : coluna === 'responsavel'
-        ? i.rotuloResponsavel
-        : (i[coluna] ?? '');
-  return [...itens].sort((a, b) => {
-    const x = valor(a);
-    const y = valor(b);
-    return (x > y ? 1 : x < y ? -1 : 0) * direcao;
-  });
 }
 
 /** CSV para a equipe: nunca CPF nem nome (só iniciais). */

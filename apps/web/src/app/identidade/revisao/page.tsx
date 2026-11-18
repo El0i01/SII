@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { ParRevisao, type Revisao } from '@/components/par-revisao';
+import { CabecalhoPagina } from '@/components/ui/cabecalho-pagina';
+import { Carregando, Erro, SemPermissao } from '@/components/ui/estado';
 import { api, ErroApi } from '@/lib/api';
 
 type Estado =
@@ -70,14 +72,10 @@ export default function RevisaoVinculos() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-texto-forte">Revisão de pessoas duplicadas</h1>
-        <p className="max-w-prose text-texto-suave">
-          Registros que chegaram de fontes diferentes e talvez sejam a mesma pessoa. Confira os
-          dados e decida. Unir junta o histórico das duas fichas; a união fica registrada e pode ser
-          desfeita pela CTI.
-        </p>
-      </div>
+      <CabecalhoPagina
+        titulo="Revisão de pessoas duplicadas"
+        descricao="Registros que chegaram de fontes diferentes e talvez sejam a mesma pessoa. Confira os dados e decida. Unir junta o histórico das duas fichas; a união fica registrada e pode ser desfeita pela CTI."
+      />
 
       <p role="status" aria-live="polite" className="sr-only">
         {aviso}
@@ -89,38 +87,18 @@ export default function RevisaoVinculos() {
       )}
 
       {estado.tipo === 'carregando' && (
-        <div
-          aria-busy="true"
-          aria-label="Carregando a fila de revisão"
-          className="flex flex-col gap-3"
-        >
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-40 animate-pulse rounded-md bg-borda-suave" />
-          ))}
-        </div>
+        <Carregando rotulo="Carregando a fila de revisão" altura="h-72" />
       )}
 
       {estado.tipo === 'erro' && (
-        <div
-          role="alert"
-          className="flex flex-col items-start gap-3 rounded-md border-l-4 border-erro bg-erro-claro p-4"
-        >
-          <p className="text-texto-forte">{estado.mensagem}</p>
-          <button
-            type="button"
-            onClick={() => void carregar()}
-            className="min-h-[var(--spacing-alvo)] rounded-md bg-primaria px-4 font-semibold text-fundo"
-          >
-            Tentar de novo
-          </button>
-        </div>
+        <Erro mensagem={estado.mensagem} onTentar={() => void carregar()} />
       )}
 
       {estado.tipo === 'sem-permissao' && (
-        <div className="rounded-md border-l-4 border-alerta-destaque bg-alerta-claro p-4 text-texto-forte">
+        <SemPermissao>
           Só a equipe da CTI revisa e une registros de pessoas. Se você acha que deveria ter acesso,
           fale com a CTI.
-        </div>
+        </SemPermissao>
       )}
 
       {estado.tipo === 'pronto' && estado.revisoes.length === 0 && (

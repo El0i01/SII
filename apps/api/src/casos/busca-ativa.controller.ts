@@ -1,7 +1,8 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   EncaminharBuscaAtiva,
+  FiltroPainel,
   MatriculaBuscaAtiva,
   PERFIS_COM_DADO_NOMINAL,
   VisitaBuscaAtiva,
@@ -34,8 +35,11 @@ export class BuscaAtivaController {
   @Get('painel')
   @Perfis(...PERFIS_COM_DADO_NOMINAL, 'AUDITOR_TCE')
   @ApiOperation({ summary: 'KPIs, funil e origem (auditor: só agregados, < 5 suprimido)' })
-  painel(@UsuarioAtual() u: UsuarioAutenticado) {
-    return this.busca.painel(u);
+  painel(
+    @UsuarioAtual() u: UsuarioAutenticado,
+    @Query(new ZodPipe(FiltroPainel)) filtro: FiltroPainel,
+  ) {
+    return this.busca.painel(u, filtro.territorio);
   }
 
   @Get()

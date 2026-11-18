@@ -41,6 +41,8 @@ describe('codigoFicha e consulta', () => {
   });
   it('filtro padrão é "todas"; filtro desconhecido é recusado', () => {
     expect(ConsultaFichas.parse({})).toEqual({ filtro: 'todas' });
+    expect(ConsultaFichas.parse({ territorio: 'S03' }).territorio).toBe('S03');
+    expect(ConsultaFichas.safeParse({ territorio: 's 3' }).success).toBe(false);
     expect(ConsultaFichas.safeParse({ filtro: 'x' }).success).toBe(false);
   });
 });
