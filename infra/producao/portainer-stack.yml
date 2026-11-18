@@ -27,7 +27,7 @@ services:
     volumes:
       - db:/var/lib/postgresql/data
     healthcheck:
-      test: [CMD, pg_isready, -U, sii, -d, sii]
+      test: [CMD, pg_isready, -h, 127.0.0.1, -U, sii, -d, sii]
       interval: 5s
       timeout: 3s
       retries: 20
