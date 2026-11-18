@@ -24,7 +24,7 @@ Situação em 18/11/2026: **fases 1 e 2 concluídas (P01 a P13)** e **fase 3 con
 | P14 | 18/11 | `bc6ac05` | Layout institucional, componentes base, Visão geral, acessibilidade | 0013 |
 | P15 | 18/11 | `9bf4dd2` | Tela Território com MapLibre: 7 camadas, detalhe da quadra, agregado do auditor | 0014 |
 | P16 | 18/11 | `99237fe` | Indicadores OE1–OE6, controle externo, relatório ao TCE, trilha verificável, DPO | 0015 |
-| P19 | 18/11 | — | Painéis de ciclos de vida, oferta de creche, escolaridade do CadÚnico e pesos do IVM | 0016 |
+| P19 | 18/11 | `b644697` | Painéis de ciclos de vida, oferta de creche, escolaridade do CadÚnico e pesos do IVM | 0016 |
 
 ---
 
