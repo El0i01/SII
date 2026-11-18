@@ -21,7 +21,7 @@ Situação em 18/11/2026: **fases 1 e 2 concluídas (P01 a P13)** e P14 feito. P
 | P11 | 17/11 | `fa062d5` | Notificações ao CRAS, parecer, avisos, prazos e pauta do Comitê | 0010 |
 | P12 | 17/11 | `5eb7e0c` | Ficha da criança, revelar CPF com finalidade, painel do DPO | 0011 |
 | P13 | 17/11 | `e854774` | Busca ativa escolar: job, etapas e painel | 0012 |
-| P14 | 18/11 | (este commit) | Layout institucional, componentes base, Visão geral, acessibilidade | 0013 |
+| P14 | 18/11 | `bc6ac05` | Layout institucional, componentes base, Visão geral, acessibilidade | 0013 |
 
 ---
 
