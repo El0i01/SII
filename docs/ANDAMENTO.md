@@ -22,7 +22,7 @@ Situação em 18/11/2026: **fases 1 e 2 concluídas (P01 a P13)** e P14 e P15 fe
 | P12 | 17/11 | `5eb7e0c` | Ficha da criança, revelar CPF com finalidade, painel do DPO | 0011 |
 | P13 | 17/11 | `e854774` | Busca ativa escolar: job, etapas e painel | 0012 |
 | P14 | 18/11 | `bc6ac05` | Layout institucional, componentes base, Visão geral, acessibilidade | 0013 |
-| P15 | 18/11 | (commit) | Tela Território com MapLibre: 7 camadas, detalhe da quadra, agregado do auditor | 0014 |
+| P15 | 18/11 | `9bf4dd2` | Tela Território com MapLibre: 7 camadas, detalhe da quadra, agregado do auditor | 0014 |
 
 ---
 
