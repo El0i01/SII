@@ -15,7 +15,8 @@ export type IconeMenu =
   | 'carga'
   | 'vinculo'
   | 'cadeado'
-  | 'mapa';
+  | 'mapa'
+  | 'escudo';
 
 export interface ItemMenu {
   href: string;
@@ -101,7 +102,7 @@ export const ITENS_MENU: readonly ItemMenu[] = [
     rotulo: 'Cargas de dados',
     grupo: 'Gestão',
     icone: 'carga',
-    perfis: ['ADMIN_CTI', 'ASSISTENCIA_GESTOR', 'SEMED_GESTOR'],
+    perfis: ['ADMIN_CTI', 'ASSISTENCIA_GESTOR', 'SEMED_GESTOR', 'FAZENDA'],
   },
   {
     href: '/identidade/revisao',
@@ -116,6 +117,13 @@ export const ITENS_MENU: readonly ItemMenu[] = [
     grupo: 'Gestão',
     icone: 'cadeado',
     perfis: ['DPO', 'ADMIN_CTI'],
+  },
+  {
+    href: '/controle-externo',
+    rotulo: 'Controle externo',
+    grupo: 'Gestão',
+    icone: 'escudo',
+    perfis: ['ADMIN_CTI', 'COMITE_GESTOR', 'AUDITOR_TCE'],
   },
 ];
 

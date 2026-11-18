@@ -9,10 +9,18 @@ import {
   Post,
   Query,
   Req,
+  Res,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ConsultaFichas, FiltroAcessos, PERFIS_COM_DADO_NOMINAL, RevelarCpf } from '@sii/shared';
-import type { Request } from 'express';
+import {
+  AcessosPorCpf,
+  BOM_UTF8,
+  ConsultaFichas,
+  FiltroAcessos,
+  PERFIS_COM_DADO_NOMINAL,
+  RevelarCpf,
+} from '@sii/shared';
+import type { Request, Response } from 'express';
 import { Perfis } from '../auth/decorators';
 import {
   metadadosRequisicao,
@@ -63,5 +71,30 @@ export class FichasController {
   @ApiOperation({ summary: 'Painel do DPO: acessos a dado pessoal' })
   acessos(@Query(new ZodPipe(FiltroAcessos)) filtro: FiltroAcessos) {
     return this.fichas.acessos(filtro);
+  }
+
+  @Get('auditoria/acessos.csv')
+  @Perfis('DPO', 'ADMIN_CTI')
+  @ApiOperation({ summary: 'Acessos a dado pessoal em CSV (nunca o número revelado)' })
+  async acessosCsv(
+    @Query(new ZodPipe(FiltroAcessos)) filtro: FiltroAcessos,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="acessos-dado-pessoal.csv"');
+    return BOM_UTF8 + (await this.fichas.acessosCsv(filtro));
+  }
+
+  /** CPF só no corpo (nunca em URL nem log). A consulta também fica registrada. */
+  @Post('auditoria/acessos/por-cpf')
+  @HttpCode(HttpStatus.OK)
+  @Perfis('DPO', 'ADMIN_CTI')
+  @ApiOperation({ summary: 'Acessos de uma pessoa pelo CPF (atendimento ao titular)' })
+  acessosPorCpf(
+    @UsuarioAtual() u: UsuarioAutenticado,
+    @Body(new ZodPipe(AcessosPorCpf)) corpo: AcessosPorCpf,
+    @Req() req: Request,
+  ) {
+    return this.fichas.acessosPorCpf(u, corpo, metadadosRequisicao(req).ip);
   }
 }

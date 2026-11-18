@@ -11,6 +11,7 @@ import {
   Map as IconeMapa,
   Megaphone,
   Search,
+  ShieldCheck,
   Upload,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -30,6 +31,7 @@ const ICONES: Record<IconeMenu, typeof House> = {
   busca: Search,
   carga: Upload,
   mapa: IconeMapa,
+  escudo: ShieldCheck,
   vinculo: GitMerge,
   cadeado: Lock,
 };

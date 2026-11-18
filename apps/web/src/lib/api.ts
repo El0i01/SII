@@ -58,3 +58,31 @@ export async function api<T>(caminho: string, init: RequestInit = {}): Promise<T
   }
   return corpo as T;
 }
+
+/**
+ * Baixa um arquivo da API com a sessão (cookies), sem abrir aba: relatório em PDF ou XLSX, CSV.
+ * O nome vem do Content-Disposition; sem ele, o padrão.
+ */
+export async function baixar(caminho: string, nomePadrao: string): Promise<void> {
+  let r = await chamar(caminho, { headers: {} });
+  if (r.status === 401) {
+    const renovou = await chamar('/auth/refresh', { method: 'POST' });
+    if (renovou.ok) r = await chamar(caminho, { headers: {} });
+  }
+  if (!r.ok) {
+    const corpo = (await r.json().catch(() => ({}))) as { codigo?: string; mensagem?: string };
+    throw new ErroApi(
+      r.status,
+      corpo.codigo ?? 'ERRO',
+      corpo.mensagem ?? 'Não foi possível baixar o arquivo.',
+    );
+  }
+  const nome =
+    /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') ?? '')?.[1] ?? nomePadrao;
+  const url = URL.createObjectURL(await r.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nome;
+  a.click();
+  URL.revokeObjectURL(url);
+}

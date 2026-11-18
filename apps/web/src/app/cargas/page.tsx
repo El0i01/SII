@@ -21,9 +21,13 @@ type Estado =
   | { tipo: 'sem-permissao' }
   | { tipo: 'pronto'; cargas: Carga[] };
 
-/** Quem envia o quê (igual à API): a Assistência o CadÚnico, a SEMED as cargas da Educação. */
+/**
+ * Quem envia o quê (igual à API): a Assistência o CadÚnico, a SEMED as cargas da Educação, a
+ * Fazenda a despesa por programa (P16).
+ */
 const FONTES_POR_PERFIL: Record<string, FonteFormulario[]> = {
-  ADMIN_CTI: ['CADUNICO', 'GESTAO_ESCOLAR', 'SEDUC'],
+  ADMIN_CTI: ['CADUNICO', 'GESTAO_ESCOLAR', 'SEDUC', 'DESPESA'],
+  FAZENDA: ['DESPESA'],
   ASSISTENCIA_GESTOR: ['CADUNICO'],
   SEMED_GESTOR: ['GESTAO_ESCOLAR', 'SEDUC'],
 };

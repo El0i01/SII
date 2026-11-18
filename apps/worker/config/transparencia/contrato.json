@@ -1,0 +1,12 @@
+{
+  "versaoTestada": "API de dados abertos do Portal da Transparência municipal (Publica-RO) — URL, parâmetros e campos A CONFIRMAR com a Fazenda",
+  "url": "https://transparencia.itapuadooeste.ro.gov.br/api/despesas/liquidadas",
+  "parametros": { "exercicio": "{ano}", "mes": "{mes}" },
+  "caminhoItens": "dados",
+  "campos": {
+    "programa": "programa",
+    "ano": "exercicio",
+    "mes": "mes",
+    "valor": "valorLiquidado"
+  }
+}

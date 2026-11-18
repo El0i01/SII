@@ -23,7 +23,7 @@ import { type ArquivoEnviado, CargasService, type PerfilQueEnvia } from './carga
  * As respostas só trazem contagens e mensagens fixas: nenhum dado de pessoa.
  */
 @ApiTags('cargas')
-@Perfis('ADMIN_CTI', 'ASSISTENCIA_GESTOR', 'SEMED_GESTOR')
+@Perfis('ADMIN_CTI', 'ASSISTENCIA_GESTOR', 'SEMED_GESTOR', 'FAZENDA')
 @Controller('cargas')
 export class CargasController {
   constructor(private readonly cargas: CargasService) {}

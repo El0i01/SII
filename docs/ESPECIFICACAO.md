@@ -1,6 +1,6 @@
 # Especificação — SII · Sistema Integrado Intersecretarial
 
-Versão 0.4 · 18 de novembro de 2026 · CTI/SEMED · Itapuã do Oeste/RO
+Versão 0.5 · 18 de novembro de 2026 · CTI/SEMED · Itapuã do Oeste/RO
 O que já foi entregue, prompt a prompt: `docs/ANDAMENTO.md`.
 Base: Plano Estratégico, Plano de Desenvolvimento e protótipo navegável (`docs/prototipo/index.html`).
 
@@ -313,6 +313,34 @@ Objetivos estratégicos OE1 a OE6 (ver Plano Estratégico): encaminhamento em at
 Gasto × resultado: despesa liquidada por programa (Portal da Transparência, API Publica-RO) × indicador associado.
 Relatório semestral ao TCE-RO em PDF e XLSX.
 
+Como ficou (P16, ADR 0015):
+
+- **Job `INDICADORES`** (dia 1 às 3h, fecha o mês anterior; `pnpm --filter @sii/worker indicadores:rodar [data]`).
+  - Grava `indicadores.indicador_snapshot` para o município (`MUN`) e cada setor, por mês (`AAAA-MM`) e, para o Bolsa Família, por vigência (`AAAA-V1`/`V2`).
+  - Contagem de pessoas de 1 a 4 esconde numerador, denominador e valor.
+- **Os 8 indicadores do protótipo:**
+  - OE1: casos encaminhados em até 30 dias;
+  - OE2: vacinação em dia de 0 a 6 anos e creche de 0 a 3 anos;
+  - OE3: acompanhamento de educação e de saúde do Bolsa Família (*proxies* a confirmar);
+  - OE4: domicílios com ponto de lote ou melhor;
+  - OE5: relatórios semestrais entregues;
+  - OE6: acessos a dado pessoal registrados.
+- **Metas e linhas de base versionadas** em `indicadores.meta_indicador`. A CTI e o Comitê mudam pela API, o que cria uma versão nova.
+  - Situação: em dia (atingiu a meta), em evolução (na trajetória linear da base à meta) ou abaixo do esperado.
+- **Gasto × resultado:** despesa liquidada por programa em `indicadores.despesa_programa`. Entra de dois jeitos:
+  - pelo conector do Portal da Transparência (contrato em `apps/worker/config/transparencia/contrato.json`, desligado sem `TRANSPARENCIA_URL`);
+  - pelo CSV `DESPESA` enviado pela Fazenda em `/cargas`.
+- **Tela "Controle externo"** (`/controle-externo`; CTI, Comitê e auditor), como no protótipo:
+  - KPIs e a tabela dos objetivos com linha de base, atual, meta e situação (CSV);
+  - gasto × resultado;
+  - trilha de evidências com "Verificar a trilha" (código do caso + código verificador);
+  - registro de acessos (o auditor vê só a contagem);
+  - relatório semestral em PDF e XLSX.
+- **Relatório semestral** (`GET /indicadores/relatorio?semestre=&formato=pdf|xlsx`).
+  - Traz indicadores com linha de base, atual e meta, gasto × resultado, contagem de acessos e o anexo dos casos encerrados com o código verificador.
+  - Cada geração fica registrada com o sha256. A CTI marca a entrega, que conta no OE5.
+- **O auditor lê pelo papel `sii_auditor`:** só o schema `indicadores` e as funções de trilha (`verificar_trilha_codigo`, `trilhas_encerradas`), que nunca devolvem pessoa nem `dados` do evento.
+
 ### 3.12 Auditoria (`auditoria`)
 
 `AcessoDadoPessoal`: quem, perfil, quando, registro, campo revelado, finalidade, IP.
@@ -323,7 +351,15 @@ Como ficou (P12, ADR 0011):
 
 - `POST /fichas/:id/revelar-cpf` (todo perfil nominal, decisão de 17/11/2026): finalidade obrigatória (`RevelarCpf`, shared) de uma lista (contato com a família para matrícula, encaminhamento à rede de proteção, atualização cadastral, atendimento ao titular) ou "Outra" com descrição de 10 caracteres ou mais. Sem finalidade → 422.
 - Ordem: confere pela RLS que o usuário vê a ficha → **grava `acesso_dado_pessoal`** (usuário, perfil, pessoa, registro `CI-<id>`, campo, finalidade, IP) → só então decifra. Fora do escopo → 404, sem registro.
-- Painel do DPO (`GET /auditoria/acessos`, tela `/acessos`; DPO e CTI): filtros por período e login, paginado, sem o número revelado. O P16 amplia (filtro por pessoa, exportação).
+- Painel do DPO (`GET /auditoria/acessos`, tela `/acessos`; DPO e CTI): filtros por período e login, paginado, sem o número revelado.
+
+Como ficou (P16, ADR 0015):
+
+- **Filtros e exportação:** filtro por código da ficha (`CI-123`), login e período, gravados na URL; exportação CSV (`GET /auditoria/acessos.csv`), sem o número revelado.
+- **Por CPF** (atendimento ao titular): só em `POST /auditoria/acessos/por-cpf`, com o CPF no corpo.
+  - A busca é pelo hash; o número não vai para URL nem log.
+  - A própria consulta do DPO fica registrada como acesso.
+- **Verificar a trilha:** `POST /auditoria/verificar-trilha` (CTI, Comitê, auditor, DPO) confere a cadeia de hashes e compara o código verificador. Devolve só o tipo e a data de cada evento.
 
 ## 4. Regras de negócio (implementar em `packages/shared`, com testes)
 
@@ -475,7 +511,7 @@ Como ficou o mapa (P15, ADR 0014):
 
 ## 8. Fases
 
-Situação em 18/11/2026: fases 1 e 2 concluídas (P01 a P13); fase 3 em andamento (P14 e P15 feitos; próximo P16). Detalhe em `docs/ANDAMENTO.md`.
+Situação em 18/11/2026: fases 1 e 2 concluídas (P01 a P13); fase 3 concluída (P14 a P16); próximo P17 (app mobile). Detalhe em `docs/ANDAMENTO.md`.
 
 1. Fundação: monorepo, infra, auth, perfis, auditoria, território (Geoportal), geocodificação, identidade, seed fictício.
 2. Integração social: e-SUS, CadÚnico, gestão escolar, SEDUC; infrequência → notificação → parecer; ficha da criança; busca ativa com prazos.
@@ -508,3 +544,8 @@ Situação em 18/11/2026: fases 1 e 2 concluídas (P01 a P13); fase 3 em andamen
 - **Busca ativa (P13):**
   - quarentena de 180 dias depois do Conselho Tutelar: confirmar o prazo com a SEMED e o Conselho;
   - "residente" hoje é ter domicílio cadastrado; quem mudou de município precisa de baixa na fonte.
+- **Indicadores e controle externo (P16):**
+  - URL, parâmetros e campos da API do Portal da Transparência (Publica-RO) em `apps/worker/config/transparencia/contrato.json`; até lá, a despesa entra pelo CSV da Fazenda (layout próprio do SII em `config/dicionarios/despesa.json`);
+  - regra oficial do acompanhamento de educação e de saúde do Bolsa Família (hoje: frequência ≥ 85% de 6 a 17 anos e vacinação em dia de 0 a 6 anos de família PBF);
+  - associação programa → indicador do gasto × resultado e as metas do Plano Estratégico (o seed usa as do protótipo);
+  - primeiro semestre com relatório devido ao TCE (hoje `2026-S1`).

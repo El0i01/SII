@@ -987,6 +987,65 @@ model IndicadorSnapshot {
   @@schema("indicadores")
 }
 
+/// Meta e linha de base de um indicador (OE1–OE6), versionadas (P16). A vigente é a de maior versão.
+model MetaIndicador {
+  id            Int       @id @default(autoincrement())
+  indicador     String    @db.VarChar(60)
+  versao        Int
+  linhaBase     Decimal?  @map("linha_base") @db.Decimal(12, 4)
+  /// Quando a linha de base foi medida.
+  dataBase      DateTime? @map("data_base") @db.Date
+  meta          Decimal   @db.Decimal(12, 4)
+  /// Texto da meta quando não é só um número ("Crescer por vigência").
+  metaTexto     String?   @map("meta_texto") @db.VarChar(60)
+  prazo         DateTime? @db.Date
+  aprovadoPorId Int?      @map("aprovado_por_id")
+  criadoEm      DateTime  @default(now()) @map("criado_em") @db.Timestamptz(3)
+
+  @@unique([indicador, versao])
+  @@map("meta_indicador")
+  @@schema("indicadores")
+}
+
+enum FonteDespesa {
+  API
+  CSV
+
+  @@schema("indicadores")
+}
+
+/// Despesa liquidada por programa e mês (gasto × resultado, §3.11). Sem dado pessoal.
+model DespesaPrograma {
+  id             Int          @id @default(autoincrement())
+  ano            Int          @db.SmallInt
+  mes            Int          @db.SmallInt
+  programa       String       @db.VarChar(40)
+  valorLiquidado Decimal      @map("valor_liquidado") @db.Decimal(16, 2)
+  fonte          FonteDespesa
+  cargaId        Int?         @map("carga_id")
+  atualizadoEm   DateTime     @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+
+  @@unique([ano, mes, programa])
+  @@map("despesa_programa")
+  @@schema("indicadores")
+}
+
+/// Relatório semestral ao TCE gerado (OE5). Guarda o hash do PDF, não o arquivo.
+model RelatorioSemestral {
+  id            Int       @id @default(autoincrement())
+  semestre      String    @db.VarChar(7)
+  formato       String    @db.VarChar(4)
+  sha256        String    @db.Char(64)
+  geradoPorId   Int       @map("gerado_por_id")
+  geradoEm      DateTime  @default(now()) @map("gerado_em") @db.Timestamptz(3)
+  entregueEm    DateTime? @map("entregue_em") @db.Timestamptz(3)
+  entreguePorId Int?      @map("entregue_por_id")
+
+  @@index([semestre])
+  @@map("relatorio_semestral")
+  @@schema("indicadores")
+}
+
 /// Pesos do IVM, versionados e aprovados pelo Comitê Gestor.
 model PesosIvm {
   id            Int       @id @default(autoincrement())

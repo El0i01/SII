@@ -10,6 +10,7 @@ import path from 'node:path';
 import { hojeEmPortoVelho } from '@sii/shared';
 import Redis from 'ioredis';
 import { aplicarGeoportal, importarCamadas } from '../scripts/geo/carregar';
+import { executarIndicadores } from '../../worker/src/indicadores/snapshots';
 import { semearPrototipo } from '../prisma/seed/prototipo/persistir';
 import { semearUsuarios } from '../prisma/seed/usuarios';
 import { chaveDeHex } from '../src/cripto/cifra';
@@ -56,6 +57,8 @@ async function principal() {
   });
 
   await carregarGeoportal(url, dono);
+  // Indicadores do controle externo (P16): o job mensal, já com o geoportal (ponto preciso).
+  await executarIndicadores(dono as never, { referencia: hojeEmPortoVelho() });
 
   const hoje = hojeEmPortoVelho();
   const escola = await dono.escola.findUniqueOrThrow({ where: { inep: CUSTODIO } });

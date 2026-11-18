@@ -20,8 +20,10 @@ const TELAS: [login: string, caminho: string, titulo: string][] = [
   ['cti.admin', '/cargas', 'Cargas de dados'],
   ['cti.admin', '/identidade/revisao', 'Revisão de pessoas duplicadas'],
   ['cti.admin', '/acessos', 'Acessos a dado pessoal'],
+  ['cti.admin', '/controle-externo', 'Controle externo'],
   ['tce.auditor', '/', 'Visão geral'],
   ['tce.auditor', '/territorio', 'Território'],
+  ['tce.auditor', '/controle-externo', 'Controle externo'],
 ];
 
 const paginas = new Map<string, Page>();

@@ -91,6 +91,7 @@ export const FONTES_CARGA = [
   'PROTOCOLO',
   'PORTAL_TRANSPARENCIA',
   'GEOPORTAL',
+  'DESPESA',
 ] as const;
 export const FonteCarga = z.enum(FONTES_CARGA);
 export type FonteCarga = z.infer<typeof FonteCarga>;
@@ -104,6 +105,7 @@ export const FONTES_UPLOAD = [
   'GESTAO_ESCOLAR',
   'SEDUC',
   'SINASC',
+  'DESPESA',
 ] as const satisfies readonly FonteCarga[];
 export const FonteUpload = z.enum(FONTES_UPLOAD);
 export type FonteUpload = z.infer<typeof FonteUpload>;

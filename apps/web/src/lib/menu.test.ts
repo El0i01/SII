@@ -24,6 +24,7 @@ describe('menuDoPerfil', () => {
       'Cargas de dados',
       'Revisão de vínculos',
       'Acessos a dado pessoal',
+      'Controle externo',
     ]);
   });
   it('escola, CRAS, auditor e DPO veem só o que a API deixa', () => {
@@ -44,9 +45,14 @@ describe('menuDoPerfil', () => {
       'Busca ativa escolar',
       'Território',
     ]);
-    expect(rotulos('AUDITOR_TCE')).toEqual(['Visão geral', 'Busca ativa escolar', 'Território']);
+    expect(rotulos('AUDITOR_TCE')).toEqual([
+      'Visão geral',
+      'Busca ativa escolar',
+      'Território',
+      'Controle externo',
+    ]);
     expect(rotulos('DPO')).toEqual(['Acessos a dado pessoal']);
-    expect(rotulos('FAZENDA')).toEqual(['Avisos', 'Território']);
+    expect(rotulos('FAZENDA')).toEqual(['Avisos', 'Território', 'Cargas de dados']);
   });
   it('tela inicial e item ativo', () => {
     expect(telaInicial('DPO')).toBe('/acessos');

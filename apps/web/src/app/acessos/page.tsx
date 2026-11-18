@@ -1,12 +1,15 @@
 'use client';
 
-import { FiltroAcessos, type Perfil, ROTULO_PERFIL } from '@sii/shared';
+import { AcessosPorCpf, FiltroAcessos, type Perfil, ROTULO_PERFIL } from '@sii/shared';
+import { Download } from 'lucide-react';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { Botao } from '@/components/ui/button';
 import { CabecalhoPagina } from '@/components/ui/cabecalho-pagina';
+import { Card } from '@/components/ui/card';
 import { Carregando, Erro, SemPermissao, Vazio } from '@/components/ui/estado';
 import { type Coluna, Tabela } from '@/components/ui/tabela';
-import { api, ErroApi } from '@/lib/api';
+import { api, baixar, ErroApi } from '@/lib/api';
+import { gravarParametrosDaTela } from '@/lib/filtros-url';
 import type { PainelAcessos } from '@/lib/fichas';
 
 type Acesso = PainelAcessos['acessos'][number];
@@ -61,17 +64,114 @@ const COLUNAS: Coluna<Acesso>[] = [
 const CAMPO =
   'min-h-[var(--spacing-alvo)] rounded-md border border-borda bg-fundo px-3 text-texto-forte';
 
+const FILTROS = ['de', 'ate', 'usuario', 'registro'] as const;
+
+/** Busca dos acessos de uma pessoa pelo CPF: o número vai só no corpo do POST (nunca na URL). */
+function BuscaPorCpf() {
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [r, setR] = useState<(PainelAcessos & { encontrada: boolean; registro?: string }) | null>(
+    null,
+  );
+
+  async function buscar(ev: FormEvent<HTMLFormElement>) {
+    ev.preventDefault();
+    const form = ev.currentTarget;
+    const v = AcessosPorCpf.safeParse({ cpf: String(new FormData(form).get('cpf') ?? '') });
+    if (!v.success) {
+      setErro(v.error.issues[0]?.message ?? 'Confira o CPF.');
+      document.getElementById('cpf-titular')?.focus();
+      return;
+    }
+    setErro(null);
+    setEnviando(true);
+    try {
+      setR(
+        await api('/auditoria/acessos/por-cpf', { method: 'POST', body: JSON.stringify(v.data) }),
+      );
+      form.reset();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível buscar.');
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <Card
+      titulo="Acessos de uma pessoa pelo CPF"
+      subtitulo="Para atender o titular. O CPF não fica na tela, no endereço nem no registro; a consulta também é registrada."
+    >
+      <form onSubmit={buscar} noValidate className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1">
+          <label htmlFor="cpf-titular" className="font-semibold text-texto-forte">
+            CPF do titular
+          </label>
+          <input
+            id="cpf-titular"
+            name="cpf"
+            inputMode="numeric"
+            autoComplete="off"
+            className={CAMPO}
+            aria-invalid={!!erro}
+            aria-describedby={erro ? 'cpf-erro' : undefined}
+          />
+        </div>
+        <Botao type="submit" disabled={enviando}>
+          {enviando ? 'Buscando…' : 'Buscar acessos'}
+        </Botao>
+        {erro && (
+          <p id="cpf-erro" className="w-full text-sm text-erro">
+            {erro}
+          </p>
+        )}
+      </form>
+      <div aria-live="polite" className="mt-3">
+        {r && !r.encontrada && <Vazio titulo="Nenhuma pessoa com esse CPF na base" />}
+        {r?.encontrada && (
+          <Tabela
+            dados={r.acessos}
+            colunas={COLUNAS}
+            legenda={`Acessos à ficha ${r.registro} (${r.total})`}
+            legendaVisivel
+            porPagina={r.porPagina}
+            idLinha={(a) => String(a.id)}
+          />
+        )}
+      </div>
+    </Card>
+  );
+}
+
 /**
- * Painel do encarregado de dados (§3.12, P12): quem revelou dado pessoal, quando e para quê.
- * Versão mínima; o P16 amplia (filtro por pessoa, exportação). Nunca mostra o dado revelado.
+ * Painel do encarregado de dados (§3.12, P12, P16): quem revelou dado pessoal, quando e para quê.
+ * Filtros por período, login e código da ficha (na URL); por CPF, só por POST. Exporta CSV. Nunca
+ * mostra o dado revelado.
  */
 export default function Acessos() {
   const [estado, setEstado] = useState<Estado>({ tipo: 'carregando' });
   const [filtro, setFiltro] = useState<Record<string, string>>({});
   const [pagina, setPagina] = useState(1);
   const [erroFiltro, setErroFiltro] = useState<string | null>(null);
+  const [pronto, setPronto] = useState(false);
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const inicial: Record<string, string> = {};
+    for (const k of FILTROS) {
+      const v = p.get(k);
+      if (v) inicial[k] = v;
+    }
+    setFiltro(inicial);
+    setPronto(true);
+  }, []);
+  useEffect(() => {
+    if (pronto)
+      gravarParametrosDaTela(Object.fromEntries(FILTROS.map((k) => [k, filtro[k] ?? null])));
+  }, [pronto, filtro]);
 
   const carregar = useCallback(async () => {
+    if (!pronto) return;
     const p = new URLSearchParams({ pagina: String(pagina) });
     for (const [k, v] of Object.entries(filtro)) if (v) p.set(k, v);
     try {
@@ -84,7 +184,7 @@ export default function Acessos() {
           mensagem: e instanceof Error ? e.message : 'Não foi possível carregar.',
         });
     }
-  }, [filtro, pagina]);
+  }, [filtro, pagina, pronto]);
   useEffect(() => {
     void carregar();
   }, [carregar]);
@@ -93,7 +193,7 @@ export default function Acessos() {
     ev.preventDefault();
     const d = new FormData(ev.currentTarget);
     const novo: Record<string, string> = {};
-    for (const k of ['de', 'ate', 'usuario']) {
+    for (const k of FILTROS) {
       const v = String(d.get(k) ?? '').trim();
       if (v) novo[k] = v;
     }
@@ -120,7 +220,14 @@ export default function Acessos() {
           <label htmlFor="de" className="font-semibold text-texto-forte">
             De
           </label>
-          <input id="de" name="de" type="date" className={CAMPO} />
+          <input
+            id="de"
+            name="de"
+            type="date"
+            className={CAMPO}
+            defaultValue={filtro.de}
+            key={`d${filtro.de}`}
+          />
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor="ate" className="font-semibold text-texto-forte">
@@ -130,6 +237,8 @@ export default function Acessos() {
             id="ate"
             name="ate"
             type="date"
+            defaultValue={filtro.ate}
+            key={`a${filtro.ate}`}
             className={CAMPO}
             aria-invalid={!!erroFiltro}
             aria-describedby={erroFiltro ? 'filtro-erro' : undefined}
@@ -139,9 +248,38 @@ export default function Acessos() {
           <label htmlFor="usuario" className="font-semibold text-texto-forte">
             Login do usuário
           </label>
-          <input id="usuario" name="usuario" className={CAMPO} />
+          <input
+            id="usuario"
+            name="usuario"
+            className={CAMPO}
+            defaultValue={filtro.usuario}
+            key={`u${filtro.usuario}`}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="registro" className="font-semibold text-texto-forte">
+            Código da ficha
+          </label>
+          <input
+            id="registro"
+            name="registro"
+            placeholder="Ex.: CI-10237"
+            className={CAMPO}
+            defaultValue={filtro.registro}
+            key={`r${filtro.registro}`}
+          />
         </div>
         <Botao type="submit">Filtrar</Botao>
+        <Botao
+          type="button"
+          variante="contorno"
+          onClick={() => {
+            const p = new URLSearchParams(Object.entries(filtro).filter(([, v]) => v));
+            void baixar(`/auditoria/acessos.csv?${p}`, 'acessos-dado-pessoal.csv');
+          }}
+        >
+          <Download aria-hidden="true" className="h-4 w-4" /> Baixar CSV
+        </Botao>
         {erroFiltro && (
           <p id="filtro-erro" className="w-full text-sm text-erro">
             {erroFiltro}
@@ -168,6 +306,7 @@ export default function Acessos() {
             colunas={COLUNAS}
             legenda="Acessos a dado pessoal"
             porPagina={estado.painel.porPagina}
+            contagem={false}
             idLinha={(a) => String(a.id)}
           />
           <nav aria-label="Páginas dos acessos" className="flex flex-wrap items-center gap-3">
@@ -188,6 +327,7 @@ export default function Acessos() {
           </nav>
         </>
       )}
+      {estado.tipo !== 'sem-permissao' && <BuscaPorCpf />}
     </div>
   );
 }

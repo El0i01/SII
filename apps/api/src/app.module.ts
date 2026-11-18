@@ -7,6 +7,7 @@ import { validarEnv } from './config/env';
 import { CargasModule } from './cargas/cargas.module';
 import { CasosModule } from './casos/casos.module';
 import { FichasModule } from './fichas/fichas.module';
+import { IndicadoresModule } from './indicadores/indicadores.controller';
 import { MapaModule } from './mapa/mapa.controller';
 import { PainelModule } from './painel/painel.controller';
 import { CriptoModule } from './cripto/cripto.service';
@@ -40,6 +41,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     FichasModule,
     PainelModule,
     MapaModule,
+    IndicadoresModule,
   ],
 })
 export class AppModule {}

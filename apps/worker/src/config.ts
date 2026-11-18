@@ -30,6 +30,7 @@ export const EnvWorker = z.object({
   DICIONARIO_CADUNICO: z.string().optional(),
   DICIONARIO_GESTAO_ESCOLAR: z.string().optional(),
   DICIONARIO_SEDUC: z.string().optional(),
+  DICIONARIO_DESPESA: z.string().optional(),
   ESUS_PEC_HOST: z.string().min(1).optional(),
   ESUS_PEC_PORTA: z.coerce.number().int().positive().default(5433),
   ESUS_PEC_BANCO: z.string().min(1).default('esus'),
@@ -48,6 +49,15 @@ export const EnvWorker = z.object({
   BUSCA_ATIVA_CRON: z.string().min(9).default('15 6 * * *'),
   PRAZOS_CRON: z.string().min(9).default('30 6 * * *'),
   MICROAREAS_ESUS: z.string().optional(),
+  /** Indicadores do controle externo (P16): dia 1 às 3h, fechando o mês anterior. */
+  INDICADORES_CRON: z.string().min(9).default('0 3 1 * *'),
+  /**
+   * Conector do Portal da Transparência (P16). Sem URL confirmada, fica desligado e a despesa entra
+   * pelo CSV da Fazenda. A URL do .env vale sobre a do contrato.
+   */
+  TRANSPARENCIA_URL: z.string().url().optional(),
+  CONTRATO_TRANSPARENCIA: z.string().optional(),
+  TRANSPARENCIA_CRON: z.string().min(9).default('0 4 2 * *'),
 });
 export type EnvWorker = z.infer<typeof EnvWorker>;
 

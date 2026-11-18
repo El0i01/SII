@@ -2,9 +2,12 @@
 export function Barras({
   titulo,
   itens,
+  formatar,
 }: {
   titulo: string;
   itens: { rotulo: string; valor: number | null; destaque?: boolean }[];
+  /** Texto do valor (ex.: reais); sem ele, o número em pt-BR. */
+  formatar?: (v: number) => string;
 }) {
   const max = Math.max(1, ...itens.map((i) => i.valor ?? 0));
   return (
@@ -12,7 +15,7 @@ export function Barras({
       {itens.map((i) => (
         <li
           key={i.rotulo}
-          className="grid grid-cols-[minmax(0,8.5rem)_1fr_3rem] items-center gap-2"
+          className={`grid items-center gap-2 ${formatar ? 'grid-cols-[minmax(0,8.5rem)_1fr_auto]' : 'grid-cols-[minmax(0,8.5rem)_1fr_3rem]'}`}
         >
           <span className="truncate text-sm text-texto" title={i.rotulo}>
             {i.rotulo}
@@ -24,7 +27,11 @@ export function Barras({
             />
           </span>
           <span className="text-right font-semibold text-texto-forte">
-            {i.valor === null ? '< 5' : i.valor.toLocaleString('pt-BR')}
+            {i.valor === null
+              ? '< 5'
+              : formatar
+                ? formatar(i.valor)
+                : i.valor.toLocaleString('pt-BR')}
           </span>
         </li>
       ))}

@@ -8,6 +8,8 @@ export interface AlertaCarga {
 const NOME_FONTE: Record<string, string> = {
   ESUS_PEC: 'e-SUS PEC',
   CADUNICO: 'CadÚnico',
+  PORTAL_TRANSPARENCIA: 'Portal da Transparência',
+  INDICADORES: 'Indicadores',
 };
 
 /**

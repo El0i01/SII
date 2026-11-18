@@ -78,7 +78,8 @@ sii-itapua/
   - `fichas/`: seções da ficha por perfil (`secoesDaFicha`), filtros, prioridade e linha do tempo;
   - `cargas/`: CSV, layout, documentos, conversores do CadÚnico, da gestão escolar e da SEDUC;
   - `acesso/`: login e usuários;
-  - `mapa/`: camadas do Território, legendas, classes por quadra e supressão do agregado.
+  - `mapa/`: camadas do Território, legendas, classes por quadra e supressão do agregado;
+  - `indicadores/`: OE1–OE6, snapshot com supressão, situação pela meta, linha do painel e do relatório, despesa por programa e o contrato do Portal da Transparência.
   
   Procure aqui antes de escrever uma regra nova. O shared exige 100% de cobertura de linhas.
 - Validação de entrada com zod (schema em `shared`) via pipe no NestJS; formulários web e mobile usam o mesmo schema.
@@ -106,6 +107,7 @@ sii-itapua/
 - A trilha (`casos.evento_caso`) é append-only e encadeada pelo banco: só INSERT, sem informar `seq` nem `hash`, e sem dado pessoal em `dados`.
 - **Dado nominal só por `PrismaService.comoUsuario(usuario, tx => ...)`**: é isso que liga o papel do banco e a RLS. O cliente Prisma direto (dono) fica restrito a autenticação, health e tarefas da CTI. Tabela nominal nova vai num schema com RLS e policy na mesma migration (ADR 0003).
 - **Ponto individual no mapa só para perfil nominal, por `comoUsuario`**, e só com coordenadas (nada de id, idade ou nome). Auditor e Fazenda recebem agregado por quadra com `suprimirIndicadores` (ADR 0014).
+- **O auditor do TCE só lê pelo papel `sii_auditor`** (`comoUsuario`): schema `indicadores` e as funções `casos.verificar_trilha_codigo` e `casos.trilhas_encerradas`. Dado novo para o controle externo vai para `indicadores` ou para uma função SECURITY DEFINER que não devolva pessoa (ADR 0015).
 - Rotas exigem login por padrão; `@Publico()` é exceção e precisa de motivo. Restrinja com `@Perfis(...)` e, quando a rota tiver escola/microárea/CRAS no caminho, `@Escopo(...)`.
 
 ## Front-end (modo institucional gov.br)
@@ -142,7 +144,7 @@ pnpm --filter @sii/mobile start
 pnpm db:seed             # usuários fictícios (1 por perfil, senha SEED_SENHA do .env) e pessoas fictícias
 pnpm test && pnpm lint && pnpm typecheck
 pnpm --filter @sii/api test:integracao     # precisa da infra no ar
-pnpm --filter @sii/worker test:integracao  # CadÚnico, e-SUS, cargas escolares, infrequência, busca ativa e prazos
+pnpm --filter @sii/worker test:integracao  # CadÚnico, e-SUS, cargas escolares, infrequência, busca ativa, prazos e indicadores
 pnpm --filter @sii/worker cadunico:ficticio [linhas] [arquivo]   # CSV fictício para testar /cargas
 pnpm --filter @sii/worker esus:dry-run       # confere a estrutura do PEC e conta o que leria, sem gravar nada
 pnpm --filter @sii/worker esus:carregar      # põe a carga do e-SUS na fila agora (worker rodando)
@@ -150,7 +152,8 @@ pnpm --filter @sii/worker esus:pec-ficticio [n]  # banco pec_ficticio local para
 pnpm --filter @sii/worker infrequencia:rodar [AAAA-MM-DD]  # job de infrequência agora (ou reprocessa uma data)
 pnpm --filter @sii/worker busca-ativa:rodar [AAAA-MM-DD]   # job de busca ativa escolar agora
 pnpm --filter @sii/worker prazos:rodar [AAAA-MM-DD]        # job de prazos e escalonamento agora
-pnpm --filter @sii/web e2e   # Playwright (Chrome do sistema), API 3334 + web 3001 no banco de TESTE (carrega o geoportal; Redis /1)
+pnpm --filter @sii/worker indicadores:rodar [AAAA-MM-DD]   # indicadores OE1–OE6 do controle externo (referência: ontem)
+pnpm --filter @sii/web e2e   # Playwright (Chrome do sistema), API 3334 + web 3001 no banco de TESTE (carrega o geoportal e os indicadores; Redis /1)
 pnpm geo:importar <arquivo.shp> <tabela>   # shapefile → stg_geoportal.<tabela> em EPSG:4674
 pnpm geo:carregar        # geoportal inteiro: setores, equipamentos, microáreas, ruas, grade provisória (ADR 0005)
 pnpm infra:down

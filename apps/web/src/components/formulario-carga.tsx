@@ -9,7 +9,7 @@ export interface ErrosCarga {
 }
 
 /** Fontes com carga por arquivo (P08 e P10). */
-export type FonteFormulario = 'CADUNICO' | 'GESTAO_ESCOLAR' | 'SEDUC';
+export type FonteFormulario = 'CADUNICO' | 'GESTAO_ESCOLAR' | 'SEDUC' | 'DESPESA';
 
 export const DESCRICAO_FONTE: Record<FonteFormulario, { nome: string; detalhe: string }> = {
   CADUNICO: {
@@ -23,6 +23,10 @@ export const DESCRICAO_FONTE: Record<FonteFormulario, { nome: string; detalhe: s
   SEDUC: {
     nome: 'SEDUC-RO',
     detalhe: 'residentes matriculados na rede estadual (layout do SII)',
+  },
+  DESPESA: {
+    nome: 'Despesa por programa',
+    detalhe: 'despesa liquidada por programa e mês (Fazenda, layout do SII)',
   },
 };
 

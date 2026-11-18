@@ -15,6 +15,13 @@ import { criarProcessadorEsus } from '../esus/processador';
 import { criarProcessadorCadunico } from './cadunico';
 import { carregarDicionarioCadunico, carregarDicionarioEscolar } from './dicionario';
 import { criarProcessadorEscolar } from './escolar';
+import {
+  carregarContratoTransparencia,
+  carregarDicionarioDespesa,
+  criarProcessadorDespesa,
+  criarProcessadorTransparencia,
+} from '../indicadores/despesa';
+import { criarProcessadorIndicadores } from '../indicadores/snapshots';
 import { type DependenciasCarga, executarCarga, type ProcessadorConsulta } from './pipeline';
 
 /** Worker BullMQ da fila de cargas. Exportado para o teste de integração usar o mesmo caminho. */
@@ -105,6 +112,32 @@ export async function agendarPrazos(fila: Queue<JobCarga>, cron: string): Promis
   );
 }
 
+/** Nomes dos agendamentos do P16: indicadores (mensal) e Portal da Transparência (mensal). */
+export const AGENDAMENTO_INDICADORES = 'indicadores-mensal';
+export const AGENDAMENTO_TRANSPARENCIA = 'transparencia-mensal';
+
+async function agendar(
+  fila: Queue<JobCarga>,
+  nome: string,
+  fonte: 'INDICADORES' | 'PORTAL_TRANSPARENCIA',
+  cron: string,
+): Promise<void> {
+  await fila.upsertJobScheduler(
+    nome,
+    { pattern: cron, tz: 'America/Porto_Velho' },
+    {
+      name: fonte.toLowerCase(),
+      data: { fonte },
+      opts: { attempts: 3, backoff: { type: 'exponential', delay: 60_000 } },
+    },
+  );
+}
+
+export const agendarIndicadores = (fila: Queue<JobCarga>, cron: string) =>
+  agendar(fila, AGENDAMENTO_INDICADORES, 'INDICADORES', cron);
+export const agendarTransparencia = (fila: Queue<JobCarga>, cron: string) =>
+  agendar(fila, AGENDAMENTO_TRANSPARENCIA, 'PORTAL_TRANSPARENCIA', cron);
+
 /**
  * Consumidor da fila `cargas` (concorrência 1: uma carga por vez, para não disputar a ligação de
  * pessoas). O job só traz o id do LogCarga.
@@ -148,12 +181,21 @@ export class CargasWorker implements OnModuleInit, OnApplicationShutdown {
           carregarDicionarioEscolar('SEDUC', env.DICIONARIO_SEDUC),
           chaves,
         ),
+        DESPESA: criarProcessadorDespesa(carregarDicionarioDespesa(env.DICIONARIO_DESPESA)),
       },
       consultas: {
         ...this.consultas(env),
         INFREQUENCIA: criarProcessadorInfrequencia(),
         BUSCA_ATIVA: criarProcessadorBuscaAtiva(),
         PRAZOS: criarProcessadorPrazos(),
+        INDICADORES: criarProcessadorIndicadores(),
+        ...(env.TRANSPARENCIA_URL
+          ? {
+              PORTAL_TRANSPARENCIA: criarProcessadorTransparencia(
+                carregarContratoTransparencia(env.CONTRATO_TRANSPARENCIA, env.TRANSPARENCIA_URL),
+              ),
+            }
+          : {}),
       },
     };
     // BullMQ exige maxRetriesPerRequest null na conexão do Worker.
@@ -168,6 +210,15 @@ export class CargasWorker implements OnModuleInit, OnApplicationShutdown {
     this.logger.log(`busca ativa agendada (${env.BUSCA_ATIVA_CRON}, America/Porto_Velho)`);
     await agendarPrazos(this.fila, env.PRAZOS_CRON);
     this.logger.log(`prazos agendados (${env.PRAZOS_CRON}, America/Porto_Velho)`);
+    await agendarIndicadores(this.fila, env.INDICADORES_CRON);
+    this.logger.log(`indicadores agendados (${env.INDICADORES_CRON}, America/Porto_Velho)`);
+    if (env.TRANSPARENCIA_URL) {
+      await agendarTransparencia(this.fila, env.TRANSPARENCIA_CRON);
+      this.logger.log(`Portal da Transparência agendado (${env.TRANSPARENCIA_CRON})`);
+    } else {
+      await this.fila.removeJobScheduler(AGENDAMENTO_TRANSPARENCIA);
+      this.logger.log('Portal da Transparência sem URL (TRANSPARENCIA_URL): despesa só pelo CSV');
+    }
     if (this.pec) {
       await agendarEsus(this.fila, env.ESUS_CRON);
       this.logger.log(`carga do e-SUS agendada (${env.ESUS_CRON}, America/Porto_Velho)`);

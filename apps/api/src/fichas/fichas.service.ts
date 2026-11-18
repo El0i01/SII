@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import {
+  type AcessosPorCpf,
   adicionarDias,
   atendeBusca,
   atendeFiltro,
@@ -10,6 +11,7 @@ import {
   type EventoFicha,
   type FiltroAcessos,
   formatarCpf,
+  gerarCsv,
   hojeEmPortoVelho,
   idadeEm,
   iniciais,
@@ -352,7 +354,69 @@ export class FichasService {
   }
 
   /** Painel do DPO: quem revelou o quê, quando e para quê. Sem nome da pessoa. */
-  async acessos(f: FiltroAcessos) {
+  /**
+   * DPO: acessos de uma pessoa pelo CPF (atendimento ao titular). O CPF chega só no corpo do POST,
+   * vira hash e nunca é gravado nem logado; a própria consulta fica registrada como acesso.
+   */
+  async acessosPorCpf(u: UsuarioAutenticado, corpo: AcessosPorCpf, ip: string | undefined) {
+    const pessoa = await this.prisma.pessoaMestra.findUnique({
+      where: { cpfHash: new Uint8Array(this.cripto.hash('CPF', corpo.cpf)) },
+      select: { id: true },
+    });
+    if (!pessoa)
+      return {
+        encontrada: false as const,
+        total: 0,
+        pagina: 1,
+        porPagina: POR_PAGINA_ACESSOS,
+        acessos: [],
+      };
+    await this.prisma.acessoDadoPessoal.create({
+      data: {
+        usuarioId: u.id,
+        perfil: u.perfil,
+        pessoaId: pessoa.id,
+        registro: codigoFicha(pessoa.id),
+        campo: 'CPF',
+        finalidade: 'Consulta do encarregado de dados pelo CPF (atendimento ao titular)',
+        ip: ip ?? null,
+      },
+    });
+    const r = await this.acessos(
+      {
+        pagina: 1,
+        ...(corpo.de ? { de: corpo.de } : {}),
+        ...(corpo.ate ? { ate: corpo.ate } : {}),
+      },
+      pessoa.id,
+    );
+    return { encontrada: true as const, registro: codigoFicha(pessoa.id), ...r };
+  }
+
+  /** CSV dos acessos do filtro (sem o número revelado), até 10 mil linhas. */
+  async acessosCsv(f: FiltroAcessos): Promise<string> {
+    const linhas: string[][] = [
+      ['Quando', 'Login', 'Nome', 'Perfil', 'Registro', 'Campo', 'Finalidade', 'IP'],
+    ];
+    for (let pagina = 1; pagina <= 10_000 / POR_PAGINA_ACESSOS; pagina++) {
+      const r = await this.acessos({ ...f, pagina });
+      for (const a of r.acessos)
+        linhas.push([
+          a.quando,
+          a.usuario.login ?? '',
+          a.usuario.nome ?? '',
+          a.perfil,
+          a.registro ?? '',
+          a.campo,
+          a.finalidade,
+          a.ip ?? '',
+        ]);
+      if (pagina * POR_PAGINA_ACESSOS >= r.total) break;
+    }
+    return gerarCsv(linhas);
+  }
+
+  async acessos(f: FiltroAcessos, pessoaId?: number) {
     // Dias no fuso de Porto Velho (UTC-4): o dia D vai de D 04:00Z até D+1 04:00Z.
     const inicioDoDia = (d: string) => new Date(`${d}T04:00:00Z`);
     const usuariosFiltro = f.usuario
@@ -372,7 +436,8 @@ export class FichasService {
             },
           }
         : {}),
-      ...(f.registro ? { registro: f.registro } : {}),
+      ...(f.registro ? { registro: f.registro.toUpperCase() } : {}),
+      ...(pessoaId ? { pessoaId } : {}),
       ...(usuariosFiltro ? { usuarioId: { in: usuariosFiltro } } : {}),
     };
     const [total, linhas] = await Promise.all([

@@ -48,14 +48,15 @@ const SELECAO = {
 } as const;
 
 /** Fontes com processador no worker (P08 e P10). */
-const FONTES_DISPONIVEIS: readonly string[] = ['CADUNICO', 'GESTAO_ESCOLAR', 'SEDUC'];
+const FONTES_DISPONIVEIS: readonly string[] = ['CADUNICO', 'GESTAO_ESCOLAR', 'SEDUC', 'DESPESA'];
 
-export type PerfilQueEnvia = 'ADMIN_CTI' | 'ASSISTENCIA_GESTOR' | 'SEMED_GESTOR';
-/** A Assistência envia o CadÚnico; a SEMED, as cargas da Educação; a CTI, todas. */
+export type PerfilQueEnvia = 'ADMIN_CTI' | 'ASSISTENCIA_GESTOR' | 'SEMED_GESTOR' | 'FAZENDA';
+/** A Assistência envia o CadÚnico; a SEMED, as cargas da Educação; a Fazenda, a despesa; a CTI, todas. */
 const FONTES_POR_PERFIL: Record<PerfilQueEnvia, readonly string[]> = {
   ADMIN_CTI: FONTES_DISPONIVEIS,
   ASSISTENCIA_GESTOR: ['CADUNICO'],
   SEMED_GESTOR: ['GESTAO_ESCOLAR', 'SEDUC'],
+  FAZENDA: ['DESPESA'],
 };
 
 /**

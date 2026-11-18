@@ -36,3 +36,6 @@ export * from './schemas/revelar';
 export * from './casos/busca-ativa';
 export * from './painel/visao-geral';
 export * from './mapa/camadas';
+export * from './indicadores/indicadores';
+export * from './indicadores/despesa';
+export * from './indicadores/painel';

@@ -2,7 +2,7 @@
 
 Registro do que já foi entregue, prompt a prompt (`docs/PROMPTS.md`). O detalhe de cada regra fica na especificação (seções "Como ficou") e o porquê de cada escolha, nos ADRs (`docs/adr/`).
 
-Situação em 18/11/2026: **fases 1 e 2 concluídas (P01 a P13)** e P14 e P15 feitos. Próximo: P16 (indicadores, painel do TCE e auditoria).
+Situação em 18/11/2026: **fases 1 e 2 concluídas (P01 a P13)** e **fase 3 concluída (P14 a P16)**. Próximo: P17 (app mobile, base offline).
 
 ## Resumo por prompt
 
@@ -23,8 +23,52 @@ Situação em 18/11/2026: **fases 1 e 2 concluídas (P01 a P13)** e P14 e P15 fe
 | P13 | 17/11 | `e854774` | Busca ativa escolar: job, etapas e painel | 0012 |
 | P14 | 18/11 | `bc6ac05` | Layout institucional, componentes base, Visão geral, acessibilidade | 0013 |
 | P15 | 18/11 | `9bf4dd2` | Tela Território com MapLibre: 7 camadas, detalhe da quadra, agregado do auditor | 0014 |
+| P16 | 18/11 | (commit) | Indicadores OE1–OE6, controle externo, relatório ao TCE, trilha verificável, DPO | 0015 |
 
 ---
+
+## 18/11/2026 — P16
+
+O controle externo ganhou indicadores calculados, relatório semestral e trilha verificável. O painel do DPO foi ampliado.
+
+- **Job `INDICADORES`** (dia 1 às 3h; `indicadores:rodar [data]`):
+  - OE1 a OE6 para o município e cada setor, por mês;
+  - o Bolsa Família também por vigência;
+  - supressão de 1 a 4.
+- **Metas e linhas de base versionadas** (decisão do usuário), com os valores do protótipo no seed. Situação: em dia, em evolução ou abaixo do esperado, pela trajetória da base à meta.
+- **Gasto × resultado:**
+  - conector do Portal da Transparência pelo contrato, desligado sem URL e com falha visível se o formato mudar;
+  - CSV `DESPESA` da Fazenda em `/cargas`, com a Fazenda passando a enviar só essa fonte (decisão do usuário).
+- **`/controle-externo`** (CTI, Comitê, auditor), como no protótipo:
+  - KPIs e a tabela dos objetivos (CSV);
+  - gasto × resultado;
+  - "Verificar a trilha" e os casos encerrados com o código verificador;
+  - registro de acessos (auditor: só a contagem);
+  - relatório em PDF e XLSX (pdfkit + exceljs, decisão do usuário) e a entrega ao TCE marcada pela CTI (OE5).
+- **Auditor só por agregados:** lê pelo papel `sii_auditor`, que só alcança `indicadores` e as funções de trilha. O teste confere o `permission denied` nas tabelas nominais.
+- **`/acessos` (DPO):**
+  - filtros por período, login e código da ficha, gravados na URL;
+  - busca por CPF só por POST, com a consulta também registrada (decisão do usuário);
+  - CSV sem o número revelado.
+- **Rotas novas:**
+  - `GET /indicadores/controle-externo`, `GET /indicadores/relatorio`, `POST /indicadores/relatorios/:id/entregar`;
+  - `GET`/`PUT /indicadores/metas`;
+  - `POST /auditoria/verificar-trilha`, `POST /auditoria/acessos/por-cpf`, `GET /auditoria/acessos.csv`.
+- **Banco** (migrations `indicadores_p16` e `trilhas_encerradas`):
+  - tabelas `meta_indicador`, `despesa_programa` e `relatorio_semestral`;
+  - funções `casos.verificar_trilha_codigo` e `casos.trilhas_encerradas`.
+- **Dependências novas:** `pdfkit` 0.20.2, `exceljs` 4.4.0, `@types/pdfkit` (dev).
+- **Correção:** o build do shared falhava sem aviso por causa de `exactOptionalPropertyTypes` e de `URL`; corrigido.
+
+Testes ao fim do dia:
+
+| Suíte | Resultado |
+| --- | --- |
+| `packages/shared` | 304 testes, 100% das linhas |
+| Web (Vitest) | 59 testes |
+| API, integração | 156 testes em 14 suítes |
+| Worker, integração | 38 testes em 7 suítes |
+| E2E (Playwright) | 12 testes, com os 3 do controle externo: auditor só com agregados no menu inteiro; PDF e XLSX com linha de base, atual e meta; trilha conferida pelo código verificador |
 
 ## 18/11/2026 — P15
 

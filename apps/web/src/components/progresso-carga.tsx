@@ -41,6 +41,8 @@ export function nomeCarga(c: Pick<Carga, 'id' | 'fonte' | 'arquivo' | 'modo'>): 
   if (c.fonte === 'INFREQUENCIA') return 'Conferência diária das faltas';
   if (c.fonte === 'BUSCA_ATIVA') return 'Busca ativa diária (crianças fora da escola)';
   if (c.fonte === 'PRAZOS') return 'Conferência diária dos prazos';
+  if (c.fonte === 'INDICADORES') return 'Indicadores do controle externo';
+  if (c.fonte === 'PORTAL_TRANSPARENCIA') return 'Portal da Transparência · despesa';
   return `Carga ${c.id}`;
 }
 

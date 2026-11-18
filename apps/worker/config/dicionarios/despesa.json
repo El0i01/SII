@@ -1,0 +1,27 @@
+{
+  "fonte": "Despesa por programa (Fazenda)",
+  "versao": "Layout próprio do SII (P16, 18/11/2026) — enquanto a API do Portal da Transparência não for confirmada",
+  "campos": {
+    "programa": {
+      "rotulo": "Programa",
+      "colunas": ["programa", "nome_programa", "acao"],
+      "obrigatorio": true
+    },
+    "ano": {
+      "rotulo": "Ano (exercício)",
+      "colunas": ["ano", "exercicio"],
+      "obrigatorio": true
+    },
+    "mes": {
+      "rotulo": "Mês",
+      "colunas": ["mes", "mes_referencia"],
+      "obrigatorio": true
+    },
+    "valor": {
+      "rotulo": "Valor liquidado (R$)",
+      "colunas": ["valor_liquidado", "liquidado", "valor"],
+      "obrigatorio": true
+    }
+  },
+  "algumDe": []
+}
