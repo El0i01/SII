@@ -1,3 +1,5 @@
+import { PESOS_IVM_PADRAO } from '@sii/shared';
+
 /**
  * Camadas do mapa servidas em GeoJSON. Só território e equipamentos: nenhuma propriedade traz dado
  * pessoal (o mapa de pessoas e famílias vem dos painéis, respeitando perfil e escopo).
@@ -27,7 +29,10 @@ export function toleranciaPorZoom(zoom: number): { faixa: string; tolerancia: nu
  * ainda sem geometria, para a lista alternativa ao mapa.
  */
 export function consultaQuadras(soComGeometria: boolean): string {
-  return `WITH p AS (SELECT pesos FROM indicadores.pesos_ivm ORDER BY versao DESC LIMIT 1)
+  // Pesos vigentes = a maior versão aprovada pelo Comitê (P19); sem nenhuma, a proposta padrão.
+  return `WITH p AS (SELECT coalesce(
+              (SELECT pesos FROM indicadores.pesos_ivm WHERE aprovado_em IS NOT NULL ORDER BY versao DESC LIMIT 1),
+              '${JSON.stringify(PESOS_IVM_PADRAO)}'::jsonb) AS pesos)
             SELECT q.geom, jsonb_build_object(
                      'id', q.id, 'codigo', q.codigo, 'setor', s.codigo, 'provisoria', q.provisoria,
                      'ivm', round((

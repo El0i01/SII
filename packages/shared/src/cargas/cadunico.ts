@@ -1,5 +1,6 @@
 import type { DataISO } from '../calendario/dias';
 import { normalizarNomePessoa } from '../pessoas/similaridade';
+import { type GrauInstrucao, lerGrauInstrucao, lerSabeLer } from '../ciclos/eja';
 import { lerData, lerDecimal, normalizarCpf, normalizarNis } from './documentos';
 
 /**
@@ -78,6 +79,9 @@ export interface RegistroCadunico {
   recebePbf: boolean;
   atualizadoEm: DataISO | null;
   qtdPessoas: number | null;
+  /** Escolaridade (P19, EJA): vazia no arquivo → null. */
+  grauInstrucao: GrauInstrucao | null;
+  sabeLer: boolean | null;
 }
 
 export interface ProblemaLinha {
@@ -106,7 +110,9 @@ export type CamposCadunico = Partial<
     | 'rendaPerCapita'
     | 'pbf'
     | 'atualizadoEm'
-    | 'qtdPessoas',
+    | 'qtdPessoas'
+    | 'grauInstrucao'
+    | 'sabeLer',
     string
   >
 >;
@@ -168,6 +174,8 @@ export function converterLinhaCadunico(c: CamposCadunico, linhas: LinhasRenda): 
       recebePbf: simNao(c.pbf),
       atualizadoEm: lerData(c.atualizadoEm),
       qtdPessoas: qtd !== null && Number.isInteger(qtd) && qtd > 0 && qtd < 100 ? qtd : null,
+      grauInstrucao: lerGrauInstrucao(c.grauInstrucao),
+      sabeLer: lerSabeLer(c.sabeLer),
     },
   };
 }

@@ -485,11 +485,15 @@ model Familia {
 }
 
 model MembroFamilia {
-  familiaId Int           @map("familia_id")
-  pessoaId  Int           @map("pessoa_id")
-  papel     PapelFamiliar
-  familia   Familia       @relation(fields: [familiaId], references: [id], onDelete: Cascade)
-  pessoa    PessoaMestra  @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
+  familiaId     Int           @map("familia_id")
+  pessoaId      Int           @map("pessoa_id")
+  papel         PapelFamiliar
+  /// Grau de instrução do CadÚnico (P19, EJA): SEM_INSTRUCAO … SUPERIOR.
+  grauInstrucao String?       @map("grau_instrucao") @db.VarChar(30)
+  /// "Sabe ler e escrever" do CadÚnico (P19, EJA).
+  sabeLer       Boolean?      @map("sabe_ler")
+  familia       Familia       @relation(fields: [familiaId], references: [id], onDelete: Cascade)
+  pessoa        PessoaMestra  @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
 
   @@id([familiaId, pessoaId])
   @@index([pessoaId])
@@ -576,6 +580,7 @@ model Escola {
   calendario           CalendarioEscolar[]
   calendarioParametros CalendarioParametros[]
   filaCreche           FilaCreche[]
+  ofertaCreche         OfertaCreche[]
 
   @@map("escola")
   @@schema("educacao")
@@ -655,6 +660,20 @@ model Frequencia {
 
   @@unique([matriculaId, dia])
   @@map("frequencia")
+  @@schema("educacao")
+}
+
+/// Vagas de creche (0 a 3 anos) por escola e ano, informadas pela SEMED (P19). Sem dado pessoal.
+model OfertaCreche {
+  escolaId        Int      @map("escola_id")
+  ano             Int      @db.SmallInt
+  vagas           Int
+  atualizadoPorId Int?     @map("atualizado_por_id")
+  atualizadoEm    DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+  escola          Escola   @relation(fields: [escolaId], references: [id])
+
+  @@id([escolaId, ano])
+  @@map("oferta_creche")
   @@schema("educacao")
 }
 
@@ -1053,6 +1072,8 @@ model PesosIvm {
   pesos         Json
   aprovadoPorId Int?      @map("aprovado_por_id")
   aprovadoEm    DateTime? @map("aprovado_em") @db.Timestamptz(3)
+  /// Por que o Comitê mudou os pesos (P19): vai para o histórico.
+  justificativa String?   @db.VarChar(1000)
   criadoEm      DateTime  @default(now()) @map("criado_em") @db.Timestamptz(3)
 
   @@map("pesos_ivm")

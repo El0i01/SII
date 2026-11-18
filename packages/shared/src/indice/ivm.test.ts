@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { calcularIvm, DIMENSOES_IVM, faixaIvm, PESOS_IVM_PADRAO, PesosIvm } from './ivm';
+import {
+  AprovarPesosIvm,
+  calcularIvm,
+  contarFaixas,
+  DIMENSOES_IVM,
+  faixaIvm,
+  PESOS_IVM_PADRAO,
+  PesosIvm,
+  pesosVigentes,
+  rankingIvm,
+} from './ivm';
 
 const dims = { renda: 0.8, saude: 0.4, escola: 0.5, imovel: 0.2, regularizacao: 1 };
 
@@ -60,6 +70,49 @@ describe('IVM (§3.10)', () => {
     expect(PesosIvm.safeParse({ ...PESOS_IVM_PADRAO, renda: 101 }).success).toBe(false);
     expect(
       PesosIvm.safeParse({ renda: 0, saude: 0, escola: 0, imovel: 0, regularizacao: 0 }).success,
+    ).toBe(false);
+  });
+});
+
+describe('pesos vigentes, ranking e aprovação (P19)', () => {
+  const dims = (v: number) => ({ renda: v, saude: v, escola: v, imovel: v, regularizacao: v });
+  it('vigente = maior versão aprovada; sem aprovada, a proposta padrão', () => {
+    const v1 = { versao: 1, pesos: PESOS_IVM_PADRAO, aprovadoEm: null };
+    const v2 = { versao: 2, pesos: { ...PESOS_IVM_PADRAO, renda: 50 }, aprovadoEm: '2026-11-18' };
+    const v3 = { versao: 3, pesos: { ...PESOS_IVM_PADRAO, renda: 10 }, aprovadoEm: null };
+    expect(pesosVigentes([v1])).toEqual({ versao: null, pesos: PESOS_IVM_PADRAO, proposta: true });
+    expect(pesosVigentes([v1, v2, v3])).toEqual({ versao: 2, pesos: v2.pesos, proposta: false });
+    const v4 = { ...v3, versao: 4, aprovadoEm: '2026-11-19' };
+    expect(pesosVigentes([v4, v1, v2]).versao).toBe(4);
+  });
+  it('ranking da mais vulnerável e contagem por faixa', () => {
+    const r = rankingIvm(
+      [
+        { id: 1, codigo: 'Q002', setor: 'S01', dimensoes: dims(0.2) },
+        { id: 2, codigo: 'Q001', setor: 'S01', dimensoes: dims(0.7) },
+        { id: 3, codigo: 'Q003', setor: 'S02', dimensoes: dims(0.2) },
+      ],
+      PESOS_IVM_PADRAO,
+    );
+    expect(r.map((q) => q.codigo)).toEqual(['Q001', 'Q002', 'Q003']);
+    expect(r[0]?.faixa.codigo).toBe('MUITO_ALTA');
+    expect(contarFaixas(r)).toEqual({ MUITO_ALTA: 1, ALTA: 0, MODERADA: 0, BAIXA: 2 });
+  });
+  it('aprovação exige justificativa e pesos válidos', () => {
+    expect(
+      AprovarPesosIvm.safeParse({
+        pesos: PESOS_IVM_PADRAO,
+        justificativa: 'Regularização pesa mais em 2027.',
+      }).success,
+    ).toBe(true);
+    expect(
+      AprovarPesosIvm.safeParse({ pesos: PESOS_IVM_PADRAO, justificativa: 'curta' }).success,
+    ).toBe(false);
+    expect(
+      AprovarPesosIvm.safeParse({
+        pesos: dims(0),
+        justificativa: 'Todas as dimensões zeradas, teste.',
+      }).success,
     ).toBe(false);
   });
 });

@@ -292,6 +292,15 @@ Como ficou (P12, ADR 0011):
 - **EJA**: público potencial, sem alfabetização, matrículas, frequência, evasão, convites (CRAS, escola dos filhos, SCFV).
 - **Pessoa idosa (60+)**: mora sozinha, BPC, acamada, vacina da gripe, crônico acompanhado, SCFV, última visita do ACS.
 
+#### Como ficou (P19)
+
+- **Primeira infância** reúne vacinação mensal, matrícula em creche e pré-escola, Criança Feliz e crianças de 0 a 3 anos no CadÚnico sem matrícula nem Criança Feliz. O indicador de pré-natal aguarda a regra da Saúde.
+- **Creche** combina vagas cadastradas pela SEMED ou CTI por escola e ano, fila e coortes da base única. O simulador permite ajustar a meta e o tamanho da unidade para estimar cobertura e déficit por setor. A integração do SINASC está pendente.
+- **Educação inclusiva** acompanha sinais de necessidade de AEE, sala de recursos, APAE, BPC e crianças sem atendimento.
+- **EJA** usa grau de instrução e alfabetização do CadÚnico. O público potencial inclui pessoas a partir de 15 anos sem fundamental completo e fora da escola regular. Matrículas de EJA são identificadas pelo nome da turma. O painel usa meta inicial de cobertura de 25%.
+- **Pessoa idosa** cruza sinalizadores de Saúde e Assistência. A lista prioriza pessoas com três ou mais motivos de visita.
+- Consultas nominais respeitam o escopo por RLS. O TCE recebe agregados sem as listas, com supressão de contagens de 1 a 4 nos painéis de ciclos.
+
 ### 3.10 Índice de vulnerabilidade municipal (IVM)
 
 Por quadra, de 0 a 1. Cinco dimensões normalizadas (0 a 1) e pesos configuráveis (aprovados pelo Comitê, versionados):
@@ -305,6 +314,10 @@ Por quadra, de 0 a 1. Cinco dimensões normalizadas (0 a 1) e pesos configuráve
 | Regularização (lotes sem titulação) | Fazenda/Reurb | 15 |
 
 `IVM = Σ(dim × peso) / Σ(peso)`. Faixas: baixa < 0,35 ≤ moderada < 0,50 ≤ alta < 0,65 ≤ muito alta. Nos limites exatos vale esta regra; o protótipo usa `>` e diverge.
+
+#### Como ficou (P19)
+
+O painel mostra as dimensões do último período disponível por quadra, o ranking, as faixas e o histórico dos pesos. O Comitê Gestor pode simular os pesos e aprovar uma nova versão com justificativa. O painel e o mapa usam a maior versão aprovada ou os pesos da proposta inicial. A aprovação invalida o cache `geo:quadras:*`. Ver ADR 0016.
 
 ### 3.11 Indicadores e controle externo (`indicadores`)
 
@@ -511,7 +524,7 @@ Como ficou o mapa (P15, ADR 0014):
 
 ## 8. Fases
 
-Situação em 18/11/2026: fases 1 e 2 concluídas (P01 a P13); fase 3 concluída (P14 a P16); próximo P17 (app mobile). Detalhe em `docs/ANDAMENTO.md`.
+Situação em 18/11/2026: fases 1 e 2 concluídas (P01 a P13); fase 3 concluída (P14 a P16); P19 entregue; P17 e P18 (app mobile) adiados por decisão do usuário. Detalhe em `docs/ANDAMENTO.md`.
 
 1. Fundação: monorepo, infra, auth, perfis, auditoria, território (Geoportal), geocodificação, identidade, seed fictício.
 2. Integração social: e-SUS, CadÚnico, gestão escolar, SEDUC; infrequência → notificação → parecer; ficha da criança; busca ativa com prazos.
@@ -530,7 +543,11 @@ Situação em 18/11/2026: fases 1 e 2 concluídas (P01 a P13); fase 3 concluída
   - os nomes das colunas em `apps/worker/config/dicionarios/cadunico.json`, montados pelo layout conhecido do CECAD, precisam ser conferidos com o dicionário oficial do MDS;
   - as linhas de renda usadas quando o arquivo traz só a renda: R$ 109 (extrema pobreza), R$ 218 (pobreza) e R$ 759 (½ salário mínimo de 2025; conferir o de 2026).
 - Domínio e servidor de produção; política de backup da CTI.
-- Pesos do IVM e metas a aprovar pelo Comitê Gestor.
+- **Ciclos de vida e IVM (P19):**
+  - integrar o SINASC para as coortes do simulador de creche;
+  - definir com a Saúde a regra do indicador de pré-natal;
+  - conferir com o MDS os nomes das colunas e os códigos de escolaridade e alfabetização do CadÚnico;
+  - validar a meta de cobertura da EJA com a SEMED e aprovar os pesos e metas aplicáveis com o Comitê Gestor.
 - Sistema de gestão escolar atual da SEMED (integrar ou substituir).
 - **Educação (P10, a confirmar com a SEMED e a SEDUC-RO):**
   - os layouts de `apps/worker/config/dicionarios/gestao-escolar.json` e `seduc.json` são próprios do SII; trocar pelos nomes reais quando chegar o primeiro arquivo;

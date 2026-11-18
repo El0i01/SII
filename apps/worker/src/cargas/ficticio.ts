@@ -73,6 +73,8 @@ export const CABECALHO_CECAD = [
   'p.dta_nasc_pessoa',
   'p.nom_completo_mae_pessoa',
   'p.cod_sexo_pessoa',
+  'p.grau_instrucao',
+  'p.cod_sabe_ler_escrever_memb',
   'p.cod_parentesco_rf_pessoa',
 ];
 
@@ -171,6 +173,9 @@ export function gerarCadunicoFicticio(
         'p.nom_completo_mae_pessoa': i >= 2 ? maeRf : `${pega(NOMES_F)} ${pega(SOBRENOMES)}`,
         'p.cod_sexo_pessoa': fem ? '2' : '1',
         'p.cod_parentesco_rf_pessoa': String(i === 0 ? 1 : i === 1 ? 2 : 3),
+        // Escolaridade (P19) derivada do NIS, sem mexer na sequência do sorteio.
+        'p.grau_instrucao': String(1 + (Number(nis[3] ?? 0) % 6)),
+        'p.cod_sabe_ler_escrever_memb': nis[4] === '0' ? '2' : '1',
       };
       linhas.push(colunas.map((c) => valores[c] ?? '').join(';'));
     }

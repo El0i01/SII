@@ -141,6 +141,13 @@ describe('carga do CadÚnico (P08)', () => {
       where: { mesReferencia: MES, familia: { codigoFamiliar: { startsWith: '9' } } },
     });
     expect(retratos).toBe(familias);
+    // Escolaridade (P19, EJA) gravada no membro da família.
+    const membros = await prisma.membroFamilia.findMany({
+      where: { familia: { codigoFamiliar: { startsWith: '9' } } },
+      select: { grauInstrucao: true, sabeLer: true },
+    });
+    expect(membros.every((m) => m.grauInstrucao !== null && m.sabeLer !== null)).toBe(true);
+    expect(new Set(membros.map((m) => m.grauInstrucao)).size).toBe(6);
     const vinculos = await prisma.vinculoFonte.count({ where: { cargaId: primeira } });
     expect(vinculos).toBe(c.novos + c.revisao + c.ligados);
 

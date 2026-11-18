@@ -209,8 +209,19 @@ async function gravarFamilia(
     pessoas.add(pessoaId);
     await tx.membroFamilia.upsert({
       where: { familiaId_pessoaId: { familiaId: familia.id, pessoaId } },
-      create: { familiaId: familia.id, pessoaId, papel: registro.papel },
-      update: { papel: registro.papel },
+      create: {
+        familiaId: familia.id,
+        pessoaId,
+        papel: registro.papel,
+        grauInstrucao: registro.grauInstrucao,
+        sabeLer: registro.sabeLer,
+      },
+      // Escolaridade vazia no arquivo não apaga a que já existe.
+      update: {
+        papel: registro.papel,
+        ...(registro.grauInstrucao ? { grauInstrucao: registro.grauInstrucao } : {}),
+        ...(registro.sabeLer !== null ? { sabeLer: registro.sabeLer } : {}),
+      },
     });
   }
   // Dados da família: do responsável familiar, ou do primeiro membro se o RF não veio.

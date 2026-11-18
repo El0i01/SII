@@ -1,6 +1,12 @@
 'use client';
 
 import {
+  Accessibility,
+  Baby,
+  BedSingle,
+  BookOpen,
+  Layers,
+  PersonStanding,
   Bell,
   CalendarCheck,
   ClipboardList,
@@ -32,6 +38,12 @@ const ICONES: Record<IconeMenu, typeof House> = {
   carga: Upload,
   mapa: IconeMapa,
   escudo: ShieldCheck,
+  bebe: Baby,
+  berco: BedSingle,
+  inclusao: Accessibility,
+  livro: BookOpen,
+  idoso: PersonStanding,
+  camadas: Layers,
   vinculo: GitMerge,
   cadeado: Lock,
 };

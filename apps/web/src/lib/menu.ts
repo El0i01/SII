@@ -16,7 +16,13 @@ export type IconeMenu =
   | 'vinculo'
   | 'cadeado'
   | 'mapa'
-  | 'escudo';
+  | 'escudo'
+  | 'bebe'
+  | 'berco'
+  | 'inclusao'
+  | 'livro'
+  | 'idoso'
+  | 'camadas';
 
 export interface ItemMenu {
   href: string;
@@ -84,6 +90,20 @@ export const ITENS_MENU: readonly ItemMenu[] = [
     perfis: ['ADMIN_CTI', 'COMITE_GESTOR', 'SEMED_GESTOR'],
   },
   {
+    href: '/primeira-infancia',
+    rotulo: 'Primeira infância',
+    grupo: 'Ciclos de vida',
+    icone: 'bebe',
+    perfis: [...NOMINAIS, 'AUDITOR_TCE'],
+  },
+  {
+    href: '/vagas-creche',
+    rotulo: 'Vagas de creche',
+    grupo: 'Ciclos de vida',
+    icone: 'berco',
+    perfis: [...NOMINAIS, 'AUDITOR_TCE'],
+  },
+  {
     href: '/busca-ativa',
     rotulo: 'Busca ativa escolar',
     grupo: 'Ciclos de vida',
@@ -91,10 +111,38 @@ export const ITENS_MENU: readonly ItemMenu[] = [
     perfis: [...NOMINAIS, 'AUDITOR_TCE'],
   },
   {
+    href: '/educacao-inclusiva',
+    rotulo: 'Educação inclusiva',
+    grupo: 'Ciclos de vida',
+    icone: 'inclusao',
+    perfis: [...NOMINAIS, 'AUDITOR_TCE'],
+  },
+  {
+    href: '/eja',
+    rotulo: 'EJA',
+    grupo: 'Ciclos de vida',
+    icone: 'livro',
+    perfis: [...NOMINAIS, 'AUDITOR_TCE'],
+  },
+  {
+    href: '/pessoa-idosa',
+    rotulo: 'Pessoa idosa',
+    grupo: 'Ciclos de vida',
+    icone: 'idoso',
+    perfis: [...NOMINAIS, 'AUDITOR_TCE'],
+  },
+  {
     href: '/territorio',
     rotulo: 'Território',
     grupo: 'Território',
     icone: 'mapa',
+    perfis: [...NOMINAIS, 'AUDITOR_TCE', 'FAZENDA'],
+  },
+  {
+    href: '/vulnerabilidade',
+    rotulo: 'Índice de vulnerabilidade',
+    grupo: 'Território',
+    icone: 'camadas',
     perfis: [...NOMINAIS, 'AUDITOR_TCE', 'FAZENDA'],
   },
   {

@@ -2,7 +2,7 @@
 
 Registro do que já foi entregue, prompt a prompt (`docs/PROMPTS.md`). O detalhe de cada regra fica na especificação (seções "Como ficou") e o porquê de cada escolha, nos ADRs (`docs/adr/`).
 
-Situação em 18/11/2026: **fases 1 e 2 concluídas (P01 a P13)** e **fase 3 concluída (P14 a P16)**. Próximo: P17 (app mobile, base offline).
+Situação em 18/11/2026: **fases 1 e 2 concluídas (P01 a P13)** e **fase 3 concluída (P14 a P16)**. **P19 entregue.** P17 e P18 (app mobile) foram adiados por decisão do usuário. A preparação da produção vem a seguir.
 
 ## Resumo por prompt
 
@@ -24,8 +24,19 @@ Situação em 18/11/2026: **fases 1 e 2 concluídas (P01 a P13)** e **fase 3 con
 | P14 | 18/11 | `bc6ac05` | Layout institucional, componentes base, Visão geral, acessibilidade | 0013 |
 | P15 | 18/11 | `9bf4dd2` | Tela Território com MapLibre: 7 camadas, detalhe da quadra, agregado do auditor | 0014 |
 | P16 | 18/11 | `99237fe` | Indicadores OE1–OE6, controle externo, relatório ao TCE, trilha verificável, DPO | 0015 |
+| P19 | 18/11 | — | Painéis de ciclos de vida, oferta de creche, escolaridade do CadÚnico e pesos do IVM | 0016 |
 
 ---
+
+## 18/11/2026 — P19
+
+- Seis painéis web: primeira infância, vagas de creche, educação inclusiva, EJA, pessoa idosa e IVM.
+- O simulador usa coortes da base única e oferta cadastrada por escola e ano. A carga do CadÚnico passou a gravar escolaridade e alfabetização para a EJA.
+- O Comitê Gestor aprova pesos do IVM com justificativa. A versão aprovada mais recente passa a valer no painel e no mapa após a invalidação do cache.
+- As listas seguem a RLS. O ACS tem o recorte da microárea e o TCE recebe agregados nos painéis de ciclos.
+- O ADR 0016 registra as decisões. As pendências de fontes e regras estão na §9 da especificação.
+
+Validação em Node 24: build de `@sii/shared`, `pnpm test`, `pnpm lint` e `pnpm typecheck` concluídos. A cobertura de linhas do shared foi de 100%, com 316 testes. As integrações passaram com 163 testes na API e 38 no worker. Os 16 cenários do Playwright passaram, incluindo acessibilidade e o recorte do TCE no menu completo.
 
 ## 18/11/2026 — P16
 

@@ -69,6 +69,7 @@ sii-itapua/
   - `casos/`: prazos, escalonamento (`prazoHoje`), efeito do parecer, destinos dos avisos e busca ativa (gatilho, etapas, quem pode, painel, CSV);
   - `motivos/`: motivos de visita da criança e do idoso;
   - `indice/`: IVM;
+  - `ciclos/`: contagens por setor, primeira infância, simulação de creche, educação inclusiva, EJA e pessoa idosa;
   - `creche/`: cobertura, déficit e prioridade;
   - `mascaras/`: CPF, NIS e iniciais;
   - `territorio/`: cascata de geocodificação;

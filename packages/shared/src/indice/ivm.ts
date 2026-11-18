@@ -61,3 +61,64 @@ export function faixaIvm(valor: number): FaixaIvm {
   if (valor >= 0.35) return { codigo: 'MODERADA', rotulo: 'Moderada', tom: 'info' };
   return { codigo: 'BAIXA', rotulo: 'Baixa', tom: 'ok' };
 }
+
+/** Versão dos pesos do IVM gravada no banco (P19). */
+export interface VersaoPesosIvm {
+  versao: number;
+  pesos: ValoresIvm;
+  aprovadoEm: string | null;
+}
+
+/**
+ * Pesos vigentes: a maior versão **aprovada** pelo Comitê Gestor. Sem nenhuma aprovada, vale a
+ * proposta padrão (`PESOS_IVM_PADRAO`), marcada como proposta.
+ */
+export function pesosVigentes(versoes: readonly VersaoPesosIvm[]): {
+  versao: number | null;
+  pesos: ValoresIvm;
+  proposta: boolean;
+} {
+  const aprovadas = versoes
+    .filter((v) => v.aprovadoEm !== null)
+    .sort((a, b) => b.versao - a.versao);
+  const v = aprovadas[0];
+  return v
+    ? { versao: v.versao, pesos: v.pesos, proposta: false }
+    : { versao: null, pesos: PESOS_IVM_PADRAO, proposta: true };
+}
+
+export interface QuadraIvm {
+  id: number;
+  codigo: string;
+  setor: string;
+  dimensoes: ValoresIvm;
+}
+
+/** Quadras com o índice pelos pesos dados, da mais vulnerável para a menos. */
+export function rankingIvm<Q extends QuadraIvm>(quadras: readonly Q[], pesos: ValoresIvm) {
+  return quadras
+    .map((q) => {
+      const ivm = calcularIvm(q.dimensoes, pesos);
+      return { ...q, ivm, faixa: faixaIvm(ivm) };
+    })
+    .sort((a, b) => b.ivm - a.ivm || a.codigo.localeCompare(b.codigo));
+}
+
+export function contarFaixas(
+  itens: readonly { faixa: FaixaIvm }[],
+): Record<CodigoFaixaIvm, number> {
+  const r: Record<CodigoFaixaIvm, number> = { MUITO_ALTA: 0, ALTA: 0, MODERADA: 0, BAIXA: 0 };
+  for (const i of itens) r[i.faixa.codigo]++;
+  return r;
+}
+
+/** Aprovação de nova versão dos pesos (só COMITE_GESTOR), com justificativa. */
+export const AprovarPesosIvm = z.object({
+  pesos: PesosIvm,
+  justificativa: z
+    .string()
+    .trim()
+    .min(20, 'Explique a mudança em pelo menos 20 caracteres (vai para o histórico).')
+    .max(1000, 'Use até 1.000 caracteres.'),
+});
+export type AprovarPesosIvm = z.infer<typeof AprovarPesosIvm>;

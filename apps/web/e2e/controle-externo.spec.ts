@@ -71,27 +71,45 @@ const semEspaco = (t: string) => t.replace(/[\s·]+/g, '');
 
 test('auditor do TCE: navega o menu inteiro e só recebe agregados', async ({ browser }) => {
   const page = await entrar(browser, 'tce.auditor');
-  const respostas: { url: string; corpo: string }[] = [];
-  page.on('response', async (r) => {
+  const capturas: Promise<{ url: string; corpo: string }>[] = [];
+  page.on('response', (r) => {
     const url = r.url();
     if (!url.includes('/api/v1/') || url.includes('/auth/') || url.includes('.geojson')) return;
     if (!(r.headers()['content-type'] ?? '').includes('json')) return;
-    respostas.push({ url, corpo: await r.text().catch(() => '') });
+    capturas.push(r.text().then((corpo) => ({ url, corpo }), () => ({ url, corpo: '' })));
   });
   await page.goto('/');
   const menu = page.getByRole('navigation', { name: 'Painéis' }).first();
   const links = await menu
     .getByRole('link')
     .evaluateAll((as) => as.map((a) => new URL((a as HTMLAnchorElement).href).pathname));
-  expect(links).toEqual(['/', '/busca-ativa', '/territorio', '/controle-externo']);
-  for (const caminho of links) {
-    await page.goto(caminho);
+  const telas = [
+    ['/', '/painel/visao-geral'],
+    ['/primeira-infancia', '/ciclos/primeira-infancia'],
+    ['/vagas-creche', '/ciclos/vagas-creche'],
+    ['/busca-ativa', '/busca-ativa/painel'],
+    ['/educacao-inclusiva', '/ciclos/educacao-inclusiva'],
+    ['/eja', '/ciclos/eja'],
+    ['/pessoa-idosa', '/ciclos/pessoa-idosa'],
+    ['/territorio', '/mapa/quadras'],
+    ['/vulnerabilidade', '/ivm'],
+    ['/controle-externo', '/indicadores/controle-externo'],
+  ] as const;
+  expect(links).toEqual(telas.map(([caminho]) => caminho));
+  for (const [caminho, rota] of telas) {
+    const [resposta] = await Promise.all([
+      page.waitForResponse((r) => new URL(r.url()).pathname === `/api/v1${rota}`),
+      page.goto(caminho),
+    ]);
+    expect(resposta.ok(), rota).toBe(true);
+    await resposta.finished();
     await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 30_000 });
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   }
-  expect(respostas.length).toBeGreaterThan(4);
+  const respostas = await Promise.all(capturas);
   for (const r of respostas) {
-    expect(r.corpo, r.url).not.toMatch(/\d{3}\.?\d{3}\.?\d{3}-?\d{2}(?!\d)/);
+    // Uma sequência de 11 dígitos dentro da fração de um índice não é um CPF.
+    expect(r.corpo, r.url).not.toMatch(/(?<![\d.])\d{3}\.?\d{3}\.?\d{3}-?\d{2}(?!\d)/);
     expect(r.corpo, r.url).not.toMatch(
       /"(cpf|nis|cns|iniciais|nomeMae|nascimento|fichaId|moradores)"/,
     );

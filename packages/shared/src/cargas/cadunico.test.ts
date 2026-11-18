@@ -21,6 +21,8 @@ const base: CamposCadunico = {
   pbf: '1',
   atualizadoEm: '2026-10-01',
   qtdPessoas: '4',
+  grauInstrucao: '2',
+  sabeLer: '1',
 };
 
 describe('faixa de renda', () => {
@@ -70,6 +72,8 @@ describe('converterLinhaCadunico', () => {
         recebePbf: true,
         atualizadoEm: '2026-10-01',
         qtdPessoas: 4,
+        grauInstrucao: 'FUNDAMENTAL_INCOMPLETO',
+        sabeLer: true,
       },
     });
   });
@@ -85,6 +89,8 @@ describe('converterLinhaCadunico', () => {
         mae: '',
         cpf: '',
         qtdPessoas: '',
+        grauInstrucao: '',
+        sabeLer: '',
       },
       linhas,
     );
@@ -95,6 +101,8 @@ describe('converterLinhaCadunico', () => {
       mae: null,
       cpf: null,
       qtdPessoas: null,
+      grauInstrucao: null,
+      sabeLer: null,
     });
   });
 

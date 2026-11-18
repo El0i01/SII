@@ -64,6 +64,14 @@
     "qtdPessoas": {
       "rotulo": "Quantidade de pessoas na família",
       "colunas": ["d.qtd_pessoas_domic_fam", "qtde_pessoas", "qtd_pessoas"]
+    },
+    "grauInstrucao": {
+      "rotulo": "Grau de instrução (P19, EJA; nome a confirmar com o MDS)",
+      "colunas": ["p.grau_instrucao", "grau_instrucao", "p.cod_grau_instrucao", "cod_grau_instrucao"]
+    },
+    "sabeLer": {
+      "rotulo": "Sabe ler e escrever (P19, EJA)",
+      "colunas": ["p.cod_sabe_ler_escrever_memb", "cod_sabe_ler_escrever_memb", "sabe_ler_escrever"]
     }
   },
   "algumDe": [["faixaRenda", "rendaPerCapita"]]

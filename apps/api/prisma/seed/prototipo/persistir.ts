@@ -2,6 +2,7 @@
  * Grava no banco os dados fictícios do protótipo (gerador.ts) ligados ao cadastro real de
  * equipamentos (mapeamento.ts). Dev e testes apenas. Ver docs/adr/0004.
  */
+import { semearCiclos } from '../ciclos';
 import { semearIndicadores } from '../indicadores';
 import { randomUUID } from 'node:crypto';
 import {
@@ -114,6 +115,7 @@ const TABELAS_DO_SEED = [
   'indicadores.pesos_ivm',
   // P16: metas, despesa fictícia, relatórios gerados e snapshots (refeitos pelo job).
   'indicadores.meta_indicador',
+  'educacao.oferta_creche',
   'indicadores.despesa_programa',
   'indicadores.relatorio_semestral',
   'indicadores.indicador_snapshot',
@@ -952,6 +954,7 @@ export async function semearPrototipo(prisma: PrismaClient, chaves: Chaves): Pro
       }
 
       await semearIndicadores(tx);
+      await semearCiclos(tx, 2026, DATA_BASE);
 
       await tx.logCarga.create({
         data: {

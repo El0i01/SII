@@ -19,8 +19,14 @@ describe('menuDoPerfil', () => {
       'Frequência da turma',
       'Avisos',
       'Pauta do Comitê',
+      'Primeira infância',
+      'Vagas de creche',
       'Busca ativa escolar',
+      'Educação inclusiva',
+      'EJA',
+      'Pessoa idosa',
       'Território',
+      'Índice de vulnerabilidade',
       'Cargas de dados',
       'Revisão de vínculos',
       'Acessos a dado pessoal',
@@ -34,25 +40,48 @@ describe('menuDoPerfil', () => {
       'Notificações à Assistência',
       'Frequência da turma',
       'Avisos',
+      'Primeira infância',
+      'Vagas de creche',
       'Busca ativa escolar',
+      'Educação inclusiva',
+      'EJA',
+      'Pessoa idosa',
       'Território',
+      'Índice de vulnerabilidade',
     ]);
     expect(rotulos('CRAS_TECNICO')).toEqual([
       'Visão geral',
       'Ficha da criança',
       'Notificações à Assistência',
       'Avisos',
+      'Primeira infância',
+      'Vagas de creche',
       'Busca ativa escolar',
+      'Educação inclusiva',
+      'EJA',
+      'Pessoa idosa',
       'Território',
+      'Índice de vulnerabilidade',
     ]);
     expect(rotulos('AUDITOR_TCE')).toEqual([
       'Visão geral',
+      'Primeira infância',
+      'Vagas de creche',
       'Busca ativa escolar',
+      'Educação inclusiva',
+      'EJA',
+      'Pessoa idosa',
       'Território',
+      'Índice de vulnerabilidade',
       'Controle externo',
     ]);
     expect(rotulos('DPO')).toEqual(['Acessos a dado pessoal']);
-    expect(rotulos('FAZENDA')).toEqual(['Avisos', 'Território', 'Cargas de dados']);
+    expect(rotulos('FAZENDA')).toEqual([
+      'Avisos',
+      'Território',
+      'Índice de vulnerabilidade',
+      'Cargas de dados',
+    ]);
   });
   it('tela inicial e item ativo', () => {
     expect(telaInicial('DPO')).toBe('/acessos');
