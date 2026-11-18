@@ -133,7 +133,7 @@ services:
     ports:
       - "${SII_HOST:?}:8888:8888"
     configs:
-      - source: sii_caddy
+      - source: sii_caddy_https
         target: /etc/caddy/Caddyfile
     volumes:
       - proxy:/data
@@ -144,10 +144,11 @@ services:
         condition: service_healthy
 
 configs:
-  sii_caddy:
+  sii_caddy_https:
     content: |
       {
         auto_https disable_redirects
+        default_sni ${SII_HOST:?}
       }
       https://${SII_HOST:?}:8888 {
         tls internal
