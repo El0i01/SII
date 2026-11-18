@@ -69,7 +69,8 @@ services:
     image: sii/api:${SII_VERSAO:?}
     pull_policy: never
     logging: *logs
-    command: [pnpm, --filter, "@sii/api", db:deploy]
+    working_dir: /sii/apps/api
+    command: [node, node_modules/prisma/build/index.js, migrate, deploy]
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://sii:${POSTGRES_PASSWORD:?}@db:5432/sii

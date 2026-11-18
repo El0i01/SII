@@ -4,7 +4,7 @@ A stack `sii` usa o Docker standalone de `reurb@192.168.1.22`. O proxy publica s
 
 ## Construir localmente
 
-A partir da raiz do repositório, em um checkout limpo:
+A partir da raiz do repositório, em um checkout limpo. API, worker e migrador compartilham as camadas de execução, que incluem os artefatos compilados, as dependências de produção e a CLI do Prisma para aplicar as migrations.
 
 ```bash
 set -euo pipefail
