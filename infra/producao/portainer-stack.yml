@@ -108,7 +108,10 @@ services:
     restart: unless-stopped
     logging: *logs
     command: [node, apps/worker/dist/worker/src/main.js]
-    environment: *aplicacao
+    environment:
+      <<: *aplicacao
+      # O worker compila módulos da API em sua própria árvore dist.
+      NODE_PATH: /sii/apps/api/node_modules
     depends_on: *dependencias
 
   web:
