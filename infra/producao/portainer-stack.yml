@@ -1,0 +1,162 @@
+x-aplicacao: &aplicacao
+  NODE_ENV: production
+  DATABASE_URL: postgresql://sii:${POSTGRES_PASSWORD:?}@db:5432/sii
+  REDIS_URL: redis://:${REDIS_SENHA:?}@redis:6379
+  CHAVE_CIFRA: ${CHAVE_CIFRA:?}
+  CHAVE_HMAC: ${CHAVE_HMAC:?}
+  MINIO_URL: http://minio:9000
+  MINIO_ROOT_USER: sii
+  MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?}
+
+x-logs: &logs
+  driver: local
+  options:
+    max-size: 10m
+    max-file: "3"
+
+services:
+  db:
+    image: sii/postgis:${SII_VERSAO:?}
+    pull_policy: never
+    restart: unless-stopped
+    logging: *logs
+    environment:
+      POSTGRES_DB: sii
+      POSTGRES_USER: sii
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD, pg_isready, -U, sii, -d, sii]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: sii/redis:${SII_VERSAO:?}
+    pull_policy: never
+    restart: unless-stopped
+    logging: *logs
+    command: [redis-server, --appendonly, "yes", --requirepass, "${REDIS_SENHA:?}"]
+    environment:
+      REDISCLI_AUTH: ${REDIS_SENHA:?}
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: sii/minio:${SII_VERSAO:?}
+    pull_policy: never
+    restart: unless-stopped
+    logging: *logs
+    command: [server, /data]
+    environment:
+      MINIO_ROOT_USER: sii
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?}
+    volumes:
+      - minio:/data
+    healthcheck:
+      test: [CMD, mc, ready, local]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrar:
+    image: sii/api:${SII_VERSAO:?}
+    pull_policy: never
+    logging: *logs
+    command: [pnpm, --filter, "@sii/api", db:deploy]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://sii:${POSTGRES_PASSWORD:?}@db:5432/sii
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    image: sii/api:${SII_VERSAO:?}
+    pull_policy: never
+    restart: unless-stopped
+    logging: *logs
+    environment:
+      <<: *aplicacao
+      API_PORTA: "3333"
+      SII_PROXY_CONFIAVEL: "1"
+      JWT_SEGREDO: ${JWT_SEGREDO:?}
+      WEB_ORIGEM: https://${SII_HOST:?}:8888
+    depends_on: &dependencias
+      migrar:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://localhost:3333/api/v1/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  worker:
+    image: sii/worker:${SII_VERSAO:?}
+    pull_policy: never
+    restart: unless-stopped
+    logging: *logs
+    command: [node, apps/worker/dist/worker/src/main.js]
+    environment: *aplicacao
+    depends_on: *dependencias
+
+  web:
+    image: sii/web:${SII_VERSAO:?}
+    pull_policy: never
+    restart: unless-stopped
+    logging: *logs
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://localhost:3000/entrar').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  proxy:
+    image: sii/proxy:${SII_VERSAO:?}
+    pull_policy: never
+    restart: unless-stopped
+    logging: *logs
+    ports:
+      - "${SII_HOST:?}:8888:8888"
+    configs:
+      - source: sii_caddy
+        target: /etc/caddy/Caddyfile
+    volumes:
+      - proxy:/data
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+
+configs:
+  sii_caddy:
+    content: |
+      {
+        auto_https disable_redirects
+      }
+      https://${SII_HOST:?}:8888 {
+        tls internal
+        handle /api/* {
+          reverse_proxy api:3333
+        }
+        handle {
+          reverse_proxy web:3000
+        }
+      }
+
+volumes:
+  db:
+  redis:
+  minio:
+  proxy:
