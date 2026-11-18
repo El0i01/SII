@@ -8,6 +8,7 @@ import {
   House,
   IdCard,
   Lock,
+  Map as IconeMapa,
   Megaphone,
   Search,
   Upload,
@@ -28,6 +29,7 @@ const ICONES: Record<IconeMenu, typeof House> = {
   pauta: ClipboardList,
   busca: Search,
   carga: Upload,
+  mapa: IconeMapa,
   vinculo: GitMerge,
   cadeado: Lock,
 };

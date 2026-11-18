@@ -21,6 +21,12 @@ export const cores = {
   erro: '#C41C00',
   erroClaro: '#FDE0DB',
   foco: '#C2850C',
+  mapa1: '#0C326F',
+  mapa2: '#1351B4',
+  mapa3: '#4A85DC',
+  mapa4: '#8DB4EC',
+  mapa5: '#C5D9F6',
+  mapa6: '#B9C0CA',
 } as const;
 
 export const fonte = {

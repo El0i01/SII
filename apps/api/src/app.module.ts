@@ -7,6 +7,7 @@ import { validarEnv } from './config/env';
 import { CargasModule } from './cargas/cargas.module';
 import { CasosModule } from './casos/casos.module';
 import { FichasModule } from './fichas/fichas.module';
+import { MapaModule } from './mapa/mapa.controller';
 import { PainelModule } from './painel/painel.controller';
 import { CriptoModule } from './cripto/cripto.service';
 import { EducacaoModule } from './educacao/educacao.module';
@@ -38,6 +39,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     CasosModule,
     FichasModule,
     PainelModule,
+    MapaModule,
   ],
 })
 export class AppModule {}

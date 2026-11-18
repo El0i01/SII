@@ -77,7 +77,8 @@ sii-itapua/
   - `schemas/`: Parecer, Visita, Encaminhamento, UploadCarga, LancamentosFrequencia, RevelarCpf e FiltroAcessos;
   - `fichas/`: seções da ficha por perfil (`secoesDaFicha`), filtros, prioridade e linha do tempo;
   - `cargas/`: CSV, layout, documentos, conversores do CadÚnico, da gestão escolar e da SEDUC;
-  - `acesso/`: login e usuários.
+  - `acesso/`: login e usuários;
+  - `mapa/`: camadas do Território, legendas, classes por quadra e supressão do agregado.
   
   Procure aqui antes de escrever uma regra nova. O shared exige 100% de cobertura de linhas.
 - Validação de entrada com zod (schema em `shared`) via pipe no NestJS; formulários web e mobile usam o mesmo schema.
@@ -104,6 +105,7 @@ sii-itapua/
 - **Registro de fonte entra sempre por `LigacaoPessoas.ligar`** (CPF → CNS/NIS → nome+nascimento+mãe → revisão). Nunca crie `PessoaMestra` direto numa carga: a identidade única depende disso (ADR 0006).
 - A trilha (`casos.evento_caso`) é append-only e encadeada pelo banco: só INSERT, sem informar `seq` nem `hash`, e sem dado pessoal em `dados`.
 - **Dado nominal só por `PrismaService.comoUsuario(usuario, tx => ...)`**: é isso que liga o papel do banco e a RLS. O cliente Prisma direto (dono) fica restrito a autenticação, health e tarefas da CTI. Tabela nominal nova vai num schema com RLS e policy na mesma migration (ADR 0003).
+- **Ponto individual no mapa só para perfil nominal, por `comoUsuario`**, e só com coordenadas (nada de id, idade ou nome). Auditor e Fazenda recebem agregado por quadra com `suprimirIndicadores` (ADR 0014).
 - Rotas exigem login por padrão; `@Publico()` é exceção e precisa de motivo. Restrinja com `@Perfis(...)` e, quando a rota tiver escola/microárea/CRAS no caminho, `@Escopo(...)`.
 
 ## Front-end (modo institucional gov.br)
@@ -148,7 +150,7 @@ pnpm --filter @sii/worker esus:pec-ficticio [n]  # banco pec_ficticio local para
 pnpm --filter @sii/worker infrequencia:rodar [AAAA-MM-DD]  # job de infrequência agora (ou reprocessa uma data)
 pnpm --filter @sii/worker busca-ativa:rodar [AAAA-MM-DD]   # job de busca ativa escolar agora
 pnpm --filter @sii/worker prazos:rodar [AAAA-MM-DD]        # job de prazos e escalonamento agora
-pnpm --filter @sii/web e2e   # Playwright (Chrome do sistema), API 3334 + web 3001 no banco de TESTE
+pnpm --filter @sii/web e2e   # Playwright (Chrome do sistema), API 3334 + web 3001 no banco de TESTE (carrega o geoportal; Redis /1)
 pnpm geo:importar <arquivo.shp> <tabela>   # shapefile → stg_geoportal.<tabela> em EPSG:4674
 pnpm geo:carregar        # geoportal inteiro: setores, equipamentos, microáreas, ruas, grade provisória (ADR 0005)
 pnpm infra:down

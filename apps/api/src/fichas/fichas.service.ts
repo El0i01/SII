@@ -44,14 +44,14 @@ const naoEncontrada = () =>
 
 const iso = (d: Date | null): string | null => (d ? d.toISOString().slice(0, 10) : null);
 
-interface Avaliada {
+export interface Avaliada {
   linha: LinhaFicha;
   idade: number;
   motivos: Motivo[];
   resumo: ResumoFicha;
 }
 
-function avaliar(l: LinhaFicha, hoje: string): Avaliada {
+export function avaliar(l: LinhaFicha, hoje: string): Avaliada {
   const idade = idadeEm(iso(l.nascimento) as string, hoje);
   const dias = (d: Date | null) => (d ? diasCorridosEntre(iso(d) as string, hoje) : null);
   const dados: DadosCrianca = {

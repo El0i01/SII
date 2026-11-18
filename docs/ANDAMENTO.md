@@ -2,7 +2,7 @@
 
 Registro do que já foi entregue, prompt a prompt (`docs/PROMPTS.md`). O detalhe de cada regra fica na especificação (seções "Como ficou") e o porquê de cada escolha, nos ADRs (`docs/adr/`).
 
-Situação em 18/11/2026: **fases 1 e 2 concluídas (P01 a P13)** e P14 feito. Próximo: P15 (mapa).
+Situação em 18/11/2026: **fases 1 e 2 concluídas (P01 a P13)** e P14 e P15 feitos. Próximo: P16 (indicadores, painel do TCE e auditoria).
 
 ## Resumo por prompt
 
@@ -22,8 +22,48 @@ Situação em 18/11/2026: **fases 1 e 2 concluídas (P01 a P13)** e P14 feito. P
 | P12 | 17/11 | `5eb7e0c` | Ficha da criança, revelar CPF com finalidade, painel do DPO | 0011 |
 | P13 | 17/11 | `e854774` | Busca ativa escolar: job, etapas e painel | 0012 |
 | P14 | 18/11 | `bc6ac05` | Layout institucional, componentes base, Visão geral, acessibilidade | 0013 |
+| P15 | 18/11 | (commit) | Tela Território com MapLibre: 7 camadas, detalhe da quadra, agregado do auditor | 0014 |
 
 ---
+
+## 18/11/2026 — P15
+
+A tela **Território** (`/territorio`) mostra o município no mapa, como no protótipo.
+
+- **Mapa (MapLibre GL JS 5.24.0)**:
+  - só as camadas do SII: limite, setores, quadras, lotes, ruas e equipamentos;
+  - sem mapa de fundo de terceiros;
+  - abre na zona urbana e enquadra o setor escolhido no cabeçalho.
+- **As 7 camadas do protótipo:** índice de vulnerabilidade, calor de 0 a 3 anos, Criança Feliz, calor de idosos sozinhos sem visita, casos de busca ativa, situação dos lotes e precisão do ponto.
+- **Troca de camada no navegador**, sem pedido ao servidor: 20 a 37 ms até a camada aparecer, com o seed e WebGL por software.
+- **Detalhe da quadra:**
+  - indicadores e lotes com a situação;
+  - para perfis nominais, os moradores de cada lote: iniciais, idade, sinais e link para a ficha.
+- **Lista de quadras** (alternativa ao mapa pelo teclado) e cartão da **zona rural**.
+- **Auditor do TCE e Fazenda:**
+  - só números por quadra, com "< 5";
+  - o calor sai do centro da quadra;
+  - nenhum ponto individual e nenhum morador.
+- **Rotas novas:**
+  - `GET /mapa/quadras`, `GET /mapa/quadras/:id` e `GET /mapa/pontos` (esta só para perfis nominais);
+  - camada `ruas` no `GET /territorio/:camada.geojson`.
+- **Menu:** item "Território", no grupo Território, para os perfis nominais, o auditor e a Fazenda.
+- **Shared:** `mapa/camadas.ts` traz camadas, legendas, classes por quadra, supressão, "idosa sozinha sem visita" e "Criança Feliz atrasada".
+- **Correção de 360 px na Tabela:** o texto para leitor de tela dentro das células alargava a página.
+- **E2E:**
+  - o preparo carrega o geoportal no banco de teste;
+  - o Redis do E2E usa o banco lógico `/1`.
+- **Decisões do usuário:** sem mapa de fundo externo; moradores com iniciais, idade e sinais.
+
+Testes ao fim do dia:
+
+| Suíte | Resultado |
+| --- | --- |
+| `packages/shared` | 288 testes, 100% das linhas |
+| Web (Vitest) | 59 testes |
+| API, integração | 147 testes em 13 suítes |
+| Worker, integração | 30 testes em 6 suítes |
+| E2E (Playwright) | 9 testes: os 3 fluxos, acessibilidade (agora com Território, também como auditor) e os 3 do mapa (troca < 300 ms nas 7 camadas, quadra pelo teclado, auditor sem pontos nem moradores) |
 
 ## 18/11/2026 — P14
 

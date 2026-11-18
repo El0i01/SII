@@ -14,7 +14,8 @@ export type IconeMenu =
   | 'busca'
   | 'carga'
   | 'vinculo'
-  | 'cadeado';
+  | 'cadeado'
+  | 'mapa';
 
 export interface ItemMenu {
   href: string;
@@ -87,6 +88,13 @@ export const ITENS_MENU: readonly ItemMenu[] = [
     grupo: 'Ciclos de vida',
     icone: 'busca',
     perfis: [...NOMINAIS, 'AUDITOR_TCE'],
+  },
+  {
+    href: '/territorio',
+    rotulo: 'Território',
+    grupo: 'Território',
+    icone: 'mapa',
+    perfis: [...NOMINAIS, 'AUDITOR_TCE', 'FAZENDA'],
   },
   {
     href: '/cargas',

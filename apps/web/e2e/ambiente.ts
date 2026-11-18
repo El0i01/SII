@@ -33,5 +33,7 @@ export function envTeste(): NodeJS.ProcessEnv {
   const env = lerEnvRaiz();
   const teste = env.DATABASE_URL_TESTE;
   if (!teste) throw new Error('defina DATABASE_URL_TESTE no .env da raiz');
-  return { ...process.env, DATABASE_URL: teste };
+  // Redis em outro banco lógico (/1): o cache do mapa (geo:*) do dev não vaza para o teste.
+  const redis = (env.REDIS_URL ?? process.env.REDIS_URL ?? '').replace(/\/\d+$/, '');
+  return { ...process.env, DATABASE_URL: teste, ...(redis ? { REDIS_URL: `${redis}/1` } : {}) };
 }

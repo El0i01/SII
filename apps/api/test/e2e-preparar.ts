@@ -5,14 +5,43 @@
  *   pnpm --filter @sii/api exec tsx test/e2e-preparar.ts <saida.json>
  */
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { hojeEmPortoVelho } from '@sii/shared';
+import Redis from 'ioredis';
+import { aplicarGeoportal, importarCamadas } from '../scripts/geo/carregar';
 import { semearPrototipo } from '../prisma/seed/prototipo/persistir';
 import { semearUsuarios } from '../prisma/seed/usuarios';
 import { chaveDeHex } from '../src/cripto/cifra';
 import { aplicarMigrations, clienteDono, usarBancoDeTeste } from './apoio-integracao';
 
 const CUSTODIO = '11005165';
+
+/**
+ * Geometria do território (P15): o mapa precisa de quadras e pontos. Usa o geoportal da máquina
+ * (GEOPORTAL_DIR) e limpa o cache do mapa no Redis do teste (os ids mudam a cada seed).
+ */
+async function carregarGeoportal(url: string, dono: ReturnType<typeof clienteDono>) {
+  const dir =
+    process.env.GEOPORTAL_DIR ??
+    path.join(os.homedir(), 'geoportal_itapua-main(1)/geoportal_itapua-main');
+  if (!fs.existsSync(dir)) {
+    process.stderr.write(`Geoportal não encontrado em ${dir}: o mapa do E2E fica sem geometria.\n`);
+    return;
+  }
+  importarCamadas(dir, url);
+  await aplicarGeoportal(dono);
+  if (process.env.REDIS_URL) {
+    const redis = new Redis(process.env.REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 1 });
+    try {
+      await redis.connect();
+      const chaves = await redis.keys('geo:*');
+      if (chaves.length) await redis.del(...chaves);
+    } finally {
+      redis.disconnect();
+    }
+  }
+}
 
 async function principal() {
   const saida = process.argv[2];
@@ -25,6 +54,8 @@ async function principal() {
     cifra: chaveDeHex(process.env.CHAVE_CIFRA ?? '', 'CHAVE_CIFRA'),
     hmac: chaveDeHex(process.env.CHAVE_HMAC ?? '', 'CHAVE_HMAC'),
   });
+
+  await carregarGeoportal(url, dono);
 
   const hoje = hojeEmPortoVelho();
   const escola = await dono.escola.findUniqueOrThrow({ where: { inep: CUSTODIO } });

@@ -1,6 +1,6 @@
 # Especificação — SII · Sistema Integrado Intersecretarial
 
-Versão 0.3 · 18 de novembro de 2026 · CTI/SEMED · Itapuã do Oeste/RO
+Versão 0.4 · 18 de novembro de 2026 · CTI/SEMED · Itapuã do Oeste/RO
 O que já foi entregue, prompt a prompt: `docs/ANDAMENTO.md`.
 Base: Plano Estratégico, Plano de Desenvolvimento e protótipo navegável (`docs/prototipo/index.html`).
 
@@ -450,9 +450,32 @@ Como ficou o web (P14, ADR 0013):
 - Fichas, busca ativa e pauta respeitam o território do cabeçalho.
 - **Acessibilidade verificada no Playwright**: axe (WCAG 2.1 AA) sem violação crítica nem séria em todas as telas do menu e na tela de entrar; navegação por teclado (atalho para o conteúdo, menu, filtros); em 360 px nenhuma tela rola para o lado.
 
+Como ficou o mapa (P15, ADR 0014):
+
+- **Tela Território** (`/territorio`): MapLibre GL JS só com as camadas do SII (limite, setores, quadras, lotes, ruas e equipamentos do geoportal), **sem mapa de fundo de terceiros** (decisão de 18/11/2026).
+- **As 7 camadas do protótipo:**
+  - índice de vulnerabilidade;
+  - calor de crianças de 0 a 3 anos;
+  - Criança Feliz (visita em dia ou atrasada há mais de 14 dias);
+  - calor de pessoas idosas sozinhas sem visita do ACS há mais de 90 dias;
+  - casos de busca ativa;
+  - situação dos lotes;
+  - precisão do ponto (fonte predominante da quadra).
+  
+  As classes e legendas estão em `packages/shared/src/mapa/camadas.ts`.
+- **Troca de camada no navegador:**
+  - um pedido (`GET /mapa/quadras?territorio=`) traz os indicadores de todas as camadas;
+  - trocar de camada não vai ao servidor. Com o seed, a nova camada aparece em 20 a 37 ms, mesmo sem GPU.
+- **Detalhe da quadra** (`GET /mapa/quadras/:id`): indicadores, lotes com a situação e, para perfis nominais, quem mora em cada lote (iniciais, idade, sinais e link para a ficha; nome e CPF só na ficha).
+- **Pontos e agregados:**
+  - pontos dos mapas de calor e do Criança Feliz (`GET /mapa/pontos`): só para perfis nominais, pela RLS, só com coordenadas;
+  - AUDITOR_TCE e FAZENDA veem só números por quadra, com "< 5", e o calor sai do centro da quadra sem as quadras com 1 a 4 pessoas.
+- **Lista de quadras** com busca e ordenação pela camada: é a alternativa ao mapa pelo teclado.
+- **Zona rural:** domicílios, escolas, localizados por SIGEF/CAR e baixa precisão.
+
 ## 8. Fases
 
-Situação em 18/11/2026: fases 1 e 2 concluídas (P01 a P13); fase 3 em andamento (P14 feito; próximo P15). Detalhe em `docs/ANDAMENTO.md`.
+Situação em 18/11/2026: fases 1 e 2 concluídas (P01 a P13); fase 3 em andamento (P14 e P15 feitos; próximo P16). Detalhe em `docs/ANDAMENTO.md`.
 
 1. Fundação: monorepo, infra, auth, perfis, auditoria, território (Geoportal), geocodificação, identidade, seed fictício.
 2. Integração social: e-SUS, CadÚnico, gestão escolar, SEDUC; infrequência → notificação → parecer; ficha da criança; busca ativa com prazos.

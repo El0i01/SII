@@ -138,7 +138,7 @@ export function Tabela<T>({
       ) : (
         <>
           <div
-            className="max-w-full overflow-x-auto"
+            className="relative max-w-full overflow-x-auto"
             tabIndex={0}
             aria-label={`${legenda} (role para o lado em telas pequenas)`}
           >

@@ -31,6 +31,14 @@
   --color-erro: #c41c00;
   --color-erro-claro: #fde0db;
 
+  /* Escala sequencial dos mapas (protótipo: seq1 a seq6; 6 = baixa precisão, cinza) */
+  --color-mapa-1: #0c326f;
+  --color-mapa-2: #1351b4;
+  --color-mapa-3: #4a85dc;
+  --color-mapa-4: #8db4ec;
+  --color-mapa-5: #c5d9f6;
+  --color-mapa-6: #b9c0ca;
+
   /* Foco visível (eMAG) */
   --color-foco: #c2850c;
 

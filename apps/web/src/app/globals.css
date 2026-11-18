@@ -31,3 +31,35 @@
     }
   }
 }
+
+/* Mapa do Território (P15): marcadores de equipamento com letra (sem fontes de terceiros). */
+@layer components {
+  .marcador-equipamento {
+    display: inline-flex;
+    height: 22px;
+    width: 22px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    border: 2px solid var(--color-fundo);
+    background: var(--color-primaria-escura);
+    color: var(--color-fundo);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .marcador-saude {
+    background: var(--color-sucesso);
+  }
+  .marcador-assistencia {
+    background: var(--color-alerta);
+  }
+  .marcador-legenda {
+    height: 18px;
+    width: 18px;
+    font-size: 10px;
+  }
+  .mapa-sii .maplibregl-ctrl-attrib {
+    font-size: 12px;
+  }
+}

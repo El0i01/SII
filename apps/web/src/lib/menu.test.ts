@@ -6,7 +6,12 @@ const rotulos = (perfil: Parameters<typeof menuDoPerfil>[0], escopos = []) =>
 describe('menuDoPerfil', () => {
   it('CTI vê tudo, nos grupos do protótipo (grupo vazio some)', () => {
     const m = menuDoPerfil('ADMIN_CTI');
-    expect(m.map((g) => g.grupo)).toEqual(['Acompanhamento', 'Ciclos de vida', 'Gestão']);
+    expect(m.map((g) => g.grupo)).toEqual([
+      'Acompanhamento',
+      'Ciclos de vida',
+      'Território',
+      'Gestão',
+    ]);
     expect(rotulos('ADMIN_CTI')).toEqual([
       'Visão geral',
       'Ficha da criança',
@@ -15,6 +20,7 @@ describe('menuDoPerfil', () => {
       'Avisos',
       'Pauta do Comitê',
       'Busca ativa escolar',
+      'Território',
       'Cargas de dados',
       'Revisão de vínculos',
       'Acessos a dado pessoal',
@@ -28,6 +34,7 @@ describe('menuDoPerfil', () => {
       'Frequência da turma',
       'Avisos',
       'Busca ativa escolar',
+      'Território',
     ]);
     expect(rotulos('CRAS_TECNICO')).toEqual([
       'Visão geral',
@@ -35,10 +42,11 @@ describe('menuDoPerfil', () => {
       'Notificações à Assistência',
       'Avisos',
       'Busca ativa escolar',
+      'Território',
     ]);
-    expect(rotulos('AUDITOR_TCE')).toEqual(['Visão geral', 'Busca ativa escolar']);
+    expect(rotulos('AUDITOR_TCE')).toEqual(['Visão geral', 'Busca ativa escolar', 'Território']);
     expect(rotulos('DPO')).toEqual(['Acessos a dado pessoal']);
-    expect(rotulos('FAZENDA')).toEqual(['Avisos']);
+    expect(rotulos('FAZENDA')).toEqual(['Avisos', 'Território']);
   });
   it('tela inicial e item ativo', () => {
     expect(telaInicial('DPO')).toBe('/acessos');

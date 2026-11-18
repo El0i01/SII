@@ -35,3 +35,4 @@ export * from './fichas/ficha';
 export * from './schemas/revelar';
 export * from './casos/busca-ativa';
 export * from './painel/visao-geral';
+export * from './mapa/camadas';

@@ -9,6 +9,7 @@ export const CAMADAS = [
   'lotes',
   'equipamentos',
   'microareas',
+  'ruas',
 ] as const;
 export type Camada = (typeof CAMADAS)[number];
 
@@ -21,15 +22,14 @@ export function toleranciaPorZoom(zoom: number): { faixa: string; tolerancia: nu
   return { faixa: 'z0', tolerancia: 0.001 };
 }
 
-/** SELECT que devolve (geom, props jsonb) de cada camada. */
-export const CONSULTA_CAMADA: Record<Camada, string> = {
-  limite: `SELECT geom, jsonb_build_object('nome', nome, 'codigoIbge', codigo_ibge) AS props
-           FROM territorio.limite_municipal`,
-  setores: `SELECT geom, jsonb_build_object('codigo', codigo, 'nome', nome, 'tipo', tipo) AS props
-            FROM territorio.setor WHERE geom IS NOT NULL`,
-  quadras: `WITH p AS (SELECT pesos FROM indicadores.pesos_ivm ORDER BY versao DESC LIMIT 1)
+/**
+ * Quadras com o IVM vigente (pesos da última versão aprovada). O mapa (P15) também lista as quadras
+ * ainda sem geometria, para a lista alternativa ao mapa.
+ */
+export function consultaQuadras(soComGeometria: boolean): string {
+  return `WITH p AS (SELECT pesos FROM indicadores.pesos_ivm ORDER BY versao DESC LIMIT 1)
             SELECT q.geom, jsonb_build_object(
-                     'codigo', q.codigo, 'setor', s.codigo, 'provisoria', q.provisoria,
+                     'id', q.id, 'codigo', q.codigo, 'setor', s.codigo, 'provisoria', q.provisoria,
                      'ivm', round((
                        (d.renda * (p.pesos->>'renda')::numeric + d.saude * (p.pesos->>'saude')::numeric
                         + d.escola * (p.pesos->>'escola')::numeric + d.imovel * (p.pesos->>'imovel')::numeric
@@ -42,7 +42,16 @@ export const CONSULTA_CAMADA: Record<Camada, string> = {
             LEFT JOIN LATERAL (SELECT * FROM indicadores.dimensao_ivm_quadra x
                                WHERE x.quadra_id = q.id ORDER BY periodo DESC LIMIT 1) d ON true
             LEFT JOIN p ON true
-            WHERE q.geom IS NOT NULL`,
+            ${soComGeometria ? 'WHERE q.geom IS NOT NULL' : ''}`;
+}
+
+/** SELECT que devolve (geom, props jsonb) de cada camada. */
+export const CONSULTA_CAMADA: Record<Camada, string> = {
+  limite: `SELECT geom, jsonb_build_object('nome', nome, 'codigoIbge', codigo_ibge) AS props
+           FROM territorio.limite_municipal`,
+  setores: `SELECT geom, jsonb_build_object('codigo', codigo, 'nome', nome, 'tipo', tipo) AS props
+            FROM territorio.setor WHERE geom IS NOT NULL`,
+  quadras: consultaQuadras(true),
   lotes: `SELECT l.geom, jsonb_build_object('quadra', q.codigo, 'numero', l.numero, 'situacao', l.situacao) AS props
           FROM territorio.lote l JOIN territorio.quadra q ON q.id = l.quadra_id WHERE l.geom IS NOT NULL`,
   equipamentos: `SELECT e.geom, jsonb_strip_nulls(jsonb_build_object(
@@ -52,4 +61,6 @@ export const CONSULTA_CAMADA: Record<Camada, string> = {
                  WHERE e.geom IS NOT NULL`,
   microareas: `SELECT geom, jsonb_build_object('codigo', codigo, 'nome', nome) AS props
                FROM territorio.area_referencia WHERE tipo = 'MICROAREA' AND geom IS NOT NULL`,
+  ruas: `SELECT geom, jsonb_strip_nulls(jsonb_build_object('nome', nome, 'tipo', tipo)) AS props
+         FROM territorio.logradouro WHERE geom IS NOT NULL`,
 };
